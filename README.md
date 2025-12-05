@@ -2,7 +2,7 @@
 
 **AI 기반 프론트엔드 테스트 자동화 파트너**
 
-`@rencar-dev/prompt`는 프론트엔드 코드를 분석하여, AI(Claude, Cursor, ChatGPT)에게 테스트 작성을 요청하기 위한 **최적화된 프롬프트를 생성해주는 CLI 도구**입니다.
+`@hsna/prompt`는 프론트엔드 코드를 분석하여, AI(Claude, Cursor, ChatGPT)에게 테스트 작성을 요청하기 위한 **최적화된 프롬프트를 생성해주는 CLI 도구**입니다.
 
 복잡한 컨텍스트 설정, 파일 읽기, 포맷팅을 자동화하여 **"명령어 입력 → AI에게 붙여넣기"** 만으로 테스트 코드를 생산할 수 있습니다.
 
@@ -21,11 +21,17 @@
 
 ```bash
 # 1. 프로젝트 초기 설정 (최초 1회)
-npx @rencar-dev/prompt init
+npx @hsna/prompt init
 
 # 2. ATDD 시나리오 생성 요청
-npx @rencar-dev/prompt atdd src/app/login/page.tsx
+npx @hsna/prompt atdd src/app/login/page.tsx
 ```
+
+> **💡 경로에 특수문자(괄호, 공백 등)가 포함된 경우 따옴표로 감싸세요:**
+> ```bash
+> npx @hsna/prompt atdd "app/(public)/user/login/page.tsx"
+> npx @hsna/prompt plan "src/components/My Component.tsx"
+> ```
 
 ---
 
@@ -35,7 +41,7 @@ npx @rencar-dev/prompt atdd src/app/login/page.tsx
 프로젝트의 기술 스택(Framework, Testing Library, Path Alias 등)을 분석하기 위한 프롬프트를 생성합니다.
 
 ```bash
-npx @rencar-dev/prompt init
+npx @hsna/prompt init
 ```
 - **Output**: `project-convention-scanner.md` 내용 복사
 - **Action**: AI에게 붙여넣고, 결과물인 `project-manifest.yaml`을 루트에 저장하세요.
@@ -47,25 +53,34 @@ npx @rencar-dev/prompt init
 > 코드의 내부 구현 방식보다는 **"사용자가 어떤 행동을 했을 때 무엇이 보여야 하는가(Given-When-Then)"**에 집중하여 비즈니스 요구사항을 검증하는 테스트입니다.
 
 ```bash
-npx @rencar-dev/prompt atdd <source_path>
+npx @hsna/prompt atdd <source_path>
 ```
-- **Example**: `npx @rencar-dev/prompt atdd app/(auth)/login/page.tsx`
+- **Example**: 
+  ```bash
+  npx @hsna/prompt atdd app/login/page.tsx
+  npx @hsna/prompt atdd "app/(auth)/login/page.tsx"  # 특수문자 포함 시 따옴표 사용
+  ```
 - **Output**: 소스 코드 + ATDD 생성 프롬프트 결합 후 복사
 
 ### 3. `plan`
 작성된 ATDD 시나리오를 바탕으로 **테스트 라우팅(Unit vs UI vs E2E)** 계획을 수립합니다.
 
 ```bash
-npx @rencar-dev/prompt plan <source_path>
+npx @hsna/prompt plan <source_path>
 ```
-- **Prerequisite**: 같은 경로(또는 `_tests`)에 `.atdd.md` 파일이 있어야 더 정확합니다.
+- **Example**: 
+  ```bash
+  npx @hsna/prompt plan app/login/page.tsx
+  npx @hsna/prompt plan "app/(public)/user/login/page.tsx"  # 특수문자 포함 시 따옴표 사용
+  ```
+- **Prerequisite**: 같은 경로(또는 `project-manifest.yaml`의 `testPaths.dirName` 설정)에 `.atdd.md` 파일이 있어야 합니다.
 - **Output**: ATDD 파일 + 소스 코드 + Routing 프롬프트 결합 후 복사
 
 ### 4. `gen`
 실제 **테스트 코드(Spec)** 작성을 요청합니다. 설계된 Plan에 따라 UI 테스트와 Unit 테스트를 구분해 요청하세요.
 
 ```bash
-npx @rencar-dev/prompt gen <source_path> [options]
+npx @hsna/prompt gen <source_path> [options]
 ```
 
 **Options:**
@@ -74,10 +89,11 @@ npx @rencar-dev/prompt gen <source_path> [options]
 
 ```bash
 # UI 테스트 생성 (기본값)
-npx @rencar-dev/prompt gen app/login/page.tsx
+npx @hsna/prompt gen app/login/page.tsx
+npx @hsna/prompt gen "app/(public)/user/login/page.tsx"  # 특수문자 포함 시 따옴표 사용
 
 # Unit 테스트 생성
-npx @rencar-dev/prompt gen libs/utils/date.ts --type unit
+npx @hsna/prompt gen libs/utils/date.ts --type unit
 ```
 
 ---
@@ -87,9 +103,9 @@ npx @rencar-dev/prompt gen libs/utils/date.ts --type unit
 AI와 함께하는 개발 사이클은 다음과 같습니다.
 
 1.  **Code**: 기능을 구현합니다. (예: `Login.tsx`)
-2.  **ATDD**: `npx @rencar-dev/prompt atdd Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.atdd.md` 저장
-3.  **Plan**: `npx @rencar-dev/prompt plan Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test-plan.md` 저장
-4.  **Test**: `npx @rencar-dev/prompt gen Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test.tsx` 저장 & 실행
+2.  **ATDD**: `npx @hsna/prompt atdd Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.atdd.md` 저장
+3.  **Plan**: `npx @hsna/prompt plan Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test-plan.md` 저장
+4.  **Test**: `npx @hsna/prompt gen Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test.tsx` 저장 & 실행
 
 ---
 
@@ -115,7 +131,7 @@ npm install
 npm link
 
 # 아무 경로에서나 실행 가능
-rencar-prompt atdd ...
+prompt atdd ...
 ```
 
 ### Release Strategy (GitHub Flow)
