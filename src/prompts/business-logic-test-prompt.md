@@ -216,6 +216,10 @@ vi.mock('@/constants', async () => {
 
 // ✅ Best: Mock하지 않기 (상수는 부작용 없음)
 import { ERROR_CODE } from '@/constants';
+
+### 5.1.2 Vitest hoisting 리마인드
+
+`vi.mock` 팩토리는 파일 최상단으로 hoist된다. 팩토리 밖 변수/상수를 참조하면 TDZ 에러가 발생하므로 팩토리 내부에서 mock 객체를 생성하거나 `vi.hoisted`를 사용한다.
 ```
 
 ---

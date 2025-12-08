@@ -310,6 +310,23 @@ vi.mock('react-datepicker', () => ({
 - [ ] 순수 함수를 Mock하지 않았는가?
 - [ ] 자체 UI 컴포넌트를 Mock하지 않았는가?
 
+### 4.4.5 Vitest hoisting 주의
+
+`vi.mock` 팩토리는 파일 최상단으로 hoist된다. 팩토리 밖 변수/상수를 참조하면 TDZ 에러가 발생한다. 반드시 팩토리 내부에서 mock 객체를 생성하거나 `vi.hoisted` 블록을 사용한다.
+
+- ❌ Bad:
+```typescript
+const mockStorage = { getItem: vi.fn() };
+vi.mock('@/utils', () => ({ storage: mockStorage }));
+```
+- ✅ Good:
+```typescript
+vi.mock('@/utils', () => {
+  const mockStorage = { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn() };
+  return { storage: mockStorage };
+});
+```
+
 ### 4.5 Mock 주석 필수 규칙 (Critical)
 
 **모든 Mock에는 반드시 주석을 달아야 한다.**
@@ -434,6 +451,7 @@ beforeEach(() => {
 - ❌ Mutation Hook Mocking
 - ❌ 비즈니스 로직 Mocking
 - ❌ 상수 파일 전체 재정의
+- ❌ className/style 등 스타일 단언
 
 발견 즉시 수정.
 

@@ -44,6 +44,7 @@ UI 테스트는 아래 범위를 포함한다:
 - ❌ DOM 구조 자체 검증(`firstChild`, `innerHTML` 등)
 - ❌ private 구현 검증(내부 변수, 내부 helper 직접 테스트)
 - ❌ CSS/스타일/픽셀 비교 (className, style 등)
+  - ATDD에 색상/여백/간격이 언급돼도 className/style 단언 금지. 상태/로직을 검증하거나 시나리오에서 제외하라.
 - ❌ 순수 비즈니스 로직 검증(= utils 테스트)
 - ❌ **Inline Type Import (`import()`)**:
   - `vi.importActual<typeof import('./store')>` 형태 금지 (ESLint 에러)
@@ -246,6 +247,26 @@ beforeEach(() => {
 - [ ] Mock 이유를 명시했는가?
 - [ ] Mock 범위를 명시했는가?
 - [ ] Mock 값을 명시했는가?
+
+#### (NEW) Vitest hoisting 주의 (Critical)
+
+`vi.mock` 팩토리는 파일 최상단으로 hoist된다. 팩토리 밖에서 선언한 변수를 참조하면 TDZ 에러가 발생하므로 **팩토리 내부에서 Mock 객체를 생성**하거나 `vi.hoisted` 블록을 사용한다.
+
+- ❌ Bad:
+```typescript
+const mockStorage = { getItem: vi.fn() };
+vi.mock('@/utils', () => ({ storage: mockStorage })); // hoist 시 mockStorage 미초기화
+```
+- ✅ Good:
+```typescript
+vi.mock('@/utils', () => {
+  const mockStorage = { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn() };
+  return { storage: mockStorage };
+});
+```
+- ✅ Good (필요 시): `const { mockStorage } = vi.hoisted(() => ({ mockStorage: { … } }));`
+
+여러 테스트에서 동일 mock 심볼을 공유해야 한다면 hoisted 블록 안에서 선언·반환한 후 팩토리 내부에서 재사용한다. 팩토리 외부 mock 변수를 직접 참조하지 말 것.
 
 ---
 

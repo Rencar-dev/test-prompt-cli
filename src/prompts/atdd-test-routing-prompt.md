@@ -48,6 +48,8 @@
 
 (예: `app/(private)/login/_tests/login.test-plan.md`)
 
+> Plan 파일이 해당 경로에 없으면 테스트 생성 단계로 넘어가지 않는다. 경로를 확인하고 저장을 완료할 것.
+
 ---
 
 # 2. 테스트 레벨 정의
@@ -117,6 +119,8 @@ ATDD의 S1~Sn 전체를 아래처럼 분류한다:
 | S2 | TC-02 | 로그인 실패 | Integration | ui-test-implementation | UI error flow |
 | S3 | TC-05 | 비밀번호 validation | Unit | business-logic-test | pure utils |
 | S4 | TC-01 | 로그인 완료 후 홈 이동 | E2E→Integration | ui-test-implementation | router.reset only |
+
+**스타일 전용 시나리오 처리:** 색상/여백/간격/클래스명 등 디자인 결과만 언급된 시나리오는 `Excluded (style-only)`로 명시하고 구현 프롬프트로 넘기지 않는다. 필요 시 “관찰 가능한 동작으로 재서술 필요” 주석을 남긴다.
 
 ---
 
