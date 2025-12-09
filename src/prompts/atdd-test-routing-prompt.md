@@ -16,6 +16,26 @@
 3. **project-manifest.yaml**
 4. (권장) **의존 상수/타입/훅 import 경로**: 대상 소스의 `import` 라인을 그대로 확인해 적는다. 공통 경로(`@/constants` 등)를 추측해 쓰지 말 것.
 5. **✨ Dependency Context (권장)**: 테스트 대상이 의존하는 **타입/인터페이스/Enum 파일 내용**
+
+[ATDD 시나리오]
+<<<
+{{ATDD_CONTENT}}
+>>>
+
+[프로젝트 설정]
+<<<
+```yaml
+{{MANIFEST}}
+```
+>>>
+
+[대상 기능의 소스 파일 경로]
+<<< {{SOURCE_PATH}} >>>
+
+[코드]
+<<<
+{{SOURCE_CODE}}
+>>>
    - 예: `types/User.ts`, `constants/ErrorCode.ts`
    - **목적**: 구현 프롬프트에서 AI가 Mock 데이터 필드명이나 Enum 값을 추측하지 않고 정확하게 명세하도록 하기 위함
 

@@ -24,7 +24,7 @@ describe('prompt core', () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
-      const mockTemplate = 'mock template';
+      const mockTemplate = 'mock template {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
@@ -35,14 +35,11 @@ describe('prompt core', () => {
 
       const result = await generateAtddPrompt(sourcePath);
 
-      expect(result).toContain(mockTemplate);
-      expect(result).toContain('## 입력 데이터');
-      expect(result).toContain('[프로젝트 설정]');
+      // expect(result).toContain(mockTemplate); // Raw template is replaced
+      expect(result).toContain(mockTemplate.replace('{{MANIFEST}}', mockManifest).replace('{{SOURCE_CODE}}', mockSourceCode).replace('{{SOURCE_PATH}}', sourcePath));
       expect(result).toContain(mockManifest);
-      expect(result).toContain('[코드]');
       expect(result).toContain(mockSourceCode);
-      expect(result).toContain('[기능명 또는 파일 경로]');
-      expect(result).toContain(`<<< ${sourcePath} >>>`);
+      expect(result).toContain(sourcePath);
     });
 
     it('Manifest 파일이 없을 때 MANIFEST_NOT_FOUND 에러 발생', async () => {
@@ -67,7 +64,7 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockAtddContent = 'mock atdd content';
-      const mockTemplate = 'mock template';
+      const mockTemplate = 'mock template {{ATDD_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}} {{SOURCE_CODE}}';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
       const mockAtddPath = '/abs/src/app/login/page.atdd.md';
 
@@ -82,15 +79,9 @@ describe('prompt core', () => {
 
       const result = await generatePlanPrompt(sourcePath);
 
-      expect(result).toContain(mockTemplate);
-      expect(result).toContain('## 입력 데이터');
-      expect(result).toContain('[ATDD 시나리오]');
       expect(result).toContain(mockAtddContent);
-      expect(result).toContain('[프로젝트 설정]');
       expect(result).toContain(mockManifest);
-      expect(result).toContain('[대상 기능의 소스 파일 경로]');
-      expect(result).toContain(`<<< ${sourcePath} >>>`);
-      expect(result).toContain('[코드]');
+      expect(result).toContain(sourcePath);
       expect(result).toContain(mockSourceCode);
 
       // Verify arguments passed to mocks
@@ -120,7 +111,7 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template';
+      const mockTemplate = 'mock ui template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
       const mockExecutionGuide = 'mock execution guide';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
@@ -143,18 +134,12 @@ describe('prompt core', () => {
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('test-coding-conventions.md');
 
       // 프롬프트 구조 검증
-      expect(result).toContain(mockTemplate);
-      expect(result).toContain('## 입력 데이터');
-      expect(result).toContain('[참조 문서: 실행 및 환경 가이드]');
+      expect(result).toContain('(아직 기록된 교훈이 없습니다)');
       expect(result).toContain(mockExecutionGuide);
-      expect(result).toContain('[Test Plan]');
       expect(result).toContain(mockPlanContent);
-      expect(result).toContain('[프로젝트 설정]');
       expect(result).toContain(mockManifest);
-      expect(result).toContain('[코드]');
       expect(result).toContain(mockSourceCode);
-      expect(result).toContain('[대상 기능의 소스 파일 경로]');
-      expect(result).toContain(`<<< ${sourcePath} >>>`);
+      expect(result).toContain(sourcePath);
     });
 
     it('Unit 타입일 때 올바른 템플릿과 포맷의 문자열 반환', async () => {
@@ -162,7 +147,7 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock unit template';
+      const mockTemplate = 'mock unit template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
       const mockExecutionGuide = 'mock execution guide';
       const mockAbsolutePath = '/abs/src/utils/date.ts';
       const mockPlanPath = '/abs/src/utils/date.test-plan.md';
@@ -185,18 +170,12 @@ describe('prompt core', () => {
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('test-coding-conventions.md');
 
       // 프롬프트 구조 검증
-      expect(result).toContain(mockTemplate);
-      expect(result).toContain('## 입력 데이터');
-      expect(result).toContain('[참조 문서: 실행 및 환경 가이드]');
+      expect(result).toContain('(아직 기록된 교훈이 없습니다)');
       expect(result).toContain(mockExecutionGuide);
-      expect(result).toContain('[Test Plan]');
       expect(result).toContain(mockPlanContent);
-      expect(result).toContain('[프로젝트 설정]');
       expect(result).toContain(mockManifest);
-      expect(result).toContain('[코드]');
       expect(result).toContain(mockSourceCode);
-      expect(result).toContain('[대상 기능의 소스 파일 경로]');
-      expect(result).toContain(`<<< ${sourcePath} >>>`);
+      expect(result).toContain(sourcePath);
     });
 
     it('기본값이 ui일 때 UI 템플릿 사용', async () => {
@@ -204,7 +183,7 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template';
+      const mockTemplate = 'mock ui template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
       const mockExecutionGuide = 'mock execution guide';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
@@ -224,7 +203,7 @@ describe('prompt core', () => {
 
       // 기본값으로 UI 템플릿 사용 확인
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('ui-test-implementation-prompt.md');
-      expect(result).toContain(mockTemplate);
+      expect(result).toContain('(아직 기록된 교훈이 없습니다)');
     });
 
     it('Plan 파일이 없을 때 PLAN_FILE_NOT_FOUND 에러 발생', async () => {
@@ -255,7 +234,7 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template';
+      const mockTemplate = 'mock ui template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
       const mockExecutionGuide = 'mock execution guide';
       const mockLessons = '## Lessons Learned Content';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
@@ -277,7 +256,7 @@ describe('prompt core', () => {
 
       const result = await generateGenPrompt(sourcePath, 'ui');
 
-      expect(result).toContain('[Lessons Learned: 오답노트]');
+      expect(result).toContain(mockLessons);
       expect(result).toContain(mockLessons);
     });
   });

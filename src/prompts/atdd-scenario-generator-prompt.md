@@ -27,14 +27,20 @@
 - **Chat Interface**: 내용을 추측(Hallucination)하지 말고, 사용자에게 관련 파일의 내용을 요청하십시오.
 
 ```
+[프로젝트 설정]
+<<<
+```yaml
+{{MANIFEST}}
+```
+>>>
+
 [코드]
-<<< 분석 대상 코드 >>>
+<<<
+{{SOURCE_CODE}}
+>>>
 
 [기능명 또는 파일 경로] (필수)
-<<< 예: customer-license 또는 app/(private)/customer/license/page.tsx >>>
-
-[기존 테스트 코드] (선택)
-<<< 관련 테스트 또는 스펙 >>>
+<<< {{SOURCE_PATH}} >>>
 ```
 
 ---

@@ -43,9 +43,35 @@
 
 > 아래 정보가 프롬프트 하단에 제공됩니다.
 
-1. **테스트 대상 전체 소스 코드 (필수)**
-2. **project-manifest.yaml (필수)**
-3. **참조 타입/enum/mapper/schema (선택)**
+[참조 문서: 실행 및 환경 가이드] (Critical)
+<<<
+{{EXECUTION_GUIDE}}
+>>>
+
+[Lessons Learned: 오답노트] (Critical - 반드시 준수)
+<<<
+{{LESSONS_LEARNED}}
+>>>
+
+[Test Plan]
+<<<
+{{PLAN_CONTENT}}
+>>>
+
+[프로젝트 설정]
+<<<
+```yaml
+{{MANIFEST}}
+```
+>>>
+
+[코드]
+<<<
+{{SOURCE_CODE}}
+>>>
+
+[대상 기능의 소스 파일 경로]
+<<< {{SOURCE_PATH}} >>>
 
 ### [Missing Context Handling]
 만약 필요한 타입/상수/의존성 정보가 아래에 제공되지 않았다면:

@@ -31,27 +31,10 @@ export const generateAtddPrompt = async (sourcePath: string): Promise<string> =>
 
   const promptTemplate = await readPromptTemplate('atdd-scenario-generator-prompt.md');
 
-  return `${promptTemplate}
-
----
-
-## 입력 데이터
-
-[프로젝트 설정]
-<<<
-\`\`\`yaml
-${manifestContent}
-\`\`\`
->>>
-
-[코드]
-<<<
-${sourceCode}
->>>
-
-[기능명 또는 파일 경로] (필수)
-<<< ${sourcePath} >>>
-`;
+  return promptTemplate
+    .replace('{{MANIFEST}}', manifestContent)
+    .replace('{{SOURCE_CODE}}', sourceCode)
+    .replace('{{SOURCE_PATH}}', sourcePath);
 };
 
 /**
@@ -77,32 +60,11 @@ export const generatePlanPrompt = async (sourcePath: string): Promise<string> =>
   const atddContent = await readUserFile(atddFilePath);
   const promptTemplate = await readPromptTemplate('atdd-test-routing-prompt.md');
 
-  return `${promptTemplate}
-
----
-
-## 입력 데이터
-
-[ATDD 시나리오]
-<<<
-${atddContent}
->>>
-
-[프로젝트 설정]
-<<<
-\`\`\`yaml
-${manifestContent}
-\`\`\`
->>>
-
-[대상 기능의 소스 파일 경로]
-<<< ${sourcePath} >>>
-
-[코드]
-<<<
-${sourceCode}
->>>
-`;
+  return promptTemplate
+    .replace('{{ATDD_CONTENT}}', atddContent)
+    .replace('{{MANIFEST}}', manifestContent)
+    .replace('{{SOURCE_PATH}}', sourcePath)
+    .replace('{{SOURCE_CODE}}', sourceCode);
 };
 
 /**
@@ -144,42 +106,13 @@ export const generateGenPrompt = async (
     lessonsContent = await fs.readFile(lessonsPath, 'utf-8');
   }
 
-  return `${promptTemplate}
-
----
-
-## 입력 데이터
-
-[참조 문서: 실행 및 환경 가이드] (Critical)
-<<<
-${executionGuide}
->>>
-
-[Lessons Learned: 오답노트] (Critical - 반드시 준수)
-<<<
-${lessonsContent || '(아직 기록된 교훈이 없습니다)'}
->>>
-
-[Test Plan]
-<<<
-${planContent}
->>>
-
-[프로젝트 설정]
-<<<
-\`\`\`yaml
-${manifestContent}
-\`\`\`
->>>
-
-[코드]
-<<<
-${sourceCode}
->>>
-
-[대상 기능의 소스 파일 경로]
-<<< ${sourcePath} >>>
-`;
+  return promptTemplate
+    .replace('{{EXECUTION_GUIDE}}', executionGuide)
+    .replace('{{LESSONS_LEARNED}}', lessonsContent || '(아직 기록된 교훈이 없습니다)')
+    .replace('{{PLAN_CONTENT}}', planContent)
+    .replace('{{MANIFEST}}', manifestContent)
+    .replace('{{SOURCE_CODE}}', sourceCode)
+    .replace('{{SOURCE_PATH}}', sourcePath);
 };
 
 /**

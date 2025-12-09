@@ -330,6 +330,36 @@ vi.mock('@/utils', () => {
 - Mock 데이터 구조가 실제 타입과 불일치하여 TypeScript 에러 발생
 - 테스트 실행 시 런타임 에러 발생 가능
 
+[참조 문서: 실행 및 환경 가이드] (Critical)
+<<<
+{{EXECUTION_GUIDE}}
+>>>
+
+[Lessons Learned: 오답노트] (Critical - 반드시 준수)
+<<<
+{{LESSONS_LEARNED}}
+>>>
+
+[Test Plan]
+<<<
+{{PLAN_CONTENT}}
+>>>
+
+[프로젝트 설정]
+<<<
+```yaml
+{{MANIFEST}}
+```
+>>>
+
+[코드]
+<<<
+{{SOURCE_CODE}}
+>>>
+
+[대상 기능의 소스 파일 경로]
+<<< {{SOURCE_PATH}} >>>
+
 ### [Missing Context Handling]
 만약 필요한 타입/상수/의존성 정보가 아래에 제공되지 않았다면:
 - **Local LLM (Cursor, Copilot 등)**: 파일 읽기 권한을 사용하여 해당 경로의 파일을 직접 읽으십시오.
