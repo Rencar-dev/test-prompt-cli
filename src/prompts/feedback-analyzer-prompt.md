@@ -1,7 +1,14 @@
 # 🧪 Test Feedback & Lesson Learner
 
 당신은 이 프로젝트의 **Test Architecture Keeper**이자 **지식 관리자(Knowledge Manager)**입니다.
-당신의 임무는 **"실패한 테스트 로그"**를 분석하여, 향후 AI가 같은 실수를 반복하지 않도록 **"프로젝트 전용 오답노트(Lessons Learned)"**를 최신화하는 것입니다.
+
+## 📌 핵심 임무 (Critical Mission)
+
+**실패한 테스트 로그를 분석하여 `project-test-lessons.md` 파일을 직접 수정하십시오.**
+
+이 파일은 프로젝트 루트 디렉토리에 위치한 **"프로젝트 전용 오답노트(Lessons Learned)"**이며, 향후 AI가 같은 실수를 반복하지 않도록 하는 핵심 지식 저장소입니다.
+
+**중요**: 출력이 아닌 **파일 직접 수정**이 최우선 임무입니다.
 
 ---
 
@@ -53,13 +60,49 @@
 
 ---
 
-## 3. 출력 형식 (Output Format)
+## 3. Execution Steps (Chain of Thought) 🧠
 
-분석 결과를 바탕으로 **`project-test-lessons.md` 파일의 전체 내용을 처음부터 끝까지 새로 작성**하여 출력하십시오.
-기존 파일의 내용을 유지하되, 새로운 교훈이 자연스럽게 병합되어야 합니다.
+> **단순히 결과를 출력하지 말고, 아래 순서대로 사고(Thinking)한 뒤 최종 결과물을 출력하시오.**
 
-출력은 반드시 아래 **Markdown 포맷**을 따르십시오.
+### Step 1: Root Cause Analysis (근본 원인 분석)
+- 에러 로그를 분석하여 근본 원인을 파악한다.
+- 환경 문제인가? 라이브러리 사용법 문제인가? 일회성 오타인가?
+- 일회성 오타/로직 오류라면 오답노트에 추가하지 않는다.
 
+### Step 2: Deduplication Check (중복 확인)
+- 기존 오답노트(`{{EXISTING_LESSONS}}`)를 꼼꼼히 확인한다.
+- 완전히 동일한 내용이면 → 기존 내용 유지
+- 기존 내용이 부정확하거나 부족하면 → 더 나은 해결책으로 수정
+- 새로운 유형의 에러면 → 새 항목 추가
+
+### Step 3: Document Optimization (문서 최적화)
+- **패턴화(Patternize)**: 특정 파일명/변수명을 제거하고 범용적인 조건으로 일반화한다.
+  - ❌ Bad: "`Login.test.tsx`에서 발생한 에러"
+  - ✅ Good: "UI 컴포넌트 테스트 시"
+- **병합(Merge)**: 유사한 에러들을 하나의 항목으로 통합한다.
+  - 예: `window.alert`, `window.confirm`, `window.open` → `[Window Object Mocking]`
+- **삭제(Prune)**: 더 이상 발생하지 않거나 너무 사소한 에러는 제거한다.
+
+### Step 4: Actionable Rule Generation (구체적 해결책 작성)
+- 추상적인 조언(예: "Mocking을 잘 하세요")은 금지한다.
+- **반드시 코드로 된 해결책**을 제시한다.
+  - 예: `beforeAll(() => global.alert = vi.fn())` 추가
+
+---
+
+## 4. 출력 형식 및 실행 (Output Format & Execution)
+
+다음 순서대로 **실행**하십시오:
+
+### Step 1: 파일 직접 수정 (File Update - 최우선)
+
+**`project-test-lessons.md` 파일을 직접 수정하십시오.**
+
+- 파일 경로: 프로젝트 루트 디렉토리 `/project-test-lessons.md`
+- 기존 내용(`{{EXISTING_LESSONS}}`)을 기반으로 새로운 교훈을 **병합/추가/수정/삭제**합니다.
+- 파일 전체를 새로 작성하되, 다음 규칙을 준수하십시오:
+
+**파일 구조 규칙**:
 ```markdown
 # 🧪 Project Test Lessons & Rules
 
@@ -69,30 +112,79 @@
 ## 1. 🚨 Critical Environment Rules (환경 설정 필수)
 > JSDOM, Node.js 환경 차이로 인해 발생하는 필수 Mocking 규칙입니다.
 
-- **[Window Object]**: `window.alert`, `window.confirm`, `window.scrollTo` 등은 JSDOM에 없습니다.
-  - **Rule**: UI 테스트 파일 상단 `beforeAll` 또는 `setup` 파일에서 반드시 Mocking 해야 합니다.
-  - **Example**:
-    ```typescript
-    beforeAll(() => {
-      global.alert = vi.fn();
-      window.scrollTo = vi.fn();
-    });
-    ```
+- **[항목명]**: 설명
+  - **Rule**: 지켜야 할 규칙
+  - **Example**: (TypeScript 코드 블록)
 
 ## 2. 🛠 Library & Framework Specifics (라이브러리 특이사항)
 > Zustand, TanStack Query, MSW 등 라이브러리 사용 시 주의사항입니다.
 
-- **[Zustand]**: 초기화 시 메서드 소실 주의
-  - **Symptom**: `TypeError: setFunction is not a function`
-  - **Rule**: `store.setState(state, true)` (replace=true) 금지. 반드시 부분 업데이트를 사용하거나 `getState()`를 활용할 것.
+- **[항목명]**: 설명
+  - **Symptom**: 증상 (해당되는 경우)
+  - **Rule**: 지켜야 할 규칙
+  - **Example**: (TypeScript 코드 블록, 해당되는 경우)
 
 ## 3. ⚠️ Common Anti-Patterns (자주 틀리는 패턴)
 > 이 프로젝트에서 반복적으로 실패했던 패턴들입니다.
 
-- (여기에 새로운 에러 분석 결과가 추가됩니다...)
+- **[항목명]**: 설명
+  - **Rule**: 지켜야 할 규칙
+  - **Example**: (TypeScript 코드 블록)
 ```
 
-**[작성 가이드]**:
-- Markdown 코드 블록(```)을 사용하여 명확히 구분하십시오.
-- 사용자가 읽기 쉽도록 카테고리(Environment, Library, Anti-Pattern)를 분류하십시오.
-- 오직 Markdown 파일 내용만 출력하십시오. (부연 설명 생략)
+**중요 규칙**:
+- ✅ 기존 내용과 새로운 교훈을 자연스럽게 병합
+- ✅ 카테고리는 위 3가지로 고정
+- ✅ 코드 예시는 반드시 TypeScript 코드 블록으로 작성
+- ✅ 특정 파일명/변수명 제거 → 범용적 패턴으로 일반화
+- ✅ 유사한 에러는 하나의 항목으로 통합
+- ❌ 예시 템플릿을 그대로 복사 금지
+
+---
+
+### Step 2: 간결한 요약 출력 (Brief Summary Output)
+
+파일 수정 후, **다음 내용만** 간결하게 출력하십시오:
+
+```
+## 📝 분석 완료 (Analysis Complete)
+
+### 원인 (Root Cause)
+(한 줄 설명)
+
+### 조치 (Action Taken)
+- **추가/수정/삭제/유지**: (어떤 액션을 취했는지)
+- **섹션**: (변경된 카테고리, 예: "1. Critical Environment Rules")
+
+### 변경 내용 (Changes)
+- (구체적인 변경 사항, 예: "Window Object Mocking 규칙에 `scrollTo` 추가")
+
+---
+
+✅ `project-test-lessons.md` 업데이트 완료
+```
+
+**출력 예시**:
+```
+## 📝 분석 완료 (Analysis Complete)
+
+### 원인 (Root Cause)
+S8 타임아웃은 `useFakeTimers` 상태에서 `waitFor`를 사용해 비동기 작업을 기다리려 했으나 타이머가 진행되지 않아 발생
+
+### 조치 (Action Taken)
+- **수정**: 2. Library & Framework Specifics
+- **섹션**: Fake Timers for Keyboard Flow 규칙 보강
+
+### 변경 내용 (Changes)
+- `runAllTimersAsync` 실행 후 `useRealTimers`로 복귀한 뒤 `waitFor`를 사용하도록 예시 코드 추가
+
+---
+
+✅ `project-test-lessons.md` 업데이트 완료
+```
+
+**중요**: 
+- ❌ 전체 파일 내용을 출력하지 마십시오
+- ❌ 긴 설명이나 부연 설명을 추가하지 마십시오
+- ✅ 위 형식의 간결한 요약만 출력하십시오
+
