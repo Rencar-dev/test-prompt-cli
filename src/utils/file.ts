@@ -71,4 +71,21 @@ export const getTestPathsConfig = async (): Promise<{ dirName: string; atddSuffi
   }
 };
 
+/**
+ * project-manifest.yaml에서 testCommand 설정을 읽어옵니다.
+ * @returns testCommand 문자열 (없으면 기본값 'npm test --' 반환)
+ */
+export const getTestCommandConfig = async (): Promise<string> => {
+  try {
+    const manifestContent = await readManifest();
+    const manifest = yaml.load(manifestContent) as {
+      testCommand?: string;
+    };
+
+    return manifest.testCommand || 'npm test --';
+  } catch {
+    return 'npm test --';
+  }
+};
+
 

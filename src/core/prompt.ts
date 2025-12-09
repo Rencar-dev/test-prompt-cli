@@ -137,6 +137,13 @@ export const generateGenPrompt = async (
   const promptTemplate = await readPromptTemplate(templateFileName);
   const executionGuide = await readPromptTemplate('test-coding-conventions.md');
 
+  // Lessons Learned 파일 읽기 (선택적)
+  const lessonsPath = 'project-test-lessons.md';
+  let lessonsContent = '';
+  if (await fs.pathExists(lessonsPath)) {
+    lessonsContent = await fs.readFile(lessonsPath, 'utf-8');
+  }
+
   return `${promptTemplate}
 
 ---
@@ -146,6 +153,11 @@ export const generateGenPrompt = async (
 [참조 문서: 실행 및 환경 가이드] (Critical)
 <<<
 ${executionGuide}
+>>>
+
+[Lessons Learned: 오답노트] (Critical - 반드시 준수)
+<<<
+${lessonsContent || '(아직 기록된 교훈이 없습니다)'}
 >>>
 
 [Test Plan]
@@ -168,5 +180,21 @@ ${sourceCode}
 [대상 기능의 소스 파일 경로]
 <<< ${sourcePath} >>>
 `;
+};
+
+/**
+ * Learn 프롬프트 생성 로직
+ * - 실패한 코드, 에러 로그, 기존 오답노트를 조합하여 분석 프롬프트 생성
+ */
+export const generateLearnPrompt = async (
+  failedCode: string,
+  errorLog: string,
+  existingLessons: string
+): Promise<string> => {
+  const template = await readPromptTemplate('feedback-analyzer-prompt.md');
+  return template
+    .replace('{{FAILED_CODE}}', failedCode)
+    .replace('{{ERROR_LOG}}', errorLog)
+    .replace('{{EXISTING_LESSONS}}', existingLessons);
 };
 

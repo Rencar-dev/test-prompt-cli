@@ -24,7 +24,7 @@
 
 ## 3. 분석 체크리스트
 1. **프레임워크/번들러**: Next.js, Vite, CRA 등과 버전을 파악한다.
-2. **테스트 러너**: `vitest`, `jest` 등 의존성을 확인하고 없으면 러너+환경(`jsdom`, `node`)을 제안한다.
+2. **테스트 러너**: `vitest`, `jest` 등 의존성을 확인하고 없으면 러너+환경(`jsdom`, `node`)을 제안한다. 또한 `scripts`에서 `test` 명령어를 확인한다.
 3. **경로 별칭**: `tsconfig.compilerOptions.paths`에서 대표 alias 1~2개만 추린다.
 4. **상태/데이터 라이브러리**: zustand, redux, recoil, tanstack-query, msw 등을 기록하고 필요한 Provider·Mock 전략을 적는다.
 5. **스타일/컨벤션**: tailwind, styled-components 등 셀렉터 전략에 영향을 주는 요소를 적는다.
@@ -55,6 +55,7 @@ apiMocking: "MSW"
 router: "Next.js App Router"
 
 devServerCommand: "npm run dev" # package.json scripts 분석
+testCommand: "npm test --" # package.json scripts 분석 (test, test:unit 등)
 baseUrl: "http://localhost:3000" # vite.config 또는 next output 분석
 
 # API Configuration (from .env.development)

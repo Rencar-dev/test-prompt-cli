@@ -8,6 +8,8 @@ import { atddCommand } from './commands/atdd.js';
 import { planCommand } from './commands/plan.js';
 import { genCommand } from './commands/gen.js';
 
+import { learnCommand } from './commands/learn.js';
+
 // package.json 읽어서 버전 표시 (ESM 환경)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +29,7 @@ program.addCommand(initCommand);
 program.addCommand(atddCommand);
 program.addCommand(planCommand);
 program.addCommand(genCommand);
+program.addCommand(learnCommand);
 
 program.parse(process.argv);
 

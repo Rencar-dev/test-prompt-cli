@@ -83,4 +83,51 @@ describe('file utils', () => {
       });
     });
   });
+
+  describe('getTestCommandConfig', () => {
+    it('manifest의 testCommand 설정을 반환한다', async () => {
+      const mockManifest = {
+        testCommand: 'yarn test:unit',
+      };
+
+      vi.spyOn(fs, 'readFile').mockImplementation(async (filePath) => {
+        if (String(filePath).endsWith('project-manifest.yaml')) {
+          return yaml.dump(mockManifest);
+        }
+        throw new Error(`ENOENT: ${filePath}`);
+      });
+
+      const { getTestCommandConfig } = await import('./file.js');
+      const command = await getTestCommandConfig();
+
+      expect(command).toBe('yarn test:unit');
+    });
+
+    it('manifest에 testCommand가 없으면 기본값을 반환한다', async () => {
+      const mockManifest = {};
+
+      vi.spyOn(fs, 'readFile').mockImplementation(async (filePath) => {
+        if (String(filePath).endsWith('project-manifest.yaml')) {
+          return yaml.dump(mockManifest);
+        }
+        throw new Error(`ENOENT: ${filePath}`);
+      });
+
+      const { getTestCommandConfig } = await import('./file.js');
+      const command = await getTestCommandConfig();
+
+      expect(command).toBe('npm test --');
+    });
+
+    it('manifest 읽기 실패 시 기본값을 반환한다', async () => {
+      vi.spyOn(fs, 'readFile').mockImplementation(async () => {
+        throw new Error('No manifest');
+      });
+
+      const { getTestCommandConfig } = await import('./file.js');
+      const command = await getTestCommandConfig();
+
+      expect(command).toBe('npm test --');
+    });
+  });
 });

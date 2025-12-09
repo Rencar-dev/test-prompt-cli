@@ -44,7 +44,9 @@ npx @hsna/prompt atdd src/app/login/page.tsx
 npx @hsna/prompt init
 ```
 - **Output**: `project-convention-scanner.md` 내용 복사
-- **Action**: AI에게 붙여넣고, 결과물인 `project-manifest.yaml`을 루트에 저장하세요.
+- **Action**: 
+  1. AI에게 붙여넣고, 결과물인 `project-manifest.yaml`을 루트에 저장하세요.
+  2. 자동으로 생성된 `project-test-lessons.md` 파일을 확인하세요. (AI 오답노트)
 
 ### 2. `atdd`
 구현된 소스 코드를 분석하여 **수용 테스트(Acceptance Test) 시나리오** 설계를 요청합니다.
@@ -96,6 +98,22 @@ npx @hsna/prompt gen "app/(public)/user/login/page.tsx"  # 특수문자 포함 �
 npx @hsna/prompt gen libs/utils/date.ts --type unit
 ```
 
+### 5. `learn` (New!)
+테스트 실패 로그를 분석하여 **"오답노트(Lessons Learned)"**를 갱신합니다.
+AI가 스스로 실수를 교정하고, 다음 테스트 생성 시 더 높은 정확도를 갖게 합니다.
+
+```bash
+npx @hsna/prompt learn <source_path>
+```
+- **Process**:
+  1. 해당 소스 파일의 테스트(`npm test ...`)를 자동으로 실행합니다.
+  2. 테스트가 **실패**하면, 에러 로그와 소스 코드를 분석하는 프롬프트를 생성합니다.
+  3. AI에게 붙여넣으면, AI가 `project-test-lessons.md`에 교훈을 추가합니다.
+- **Example**:
+  ```bash
+  npx @hsna/prompt learn src/app/login/page.tsx
+  ```
+
 ---
 
 ## 🔄 Workflow
@@ -106,6 +124,7 @@ AI와 함께하는 개발 사이클은 다음과 같습니다.
 2.  **ATDD**: `npx @hsna/prompt atdd Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.atdd.md` 저장
 3.  **Plan**: `npx @hsna/prompt plan Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test-plan.md` 저장
 4.  **Test**: `npx @hsna/prompt gen Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test.tsx` 저장 & 실행
+5.  **Learn (If Failed)**: `npx @hsna/prompt learn Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `project-test-lessons.md` 업데이트 ➡️ **Retry Step 4**
 
 ---
 
