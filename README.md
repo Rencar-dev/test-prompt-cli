@@ -98,7 +98,7 @@ npx @hsna/prompt gen "app/(public)/user/login/page.tsx"  # 특수문자 포함 �
 npx @hsna/prompt gen libs/utils/date.ts --type unit
 ```
 
-### 5. `learn` (New!)
+### 5. `learn`
 테스트 실패 로그를 분석하여 **"오답노트(Lessons Learned)"**를 갱신합니다.
 AI가 스스로 실수를 교정하고, 다음 테스트 생성 시 더 높은 정확도를 갖게 합니다.
 
