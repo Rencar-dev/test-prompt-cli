@@ -88,6 +88,7 @@ export const findTestFile = async (sourcePath: string): Promise<string | null> =
   const absolutePath = resolveUserPath(sourcePath);
   const dir = path.dirname(absolutePath);
   const baseName = path.basename(absolutePath, path.extname(absolutePath));
+  const dirName = path.basename(dir);
 
   // project-manifest.yaml에서 testPaths 설정 읽기
   const testPaths = await getTestPathsConfig();
@@ -101,11 +102,13 @@ export const findTestFile = async (sourcePath: string): Promise<string | null> =
   // 1. Co-location (같은 폴더)
   extensions.forEach(ext => {
     candidates.push(path.join(dir, `${baseName}${ext}`));
+    candidates.push(path.join(dir, `${dirName}${ext}`));
   });
 
   // 2. Configured Test Directory (예: _tests, __tests__)
   extensions.forEach(ext => {
     candidates.push(path.join(dir, testPaths.dirName, `${baseName}${ext}`));
+    candidates.push(path.join(dir, testPaths.dirName, `${dirName}${ext}`));
   });
 
   // 첫 번째로 존재하는 파일 반환

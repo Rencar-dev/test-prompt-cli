@@ -239,7 +239,7 @@ describe('locator', () => {
       });
     };
 
-    it('같은 디렉토리에서 테스트 파일을 찾는다', async () => {
+    it('같은 디렉토리에서 baseName 기반 테스트 파일을 찾는다', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const expectedTestPath = path.join(mockCwd, 'src/app/login', 'page.test.tsx');
 
@@ -259,9 +259,49 @@ describe('locator', () => {
       expect(result).toBe(expectedTestPath);
     });
 
-    it('설정된 테스트 폴더에서 테스트 파일을 찾는다', async () => {
+    it('같은 디렉토리에서 dirName 기반 테스트 파일을 찾는다', async () => {
+      const sourcePath = 'src/app/login/page.tsx';
+      const expectedTestPath = path.join(mockCwd, 'src/app/login', 'login.test.tsx');
+
+      mockManifestRead({
+        testPaths: {
+          dirName: '_tests',
+        },
+      });
+
+      vi.spyOn(fs, 'pathExists').mockImplementation(async (filePath: string) => {
+        return filePath === expectedTestPath;
+      });
+
+      const { findTestFile } = await import('./locator.js');
+      const result = await findTestFile(sourcePath);
+
+      expect(result).toBe(expectedTestPath);
+    });
+
+    it('testPaths.dirName 폴더에서 baseName 기반 테스트 파일을 찾는다', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const expectedTestPath = path.join(mockCwd, 'src/app/login', '_tests', 'page.test.tsx');
+
+      mockManifestRead({
+        testPaths: {
+          dirName: '_tests',
+        },
+      });
+
+      vi.spyOn(fs, 'pathExists').mockImplementation(async (filePath: string) => {
+        return filePath === expectedTestPath;
+      });
+
+      const { findTestFile } = await import('./locator.js');
+      const result = await findTestFile(sourcePath);
+
+      expect(result).toBe(expectedTestPath);
+    });
+
+    it('testPaths.dirName 폴더에서 dirName 기반 테스트 파일을 찾는다', async () => {
+      const sourcePath = 'src/app/login/page.tsx';
+      const expectedTestPath = path.join(mockCwd, 'src/app/login', '_tests', 'login.test.tsx');
 
       mockManifestRead({
         testPaths: {
