@@ -288,7 +288,189 @@ vi.mock('@/utils', () => {
 **핵심 원칙**:
 👉 **오직 "사용자 행동(Interaction) → 상태 변화(State Change) → UI 결과(Outcome)"만 검증하시오.**
 
-이 프롬프트는 어디까지나 **“사용자 관점의 UI 동작”**만 테스트한다.
+이 프롬프트는 어디까지나 **"사용자 관점의 UI 동작"**만 테스트한다.
+
+---
+
+## 2.3 Functional Page Object Model (POM) 패턴 (Critical)
+
+> **목적**: UI 변경 시 테스트 유지보수 비용을 획기적으로 줄이고, 테스트 코드의 재사용성을 높인다.
+
+### 2.3.1 POM 패턴 핵심 원칙
+
+**선택자(Selector)와 행위(Action)를 분리하라.**
+
+- ❌ **Bad**: `test()` 블록 내부에 구현 세부사항(선택자, DOM 구조)이 노출됨
+```typescript
+test('로그인 성공 시나리오', async () => {
+  const usernameInput = screen.getByRole('textbox', { name: /아이디/ });
+  const passwordInput = screen.getByLabelText('비밀번호');
+  const submitButton = screen.getByRole('button', { name: '로그인' });
+  
+  await user.type(usernameInput, 'testuser');
+  await user.type(passwordInput, 'password123');
+  await user.click(submitButton);
+  
+  expect(screen.getByText('환영합니다')).toBeInTheDocument();
+});
+```
+
+- ✅ **Good**: `test()` 블록에는 비즈니스 행위만 드러나고, 구현은 Page Object로 분리됨
+```typescript
+// Page Object (테스트 파일 상단 또는 별도 파일)
+const loginPage = {
+  elements: {
+    getUsernameInput: () => screen.getByRole('textbox', { name: /아이디/ }),
+    getPasswordInput: () => screen.getByLabelText('비밀번호'),
+    getSubmitButton: () => screen.getByRole('button', { name: '로그인' }),
+    getWelcomeMessage: () => screen.getByText('환영합니다'),
+  },
+  
+  actions: {
+    async login(username: string, password: string) {
+      await user.type(this.elements.getUsernameInput(), username);
+      await user.type(this.elements.getPasswordInput(), password);
+      await user.click(this.elements.getSubmitButton());
+    },
+  },
+};
+
+// Test
+test('로그인 성공 시나리오', async () => {
+  // Given
+  render(<LoginPage />);
+  
+  // When
+  await loginPage.actions.login('testuser', 'password123');
+  
+  // Then
+  expect(loginPage.elements.getWelcomeMessage()).toBeInTheDocument();
+});
+```
+
+### 2.3.2 POM 구조 가이드
+
+**1. Elements (요소 정의)**
+```typescript
+const somePage = {
+  elements: {
+    // ✅ Good: 함수로 정의 (매번 새로운 요소 찾기)
+    getUsernameInput: () => screen.getByRole('textbox', { name: /아이디/ }),
+    
+    // ❌ Bad: 변수로 정의 (stale reference 위험)
+    usernameInput: screen.getByRole('textbox', { name: /아이디/ }),
+  },
+};
+```
+
+**2. Actions (행위 정의)**
+```typescript
+const somePage = {
+  elements: { /* ... */ },
+  
+  actions: {
+    // ✅ 조립 가능한 액션 단위로 분리
+    async fillUsername(username: string) {
+      await user.type(this.elements.getUsernameInput(), username);
+    },
+    
+    async fillPassword(password: string) {
+      await user.type(this.elements.getPasswordInput(), password);
+    },
+    
+    async clickSubmit() {
+      await user.click(this.elements.getSubmitButton());
+    },
+    
+    // ✅ 복합 액션 (재사용 가능)
+    async login(username: string, password: string) {
+      await this.fillUsername(username);
+      await this.fillPassword(password);
+      await this.clickSubmit();
+    },
+  },
+};
+```
+
+**3. Assertions (검증 헬퍼) - 선택사항**
+```typescript
+const somePage = {
+  elements: { /* ... */ },
+  actions: { /* ... */ },
+  
+  assertions: {
+    expectWelcomeMessage() {
+      expect(this.elements.getWelcomeMessage()).toBeInTheDocument();
+    },
+    
+    expectErrorMessage(message: string) {
+      expect(screen.getByRole('alert')).toHaveTextContent(message);
+    },
+  },
+};
+```
+
+### 2.3.3 POM 적용 시 Self-Check
+
+**구현 전 체크리스트:**
+- [ ] `test()` 블록 내부에 `screen.getBy*`, `user.click` 등의 **직접 호출**이 없는가?
+- [ ] 모든 선택자가 Page Object의 `elements`에 정의되어 있는가?
+- [ ] 반복되는 액션(로그인, 폼 제출 등)이 `actions`으로 추출되어 있는가?
+- [ ] 여러 테스트에서 동일한 Page Object를 재사용할 수 있는가?
+- [ ] UI 텍스트가 변경되어도 **Page Object만 수정**하면 되는가?
+
+### 2.3.4 POM 예외 사항
+
+**다음의 경우 POM을 강제하지 않는다:**
+- 한 번만 사용되는 단순한 단언문 (예: `expect(screen.getByText('저장 완료')).toBeInTheDocument()`)
+- 테스트 파일이 매우 짧고 재사용 가능성이 낮은 경우
+
+**그러나**, 3개 이상의 `test()` 블록에서 동일한 선택자/액션을 사용한다면 **반드시 POM으로 추출**해야 한다.
+
+---
+
+## 2.4 Element Selector Priority (Critical)
+
+> **목적**: 접근성(Accessibility)과 테스트 안정성을 동시에 향상한다.  
+> **참조**: 상세 규칙은 `test-coding-conventions.md`의 "Element Selector Priority" 섹션 참조.
+
+### 2.4.1 선택자 우선순위 (필수 준수)
+
+```
+1순위: getByRole ⭐⭐⭐⭐⭐ (최우선)
+2순위: getByLabelText ⭐⭐⭐⭐
+3순위: getByPlaceholderText ⭐⭐⭐
+4순위: getByText ⭐⭐
+5순위: getByTestId (최후의 수단)
+❌ 절대 금지: querySelector, xpath, getByClassName
+```
+
+### 2.4.2 올바른 사용 예시
+
+```typescript
+// ✅ 1순위: getByRole (항상 우선)
+const submitButton = screen.getByRole('button', { name: /제출/ });
+const usernameInput = screen.getByRole('textbox', { name: /아이디/ });
+
+// ✅ 2순위: getByLabelText (폼 요소)
+const passwordInput = screen.getByLabelText('비밀번호');
+
+// ❌ Bad: data-testid 남발
+const button = screen.getByTestId('submit-button'); // getByRole 사용 가능!
+```
+
+### 2.4.3 Quick Reference: 자주 사용하는 Role
+
+| HTML | Role | 예시 |
+|------|------|------|
+| `<button>` | `button` | `getByRole('button', { name: /클릭/ })` |
+| `<input type="text">` | `textbox` | `getByRole('textbox', { name: /이름/ })` |
+| `<input type="checkbox">` | `checkbox` | `getByRole('checkbox')` |
+| `<a>` | `link` | `getByRole('link', { name: /자세히/ })` |
+
+**Self-Check:**
+- [ ] `querySelector`나 `xpath`를 사용하지 않았는가?
+- [ ] `getByTestId`를 사용했다면, `getByRole`로 대체 가능한지 재검토했는가?
 
 ---
 

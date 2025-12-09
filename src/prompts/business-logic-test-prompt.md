@@ -35,7 +35,71 @@
 ## 1.2 목표
 - **순수 로직 검증 + 분기(Branch) + 경계값(Edge) + 실패(Error)**
 - UI/렌더링/타이밍/사용자 행동과 독립
-- 테스트는 **Deterministic** 해야 한다
+
+## 1.3 품질 기준 (Quality Criteria)
+
+**당신은 15년 차 QA 리드로서, 다음 정량적 기준을 충족하는 테스트만 제공한다:**
+
+### 1.3.1 경곗값 분석 (Boundary Value Analysis)
+
+**필수 요구사항:**
+- 숫자 범위 검증 함수: **최소 6개 케이스** 필수
+  - 최솟값 - 1 (경계 밖)
+  - 최솟값 (경계)
+  - 최솟값 + 1 (경계 안)
+  - 최댓값 - 1 (경계 안)
+  - 최댓값 (경계)
+  - 최댓값 + 1 (경계 밖)
+
+**예시:**
+```typescript
+describe('validateAge', () => {
+  it.each([
+    { input: 17, expected: false, desc: '최솟값 - 1 (경계 밖)' },
+    { input: 18, expected: true, desc: '최솟값 (경계)' },
+    { input: 19, expected: true, desc: '최솟값 + 1 (경계 안)' },
+    { input: 64, expected: true, desc: '최댓값 - 1 (경계 안)' },
+    { input: 65, expected: true, desc: '최댓값 (경계)' },
+    { input: 66, expected: false, desc: '최댓값 + 1 (경계 밖)' },
+  ])('$desc: $input → $expected', ({ input, expected }) => {
+    expect(validateAge(input)).toBe(expected);
+  });
+});
+```
+
+### 1.3.2 it.each 사용 기준
+
+**3개 이상의 유사한 케이스가 있다면 반드시 `it.each` 사용:**
+
+```typescript
+// ❌ Bad: 중복된 테스트
+it('formatPrice(1000) → "1,000원"', () => {
+  expect(formatPrice(1000)).toBe('1,000원');
+});
+it('formatPrice(10000) → "10,000원"', () => {
+  expect(formatPrice(10000)).toBe('10,000원');
+});
+it('formatPrice(100000) → "100,000원"', () => {
+  expect(formatPrice(100000)).toBe('100,000원');
+});
+
+// ✅ Good: it.each로 간결화
+it.each([
+  { input: 1000, expected: '1,000원' },
+  { input: 10000, expected: '10,000원' },
+  { input: 100000, expected: '100,000원' },
+])('formatPrice($input) → "$expected"', ({ input, expected }) => {
+  expect(formatPrice(input)).toBe(expected);
+});
+```
+
+### 1.3.3 Self-Check
+
+**테스트 생성 후 체크리스트:**
+- [ ] 숫자 범위 검증 함수에 최소 6개 경곗값 케이스를 포함했는가?
+- [ ] 3개 이상의 유사한 케이스를 `it.each`로 작성했는가?
+- [ ] 각 테스트 케이스에 명확한 설명(`desc`)을 포함했는가?
+- [ ] 성공 케이스/실패 케이스/경계값/null/undefined를 모두 검증했는가?
 
 ---
 
