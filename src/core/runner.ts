@@ -19,7 +19,7 @@ export interface TestResult {
  */
 export const runTest = async (testFilePath: string, testCommand: string): Promise<TestResult> => {
   const relativeTestPath = path.relative(process.cwd(), testFilePath);
-  const fullCommand = `${testCommand} ${relativeTestPath}`;
+  const fullCommand = `${testCommand} "${relativeTestPath}"`;
 
   logger.info(`🚀 테스트 실행 중... (${fullCommand})`);
 

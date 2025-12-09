@@ -68,5 +68,17 @@ describe('runner', () => {
 
       expect(result.command).toContain(mockCommand);
     });
+
+    it('경로에 특수문자(괄호)가 있을 때 따옴표로 감싼다', async () => {
+      const testFilePath = '/abs/app/(public)/user/login/_tests/login.test.tsx';
+      const mockCommand = 'yarn test';
+      
+      mockExec.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const result = await runTest(testFilePath, mockCommand);
+
+      // 경로가 따옴표로 감싸져야 함
+      expect(result.command).toMatch(/yarn test ".*\(public\).*"/);
+    });
   });
 });
