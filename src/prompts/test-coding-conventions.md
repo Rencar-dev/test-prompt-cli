@@ -1,3 +1,4 @@
+<!-- Source: test-coding-conventions.md -->
 # 📘 Test Coding Conventions & MSW Guide
 
 > **이 문서는 AI가 테스트 코드를 작성할 때 준수해야 할 "구현 규칙"과 "MSW 패턴"을 정의합니다.**  

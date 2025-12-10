@@ -1,3 +1,4 @@
+<!-- Source: ui-test-implementation-prompt.md -->
 # ui-test-implementation-prompt.md
 (Frontend UI Integration Test Prompt — React Testing Library 기반)
 
@@ -10,11 +11,12 @@
 목표는 **UI/사용자 상호작용/상태 변화/데이터 흐름**을 검증하는 것이다.  
 **렌더링 + Interaction + Router 단위 통합 테스트**를 작성한다.
 
-> ❗️단위 로직 테스트(순수 비즈니스 로직)는 이 프롬프트에서 금지  
+> ❗️단위 로직 테스트(순수 비즈니스 로직)는 이 프롬프트에서 금지
 > → `business-logic-test-prompt.md` 사용
->
-> 📘 **참조**: 테스트 실행/환경/MSW 설정에 대한 상세 규칙은  
-> **`tests/test-execution-and-msw-guide.md`** 문서를 따른다.
+
+**📘 공통 규칙 참조**: 이 프롬프트는 `test-coding-conventions.md`와 함께 사용됩니다.
+공통 규칙에 포함된 내용 (Mock 결정 플로우차트, waitFor 규칙, Element Selector Priority, Fake Timer 등)은
+이 문서에서 중복 기술하지 않습니다. 아래는 **UI 테스트에 특화된 규칙**만 기술합니다.
 
 ---
 
@@ -38,7 +40,7 @@ UI 테스트는 아래 범위를 포함한다:
 
 ---
 
-## 2. 절대 포함하지 말 것
+## 2. 절대 포함 금지 항목 정의
 
 - ❌ Snapshot Test
 - ❌ DOM 구조 자체 검증(`firstChild`, `innerHTML` 등)
@@ -50,30 +52,12 @@ UI 테스트는 아래 범위를 포함한다:
   - `vi.importActual<typeof import('./store')>` 형태 금지 (ESLint 에러)
   - 대신 상단에 `import type`을 선언하고 사용한다.
 
-### 2.2 Mocking 전략 (Critical)
+### 2.1 UI 테스트 전용 Mocking 규칙 (Critical)
 
-> 📘 **참조**: 공통 Mock 규칙은 `test-coding-conventions.md`를 참조하세요.  
-> 이 섹션은 **UI 테스트에 특화된** Mock 규칙입니다.
+> **공통 Mock 규칙** (Mock 결정 플로우차트, Mock하지 말아야 하는 것, Vitest hoisting 등)은
+> `test-coding-conventions.md`를 참조하세요. 아래는 **UI 테스트에서 추가로 필요한 Mock**입니다.
 
-#### 2.2.1 Mock 결정 플로우차트
-
-**Mocking 여부를 결정할 때 아래 플로우차트를 따라라:**
-
-```
-Q1: 외부 IO/API인가? (fetch, axios, localStorage, sessionStorage 등)
-  ├─ YES → Q2로
-  └─ NO → Q3로
-
-Q2: 비즈니스 로직을 포함하는가?
-  ├─ YES → ❌ Mock 금지 (MSW 사용)
-  └─ NO → ✅ Mock 허용 (vi.spyOn 또는 vi.mock)
-
-Q3: 테스트 환경에서 제어 불가능한가? (시간, 브라우저 API, 라우터 등)
-  ├─ YES → ✅ Mock 허용
-  └─ NO → ❌ Mock 금지 (실제 코드 사용)
-```
-
-#### 2.2.2 Mock해야 하는 것 (UI 테스트 전용)
+#### 2.1.1 Mock해야 하는 것 (UI 테스트 전용)
 
 **브라우저 API (필수 Mock):**
 
@@ -132,74 +116,7 @@ vi.mock('react-router-dom', () => ({
 }));
 ```
 
-**시간 API (공통 규칙 - test-coding-conventions.md 참조):**
-
-```typescript
-// ✅ 시간 API Mock (필수)
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-```
-
-#### 2.2.3 Mock하지 말아야 하는 것 상세 예시
-
-**상수 파일:**
-
-```typescript
-// ❌ Bad: 상수 파일 전체 재정의
-vi.mock('@/constants', () => ({
-  ERROR_CODE: { INVALID: 101 },
-}));
-
-// ✅ Good: 실제 상수 사용
-import { ERROR_CODE } from '@/constants';
-```
-
-**타입 파일:**
-
-```typescript
-// ❌ Bad: 타입 파일 Mock 시도 (의미 없음)
-vi.mock('@/types/user', () => ({
-  User: { id: number }
-}));
-
-// ✅ Good: 타입은 그냥 import
-import type { User } from '@/types/user';
-```
-
-**순수 함수 (Utils):**
-
-```typescript
-// ❌ Bad: 순수 함수 Mock
-vi.spyOn(utils, 'formatPrice').mockReturnValue('1,000원');
-
-// ✅ Good: 실제 함수 사용
-import { formatPrice } from '@/utils/format';
-```
-
-**UI 컴포넌트:**
-
-```typescript
-// ❌ Bad: 자체 컴포넌트 Mock
-vi.mock('@/components/Button', () => ({
-  Button: () => <div>Mock</div>
-}));
-
-// ✅ Good: 실제 컴포넌트 사용
-import { Button } from '@/components/Button';
-
-// ⚠️ 예외: 서드파티 컴포넌트만 Mock 허용
-vi.mock('react-datepicker', () => ({
-  default: ({ onChange }: any) => <input onChange={onChange} />
-}));
-```
-
-#### 2.2.4 간접 의존성 체크리스트 (Critical)
+#### 2.1.2 간접 의존성 체크리스트 (Critical)
 
 **자식 컴포넌트의 의존성도 반드시 확인하라.**
 
@@ -222,55 +139,9 @@ const { setIsFullScreenContainerUsed } = useFullScreenContainerStore([...]);
 // ↑ 이 store도 Mock에 포함해야 함!
 ```
 
-#### 2.2.5 Mock 주석 필수 규칙
-
-**모든 Mock에는 반드시 주석을 달아야 한다.**
-
-```typescript
-// ✅ Good: 상세한 주석
-// Mock 이유: localStorage는 테스트 환경에서 제어 불가능
-// Mock 범위: Storage.prototype.getItem, setItem
-// Mock 값: getItem은 null 반환, setItem은 무시
-beforeEach(() => {
-  vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {});
-});
-
-// ❌ Bad: 주석 없음
-beforeEach(() => {
-  vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-});
-```
-
-**Self-Check:**
-- [ ] 모든 Mock에 주석을 달았는가?
-- [ ] Mock 이유를 명시했는가?
-- [ ] Mock 범위를 명시했는가?
-- [ ] Mock 값을 명시했는가?
-
-#### (NEW) Vitest hoisting 주의 (Critical)
-
-`vi.mock` 팩토리는 파일 최상단으로 hoist된다. 팩토리 밖에서 선언한 변수를 참조하면 TDZ 에러가 발생하므로 **팩토리 내부에서 Mock 객체를 생성**하거나 `vi.hoisted` 블록을 사용한다.
-
-- ❌ Bad:
-```typescript
-const mockStorage = { getItem: vi.fn() };
-vi.mock('@/utils', () => ({ storage: mockStorage })); // hoist 시 mockStorage 미초기화
-```
-- ✅ Good:
-```typescript
-vi.mock('@/utils', () => {
-  const mockStorage = { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn() };
-  return { storage: mockStorage };
-});
-```
-- ✅ Good (필요 시): `const { mockStorage } = vi.hoisted(() => ({ mockStorage: { … } }));`
-
-여러 테스트에서 동일 mock 심볼을 공유해야 한다면 hoisted 블록 안에서 선언·반환한 후 팩토리 내부에서 재사용한다. 팩토리 외부 mock 변수를 직접 참조하지 말 것.
-
 ---
 
-### 2.1 Low ROI Testing (비용 대비 효과가 낮은 테스트 금지)
+### 2.2 Low ROI Testing (비용 대비 효과가 낮은 테스트 금지)
 
 유지보수 비용 대비 효과가 낮은 다음 항목은 **절대 테스트하지 마시오**:
 
@@ -292,11 +163,11 @@ vi.mock('@/utils', () => {
 
 ---
 
-## 2.3 Functional Page Object Model (POM) 패턴 (Critical)
+### 2.3 Functional Page Object Model (POM) 패턴 (Critical)
 
 > **목적**: UI 변경 시 테스트 유지보수 비용을 획기적으로 줄이고, 테스트 코드의 재사용성을 높인다.
 
-### 2.3.1 POM 패턴 핵심 원칙
+#### 2.3.1 POM 패턴 핵심 원칙
 
 **선택자(Selector)와 행위(Action)를 분리하라.**
 
@@ -348,7 +219,7 @@ test('로그인 성공 시나리오', async () => {
 });
 ```
 
-### 2.3.2 POM 구조 가이드
+#### 2.3.2 POM 구조 가이드
 
 **1. Elements (요소 정의)**
 ```typescript
@@ -410,7 +281,7 @@ const somePage = {
 };
 ```
 
-### 2.3.3 POM 적용 시 Self-Check
+#### 2.3.3 POM 적용 시 Self-Check
 
 **구현 전 체크리스트:**
 - [ ] `test()` 블록 내부에 `screen.getBy*`, `user.click` 등의 **직접 호출**이 없는가?
@@ -419,7 +290,7 @@ const somePage = {
 - [ ] 여러 테스트에서 동일한 Page Object를 재사용할 수 있는가?
 - [ ] UI 텍스트가 변경되어도 **Page Object만 수정**하면 되는가?
 
-### 2.3.4 POM 예외 사항
+#### 2.3.4 POM 예외 사항
 
 **다음의 경우 POM을 강제하지 않는다:**
 - 한 번만 사용되는 단순한 단언문 (예: `expect(screen.getByText('저장 완료')).toBeInTheDocument()`)
@@ -429,56 +300,11 @@ const somePage = {
 
 ---
 
-## 2.4 Element Selector Priority (Critical)
-
-> **목적**: 접근성(Accessibility)과 테스트 안정성을 동시에 향상한다.  
-> **참조**: 상세 규칙은 `test-coding-conventions.md`의 "Element Selector Priority" 섹션 참조.
-
-### 2.4.1 선택자 우선순위 (필수 준수)
-
-```
-1순위: getByRole ⭐⭐⭐⭐⭐ (최우선)
-2순위: getByLabelText ⭐⭐⭐⭐
-3순위: getByPlaceholderText ⭐⭐⭐
-4순위: getByText ⭐⭐
-5순위: getByTestId (최후의 수단)
-❌ 절대 금지: querySelector, xpath, getByClassName
-```
-
-### 2.4.2 올바른 사용 예시
-
-```typescript
-// ✅ 1순위: getByRole (항상 우선)
-const submitButton = screen.getByRole('button', { name: /제출/ });
-const usernameInput = screen.getByRole('textbox', { name: /아이디/ });
-
-// ✅ 2순위: getByLabelText (폼 요소)
-const passwordInput = screen.getByLabelText('비밀번호');
-
-// ❌ Bad: data-testid 남발
-const button = screen.getByTestId('submit-button'); // getByRole 사용 가능!
-```
-
-### 2.4.3 Quick Reference: 자주 사용하는 Role
-
-| HTML | Role | 예시 |
-|------|------|------|
-| `<button>` | `button` | `getByRole('button', { name: /클릭/ })` |
-| `<input type="text">` | `textbox` | `getByRole('textbox', { name: /이름/ })` |
-| `<input type="checkbox">` | `checkbox` | `getByRole('checkbox')` |
-| `<a>` | `link` | `getByRole('link', { name: /자세히/ })` |
-
-**Self-Check:**
-- [ ] `querySelector`나 `xpath`를 사용하지 않았는가?
-- [ ] `getByTestId`를 사용했다면, `getByRole`로 대체 가능한지 재검토했는가?
-
----
-
-## 3. 입력 데이터 (Input Data)
+## 3. 입력 데이터 수집 (Input Data)
 
 아래 정보가 프롬프트 하단에 제공됩니다.
 
-### 필수 입력:
+### 3.1 필수 입력 확보
 1. **ATDD 시나리오** 또는 **Test Plan**
 2. **테스트 대상 소스 코드** (페이지/컴포넌트/폼)
 3. **project-manifest.yaml**
@@ -542,18 +368,18 @@ const button = screen.getByTestId('submit-button'); // getByRole 사용 가능!
 [대상 기능의 소스 파일 경로]
 <<< {{SOURCE_PATH}} >>>
 
-### [Missing Context Handling]
+### 3.2 Missing Context Handling
 만약 필요한 타입/상수/의존성 정보가 아래에 제공되지 않았다면:
 - **Local LLM (Cursor, Copilot 등)**: 파일 읽기 권한을 사용하여 해당 경로의 파일을 직접 읽으십시오.
 - **Chat Interface**: 내용을 추측(Hallucination)하지 말고, 사용자에게 관련 파일의 내용을 요청하십시오.
 
 ---
 
-## 3.1 입력 데이터 상세
+### 3.3 입력 데이터 상세
 
 아래 규칙에 따라 데이터가 제공됩니다.
 
-### 3.1 대상 UI 컴포넌트 전체 코드
+#### 3.3.1 대상 UI 컴포넌트 전체 코드
 
 - 테스트할 페이지/뷰/컨테이너 컴포넌트의 전체 소스 코드
 - 의존하는 hooks / stores / provider 코드 (또는 경로)
@@ -564,36 +390,9 @@ const button = screen.getByTestId('submit-button'); // getByRole 사용 가능!
     - ❌ **절대 금지**: 상대 경로를 **임의로 Alias(`@/`)로 바꾸지 말 것.** (Hallucination의 주범)
     - **원칙**: "경로의 형태(Alias vs Relative)"는 소스 코드와 동일하게 유지하되, 상대 경로의 깊이만 맞춘다.
 
-### 3.1.2 간접 의존성 확인 (Critical)
+> **Note**: 간접 의존성(자식 컴포넌트가 사용하는 store/hook) 확인은 위 섹션 2.2.2 참조
 
-**자식 컴포넌트의 의존성도 반드시 확인하라.**
-
-- **직접 의존성**: 테스트 대상 컴포넌트가 직접 import하여 사용하는 hooks/stores
-- **간접 의존성**: 테스트 대상 컴포넌트가 사용하는 **자식 컴포넌트**가 내부적으로 사용하는 hooks/stores
-- **확인 방법**:
-  1. 테스트 대상 컴포넌트가 렌더링하는 모든 자식 컴포넌트를 확인
-  2. 각 자식 컴포넌트가 사용하는 store/hook을 확인
-  3. `renderWithProviders`로 렌더링되는 모든 컴포넌트의 의존성을 Mock에 포함
-
-**예시:**
-```typescript
-// LoginPage.tsx
-<FullScreenContainer>  // ← 자식 컴포넌트
-  <LoginForm />
-</FullScreenContainer>
-
-// FullScreenContainer.tsx (자식 컴포넌트)
-const { setIsFullScreenContainerUsed } = useFullScreenContainerStore([...]);
-// ↑ 이 store도 Mock에 포함해야 함!
-```
-
-**체크리스트:**
-- [ ] 테스트 대상 컴포넌트가 직접 사용하는 모든 store/hook을 Mock에 포함했는가?
-- [ ] 테스트 대상 컴포넌트가 렌더링하는 자식 컴포넌트들을 확인했는가?
-- [ ] 각 자식 컴포넌트가 사용하는 store/hook을 확인하고 Mock에 포함했는가?
-- [ ] `renderWithProviders`로 렌더링되는 모든 컴포넌트의 의존성을 확인했는가?
-
-### 2.4 Zustand Store 초기화 규칙 (Critical)
+#### 3.3.2 Zustand Store 초기화 규칙 (Critical)
 
 **Zustand store를 `setState`로 초기화할 때, 두 번째 인자를 `true`로 전달하면 모든 메서드가 사라진다.**
 
@@ -653,7 +452,7 @@ beforeEach(() => {
 - [ ] beforeEach에서 store를 초기화했는가?
 - [ ] 초기화 후 store 메서드가 정상 동작하는가?
 
-### 3.5 Test Helper 함수 규칙
+#### 3.3.3 Test Helper 함수 규칙
 
 **테스트에서 반복되는 패턴은 Helper 함수로 추출하되, 명확한 네이밍을 사용한다.**
 
@@ -697,7 +496,7 @@ const enterCredentials = async (user, id = 'default', pw = 'default') => { ... }
 - [ ] 함수명만 보고 무엇을 하는지 명확한가?
 - [ ] 옵션 객체를 사용하여 확장 가능한가?
 
-### 3.6 렌더링 검증 규칙 (Critical)
+#### 3.3.4 렌더링 검증 규칙 (Critical)
 
 **모든 테스트는 Given 단계 직후 기본 UI가 렌더링되었는지 검증한다.**
 
@@ -765,7 +564,7 @@ it('[S1] 시나리오', async () => {
 - [ ] `toBeInTheDocument()`로 존재 여부를 확인했는가?
 - [ ] 검증 실패 시 즉시 Mock 설정을 의심할 수 있는가?
 
-### 3.7 Store Mock 완전성 체크리스트
+### 3.4 Store Mock 완전성 체크리스트
 
 **테스트 대상이 사용하는 모든 Store 메서드를 확인한다.**
 
@@ -827,7 +626,7 @@ useEffect(() => {
 - [ ] beforeEach 후 메서드 타입이 'function'인지 검증했는가?
 - [ ] resetStores에서 setState의 두 번째 인자를 사용하지 않았는가?
 
-### 3.1.3 Hook 내부 구현 확인 (Critical)
+### 3.5 Hook 내부 구현 확인 (Critical)
 
 **Mocking 여부를 결정하기 전에, 해당 Hook이 API 통신을 수행하는지 반드시 소스 코드를 읽어 확인하라.**
 
@@ -841,7 +640,7 @@ useEffect(() => {
   - [ ] `useAuth` 내부 코드를 확인했는가? (`useMutation` 사용 여부)
   - [ ] `usePayment` 내부 코드를 확인했는가?
 
-### 3.1.4 Store 상태 검증 (Critical)
+### 3.6 Store 상태 검증 (Critical)
 
 **UI 상으로 직접 드러나지 않는 Store의 상태 변화도 검증해야 한다.**
 
@@ -865,7 +664,7 @@ expect(setItemSpy).toHaveBeenCalledWith({ productId: 'P123', quantity: 1 });
 - [ ] 해당 Store의 액션 또는 셀렉터를 스파이/모킹하여 상태 변화를 검증했는가?
 - [ ] 스파이/모킹된 함수가 올바른 인자와 함께 호출되었는지 확인했는가?
 
-### 3.1.1 초기값 처리 로직 검증 (Critical)
+### 3.7 초기값 처리 로직 검증 (Critical)
 
 **시나리오와 실제 구현의 불일치를 반드시 확인하라.**
 
@@ -895,7 +694,7 @@ expect(screen.getByPlaceholderText('아이디')).toHaveValue('  prefillUser  ');
 - [ ] ATDD 시나리오/Test Plan의 기대값과 실제 구현이 일치하는가?
 - [ ] 불일치가 있다면 테스트 코드에 주석으로 명시했는가?
 
-### 3.2 project-manifest.yaml (필수)
+### 3.8 project-manifest.yaml (필수)
 
 - 테스트 러너 (Vitest / Jest 등)
 - 테스트 디렉토리 규칙 (예: `__tests__`, `_tests` 등)
@@ -906,7 +705,7 @@ expect(screen.getByPlaceholderText('아이디')).toHaveValue('  prefillUser  ');
 > 제공되지 않았다면 → **임의 추측 금지**  
 > 대신 `project-convention-scanner.md` 실행을 요청한다.
 
-### 3.3 (선택) 기존 테스트 예시 1개
+### 3.9 (선택) 기존 테스트 예시 1개
 
 - 동일 프로젝트의 기존 RTL 테스트 한 파일을 제공하면
 - import, mock, setup 패턴을 그대로 맞춘다.
@@ -1186,7 +985,7 @@ await waitFor(() => {
 
 > 📘 **기본 규칙은 [참조 문서: 실행 및 환경 가이드]의 섹션 5 (waitFor 사용 규칙)을 엄격히 준수하세요.**
 
-### UI 테스트 특화 규칙
+### 6.0 UI 테스트 특화 규칙
 
 **핵심 원칙**: `waitFor`는 **UI 상태 변화**를 기다리는 도구이며, Mock 호출 검증용이 아닙니다.
 
@@ -1214,7 +1013,7 @@ expect(loginApi).toHaveBeenCalledWith({ id: 'user', password: 'pw' });
 
 ## 7. MSW 사용 규칙 (UI 테스트 관점)
 
-### 7.0 MSW Handler URL 규칙 (Critical)
+### 7.1 MSW Handler URL 규칙 (Critical)
 
 **MSW 핸들러는 반드시 실제 API 요청 URL과 정확히 매칭되어야 한다.**
 
@@ -1251,7 +1050,7 @@ const loginHandler = http.post(`${API_BASE_URL}/auth`, () =>
 - [ ] 테스트 실행 시 `[MSW] Warning: intercepted a request without a matching request handler` 경고가 없는가?
 - [ ] 모든 API 요청이 MSW 핸들러에 의해 가로채지는가?
 
-### 7.1 기본 원칙
+### 7.2 기본 원칙
 
 - **기본 handlers**: 성공/중립 시나리오만 포함  
   (성공 응답, 정상 데이터, 기본 페이지 로딩 등)
@@ -1264,7 +1063,7 @@ const loginHandler = http.post(`${API_BASE_URL}/auth`, () =>
 - ✅ 에러용 handler 파일(`mocks/login/errorHandlers.ts`)은 **존재해도 된다.**
 - ❌ 하지만 **전역 server 기본 handlers에 에러 핸들러를 섞어 넣지 않는다.**
 
-### 7.2 Mutation(POST/PUT) 테스트 원칙 (Critical)
+### 7.3 Mutation(POST/PUT) 테스트 원칙 (Critical)
 
 - **Mutation Hook 자체를 Mocking 하지 않는다. (절대 금지 🚫)**
   - `useMutation`을 mock하면 `onError`, `onSuccess`, `tryCustomErrorHandling` 등 **실제 에러 처리 로직이 실행되지 않는다.**
@@ -1296,7 +1095,7 @@ const loginHandler = http.post(`${API_BASE_URL}/auth`, () =>
 
 ---
 
-### 7.3 공통 에러 핸들러 모듈 재사용 패턴
+### 7.4 공통 에러 핸들러 모듈 재사용 패턴
 
 에러 핸들러를 공통 정의하고,  
 **테스트 안에서만 가져다 쓰는 패턴**은 적극 권장한다.
@@ -1330,7 +1129,7 @@ it('로그인 실패 시 에러 메시지를 노출한다', async () => {
 });
 ```
 
-### 7.3 테스트 내부 ad-hoc override 패턴
+### 7.5 테스트 내부 ad-hoc override 패턴
 
 간단한 경우에는 테스트 파일 안에서 바로 handler를 정의해도 된다.
 
@@ -1347,7 +1146,7 @@ server.use(
 
 ---
 
-### 7.4 절대 금지 (MSW 관련)
+### 7.6 절대 금지 (MSW 관련)
 
 - ❌ 성공/실패를 **하나의 전역 handler 배열**에 섞어서 등록
 - ❌ 실패 상태를 전역 `setupServer` 기본 handlers 에 추가
@@ -1355,11 +1154,11 @@ server.use(
 > 실패는 **"특정 테스트의 intent"**이며,  
 > "전역 기본 동작"이 아니다.
 
-### 7.8 MSW 핸들러 생성 규칙 (신규 API의 경우)
+### 7.7 MSW 핸들러 생성 규칙 (신규 API의 경우)
 
 **기존 MSW 핸들러가 없는 API를 테스트할 경우, 다음 규칙에 따라 핸들러를 생성한다.**
 
-#### 1. 디렉토리 구조 (필수)
+#### 7.7.1 디렉토리 구조 (필수)
 **모든 MSW 핸들러는 다음 구조를 따른다:**
 
 ```
@@ -1383,7 +1182,7 @@ mocks/
 └── handlers.ts  # 모든 핸들러 통합
 ```
 
-#### 2. data.ts 작성 규칙
+#### 7.7.2 data.ts 작성 규칙
 
 **기본 패턴:**
 ```typescript
@@ -1415,7 +1214,7 @@ export const mockUser = {
 - 예: `mockLoginSuccess`, `mockUserBlocked`, `mockContractPending`
 - 타입을 import하여 타입 안전성 확보
 
-#### 3. handler.ts 작성 규칙
+#### 7.7.3 handler.ts 작성 규칙
 
 ```typescript
 // mocks/auth/handler.ts
@@ -1447,7 +1246,7 @@ export const buildLoginErrorHandler = (errorNo: number) =>
 - `data.ts`에서 import하여 사용
 - 배열로 export하여 `mocks/handlers.ts`에서 통합
 
-#### 4. 핸들러 등록
+#### 7.7.4 핸들러 등록
 
 생성한 핸들러를 `mocks/handlers.ts`에 추가:
 
@@ -1464,7 +1263,7 @@ export const handlers = [
 ];
 ```
 
-#### 5. 테스트 파일에서 사용
+#### 7.7.5 테스트 파일에서 사용
 
 ```typescript
 // login.test.tsx
@@ -1490,7 +1289,7 @@ it('로그인 실패 시 에러 메시지 노출', async () => {
 - [ ] 핸들러를 `mocks/handlers.ts`에 등록했는가?
 - [ ] 테스트 실행 시 MSW 경고가 없는가?
 
-### 7.9 Store 상태 검증 규칙 (Zustand/Recoil)
+### 7.8 Store 상태 검증 규칙 (Zustand/Recoil)
 
 **Integration 테스트에서는 Store 상태를 직접 검증하거나 UI 렌더링을 확인한다.**
 
@@ -1544,7 +1343,7 @@ expect(await screen.findByRole('alert')).toHaveTextContent('로그인에 실패'
 - [ ] 또는 UI에 렌더링된 결과를 확인했는가?
 - [ ] Spy는 API 호출 등 외부 의존성에만 사용했는가?
 
-### 7.5 Mock Requirement 매핑
+### 7.9 Mock Requirement 매핑
 
 - Test Plan의 `(Mock Requirement)` 섹션에 명시된 필드 구조를 **테스트 코드에 주석으로 참조**한다.
 - 빌더 함수를 사용하는 경우, 함수 위에 Test Plan의 Mock Requirement를 주석으로 명시한다.
@@ -1563,7 +1362,7 @@ const buildNormalContractDetailResponse = (overrides?: Partial<{...}>) => ({
 });
 ```
 
-### 7.6 Toast/Alert 검증 규칙
+### 7.10 Toast/Alert 검증 규칙
 
 **Toast 검증:**
 - **비즈니스적으로 중요한 메시지**는 메시지 내용까지 검증한다.
@@ -1635,7 +1434,7 @@ UI 컴포넌트가 **"데이터 상태에 따라 올바르게 렌더링되는지
 
 따라서, 계산 로직이나 복잡한 State를 가진 Custom Hook은 **과감하게 Mocking**하여 **고정된 UI State**를 주입한다.
 
-### 8.0 Store/Hook Mocking 체크리스트 (Critical)
+### 8.1 Store/Hook Mocking 체크리스트 (Critical)
 
 **Mock 작성 전 반드시 확인:**
 
@@ -1678,7 +1477,7 @@ vi.mock('@/stores', () => ({
 }));
 ```
 
-### 8.1 언제 Hook을 Mocking 하는가?
+### 8.2 언제 Hook을 Mocking 하는가?
 - 로직이 복잡해서 테스트 셋업이 어려운 경우 (예: 장바구니 계산, 결제 프로세스)
 - `useEffect`나 내부 타이머가 UI 테스트를 방해하는 경우
 - **Unit Test(`business-logic-test-prompt`)에서 이미 검증된 로직일 경우** (✅ 핵심)
@@ -1688,7 +1487,7 @@ vi.mock('@/stores', () => ({
 > - 이러한 Hook을 Mocking하면 실제 에러 핸들링(try-catch, onError)과 상태 변화 로직이 누락된다.
 > - **원칙**: API 호출이 포함된 로직은 **무조건 MSW**를 통해 네트워크 계층에서 Mocking하며, Hook 자체는 실제 코드를 실행해야 한다.
 
-### 8.2 Mocking 예시 (Vitest)
+### 8.3 Mocking 예시 (Vitest)
 
 **❌ Bad Pattern (실제 로직 실행)**
 ```ts
@@ -1711,9 +1510,9 @@ vi.mock('@/hooks/useCartLogic', () => ({
 }));
 ```
 
-### 8.3 UI Component Stubbing Rules
+### 8.4 UI Component Stubbing Rules
 
-### 8.4 Vitest Mocking & Hoisting Rules (Critical)
+### 8.5 Vitest Mocking & Hoisting Rules (Critical)
 
 **`vi.mock`은 파일의 최상단으로 hoisting 되므로, mock factory 내부에서 외부 변수를 참조하면 `ReferenceError`가 발생한다.**
 
@@ -1822,20 +1621,20 @@ render(<LoginView />, {
 - 4. 소스 코드에 없는 상수를 추측했는가? (Import Hallucination 제거)
 - 5. `[ID]` 태그와 원문 제목을 유지했는가?
 
-### Step 3: Refining (수정)
+### Step 4: Refining (수정)
 - 비판 내용을 반영하여 코드를 수정한다.
 - 불확실한 Import는 제거하거나 하드코딩으로 대체한다.
 
-### Step 4: Verification & Fix (검증 및 수정) - *Agentic Mode Only*
+### Step 5: Verification & Fix (검증 및 수정) - *Agentic Mode Only*
 - 터미널 사용이 가능하다면 실제 테스트를 실행한다.
 - 에러 발생 시 **최대 3회**까지 수정을 시도한다. (소스 코드 수정 금지)
 
-### Step 5: Final Output (최종 출력)
+### Step 6: Final Output (최종 출력)
 - **Thinking Process**와 **Final Code**를 분리하여 출력한다.
 
 ---
 
-## 12. Verification & Auto-Correction (Agentic Mode) 🛠️
+## 12. Verification & Auto-Correction (Agentic Mode)
 
 > **당신이 터미널 명령어 실행 권한이 있는 도구(Cursor, Claude Code 등)라면, 코드를 작성한 후 다음 절차를 반드시 따르십시오.**
 
@@ -1854,7 +1653,7 @@ render(<LoginView />, {
 
 ---
 
-## 13. Output Format
+## 13. Output Format (Thinking + Code)
 
 반드시 아래 포맷을 지켜서 출력한다.
 
@@ -1873,7 +1672,7 @@ render(<LoginView />, {
 
 ---
 
-## 13. Final Self-Check (마지막 관문)
+## 14. Final Self-Check (마지막 관문)
 (코드 출력 전 마지막 확인)
 - [ ] **모든 `it` 블록에 G/W/T 주석이 있는가?**
 - [ ] **각 G/W/T 주석이 1줄 이상의 의미 있는 설명을 포함하는가?**
@@ -1898,7 +1697,7 @@ render(<LoginView />, {
 
 ---
 
-## 14. 실제 코드 템플릿 (복사용)
+## 15. 실제 코드 템플릿 (복사용)
 
 ```ts
 /**
@@ -1981,9 +1780,9 @@ describe('LoginView', () => {
 
 ---
 
-## 12. Selector Rules (강력)
+## 16. Selector Rules (강력)
 
-### 우선 순위
+### 16.0 셀렉터 우선 순위
 
 1. `getByRole` + 접근성 이름
 2. `getByLabelText`
@@ -1993,13 +1792,13 @@ describe('LoginView', () => {
 
 CSS selector, className 기반 탐색은 가능한 한 피한다.
 
-### 12.1 다중 매칭 처리 (Ambiguous Text)
+### 16.1 다중 매칭 처리 (Ambiguous Text)
 - `getByText` 등이 여러 요소를 반환하여 에러가 나는 경우:
   1. `getAllByText`를 사용하여 배열 길이를 검증하거나,
   2. `within` 또는 `name`/`role` 옵션을 사용하여 **대상을 명확히 좁힌다.**
 - ❌ 무작정 `.getAllByText(...)[0]` 인덱스로 접근 금지 (순서 의존성)
 
-### 12.2 줄바꿈 문자(`\n`)가 포함된 텍스트 검증 (Critical)
+### 16.2 줄바꿈 문자(`\n`)가 포함된 텍스트 검증 (Critical)
 
 **문제 상황:**
 - 메시지에 줄바꿈 문자(`\n`)가 포함된 경우, `findByText`나 `getByText`로 정확한 텍스트 매칭이 실패할 수 있음
@@ -2038,7 +1837,7 @@ CSS selector, className 기반 탐색은 가능한 한 피한다.
 
 ---
 
-## 13. Router 검증
+## 17. Router 검증
 
 가능하면 **Router 호출 자체**보다,  
 라우팅 결과로 나타나는 **UI 요소**를 검증한다.
@@ -2057,7 +1856,7 @@ await waitFor(() =>
 
 ---
 
-## 14. Anti-Pattern 목록 (Fail Immediately)
+## 18. Anti-Pattern 목록 (Fail Immediately)
 
 - ❌ Snapshot 테스트
 - ❌ mock 내부 구현/파생 로직 검증
@@ -2079,7 +1878,7 @@ await waitFor(() =>
 
 ---
 
-## 15. 테스트 완료 후 Self Checklist
+## 19. 테스트 완료 후 Self Checklist
 
 - [ ] selector는 접근성 기준(getByRole, getByLabelText)을 우선 사용했는가?
 - [ ] 실패 응답은 전역 handler가 아니라 `server.use()`로 override 했는가?
@@ -2091,7 +1890,7 @@ await waitFor(() =>
 
 ---
 
-## 16. 출력 형태 요약
+## 20. 출력 형태 요약
 
 - TypeScript 기반 RTL 테스트 코드
 - 파일명: `[컴포넌트명].test.tsx`
@@ -2100,7 +1899,7 @@ await waitFor(() =>
 
 ---
 
-## 17. 실행/환경 관련 내용
+## 21. 실행/환경 관련 내용
 
 이 프롬프트는 **“테스트 코드를 생성”**하는 역할만 담당한다.  
 테스트 실행/Node 버전/패키지 매니저/명령어 가이드는  

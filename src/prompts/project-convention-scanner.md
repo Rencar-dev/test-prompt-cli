@@ -1,3 +1,4 @@
+<!-- Source: project-convention-scanner.md -->
 # 프로젝트 컨벤션 스캐너
 
 프로젝트 설정 파일을 분석해 **AI 테스트 에이전트용 `project-manifest.yaml`**을 생성한다.

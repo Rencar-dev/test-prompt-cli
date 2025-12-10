@@ -1,3 +1,4 @@
+<!-- Source: business-logic-test-prompt.md -->
 # 📌 Business Logic Unit Test Prompt (for utils/hooks/stores)
 
 > **이 프롬프트는 “순수 비즈니스 로직(Unit)” 테스트만 생성**합니다.  
@@ -9,9 +10,9 @@
 
 ---
 
-# 0. Preconditions (전제 조건)
+## 0. Preconditions (전제 조건)
 
-## 0.1 제공되는 정보
+### 0.1 제공되는 정보
 - `project-manifest.yaml`
   - test runner (Vitest / Jest)
   - testLocationStrategy
@@ -23,24 +24,24 @@
 
 ---
 
-# 1. 역할 / 범위
+## 1. 역할 / 범위
 
 당신은 **SDET(Software Development Engineer in Test)** 역할을 수행한다.
 
-## 1.1 테스트 대상
+### 1.1 테스트 대상
 - `utils/`, `lib/` → 순수 함수
 - `hooks/` → Custom Hook (Stateful Logic)
 - `stores/` → Zustand/Recoil/Vanilla Store
 
-## 1.2 목표
+### 1.2 목표
 - **순수 로직 검증 + 분기(Branch) + 경계값(Edge) + 실패(Error)**
 - UI/렌더링/타이밍/사용자 행동과 독립
 
-## 1.3 품질 기준 (Quality Criteria)
+### 1.3 품질 기준 (Quality Criteria)
 
 **당신은 15년 차 QA 리드로서, 다음 정량적 기준을 충족하는 테스트만 제공한다:**
 
-### 1.3.1 경곗값 분석 (Boundary Value Analysis)
+#### 1.3.1 경곗값 분석 (Boundary Value Analysis)
 
 **필수 요구사항:**
 - 숫자 범위 검증 함수: **최소 6개 케이스** 필수
@@ -67,7 +68,7 @@ describe('validateAge', () => {
 });
 ```
 
-### 1.3.2 it.each 사용 기준
+#### 1.3.2 it.each 사용 기준
 
 **3개 이상의 유사한 케이스가 있다면 반드시 `it.each` 사용:**
 
@@ -93,7 +94,7 @@ it.each([
 });
 ```
 
-### 1.3.3 Self-Check
+#### 1.3.3 Self-Check
 
 **테스트 생성 후 체크리스트:**
 - [ ] 숫자 범위 검증 함수에 최소 6개 경곗값 케이스를 포함했는가?
@@ -103,7 +104,7 @@ it.each([
 
 ---
 
-# 2. Input Format
+## 2. Input Format
 
 > 아래 정보가 프롬프트 하단에 제공됩니다.
 
@@ -137,16 +138,16 @@ it.each([
 [대상 기능의 소스 파일 경로]
 <<< {{SOURCE_PATH}} >>>
 
-### [Missing Context Handling]
+### 2.1 Missing Context Handling
 만약 필요한 타입/상수/의존성 정보가 아래에 제공되지 않았다면:
 - **Local LLM (Cursor, Copilot 등)**: 파일 읽기 권한을 사용하여 해당 경로의 파일을 직접 읽으십시오.
 - **Chat Interface**: 내용을 추측(Hallucination)하지 말고, 사용자에게 관련 파일의 내용을 요청하십시오.
 
 ---
 
-# 3. Output Rules — 핵심
+## 3. Output Rules — 핵심
 
-## 3.1 테스트 파일 위치
+### 3.1 테스트 파일 위치
 - 반드시 `project-manifest.yaml`의 `testPaths` 설정을 따른다.
 - **Co-location Mode** (권장):
   - `[SourceDir]/[testPaths.dirName]/[FileName].test.ts`
@@ -154,7 +155,7 @@ it.each([
 - **Centralized Mode**:
   - `tests/[path/to/source]/[FileName].test.ts`
 
-## 3.2 테스트 스타일
+### 3.2 테스트 스타일
 - `describe()` → `it()`
 - `Given / When / Then` 주석 필수
 - **Traceability Linking**: 테스트 코드 상단에 `// Covers: [Traceability ID]` 주석을 달아 요구사항과 연결한다.
@@ -165,13 +166,13 @@ it.each([
 
 ---
 
-# 4. Test Strategy (핵심 설계)
+## 4. Test Strategy (핵심 설계)
 
 ---
 
-## 🟢 A. 순수 함수(Unit) 테스트 — utils/lib
+### 🟢 A. 순수 함수(Unit) 테스트 — utils/lib
 
-### 금지 사항
+#### 금지 사항
 > 아래가 조금이라도 보이면 즉시 실패 처리
 
 - DOM API (`window`, `document`, `navigator`)
@@ -179,14 +180,14 @@ it.each([
 - 이벤트 라이브러리 (`userEvent`)
 - Snapshot test
 
-### 핵심 원칙
+#### 핵심 원칙
 > 입력 → 출력만 검증하는 **Black-box Testing**
 
-### 🧪 Parameterized Test (강력 권장)
+#### 🧪 Parameterized Test (강력 권장)
 - 입력값에 따른 출력값 패턴이 명확한 경우 **`it.each`를 선택이 아닌 기본 패턴**으로 사용한다.
 - 중복 코드를 줄이고 다양한 케이스를 한눈에 검증한다.
 
-### 필수 Edge Cases
+#### 필수 Edge Cases
 - `null`, `undefined`
 - 빈 값: `[]`, `""`, `{}`
 - 경계 numeric:
@@ -201,30 +202,30 @@ it.each([
   - 특수문자 / 이모지 / SQL Injection 시도 문자열
   - Integer Overflow
 
-### Data Fixture Strategy (Unit Level)
+#### Data Fixture Strategy (Unit Level)
 - 단순 더미 데이터 대신 **의미 있는 페르소나**를 사용한다.
 - 예: `const legacyUser = { ... }`, `const edgeCaseUser = { ... }`
 
 ---
 
-## 🐣 B. Custom Hook (로직) 테스트
+### 🐣 B. Custom Hook (로직) 테스트
 
 > Hook 이지만 “UI 없는 로직” 검증
 
-### 도구
+#### 도구
 ```ts
 import { renderHook, act, waitFor } from '@testing-library/react';
 ```
 
-### Wrapper 필요 시
+#### Wrapper 필요 시
 ```ts
 renderHook(() => useX(), { wrapper: Provider });
 ```
 
-### 핵심 규칙
+#### 핵심 규칙
 > 상태 변경을 유발하는 모든 코드는 반드시 `act()` 안에서 실행
 
-### props 변화 검증
+#### props 변화 검증
 ```ts
 const { rerender, result } = renderHook(({ v }) => useCalc(v), { initialProps: { v: 1 }});
 rerender({ v: 2 });
@@ -233,33 +234,33 @@ expect(result.current).toBe(2);
 
 ---
 
-## 🏪 C. Store (Zustand/Recoil/Vanilla)
+### 🏪 C. Store (Zustand/Recoil/Vanilla)
 
-### Store 테스트 핵심 (Hook Mocking 금지)
+#### Store 테스트 핵심 (Hook Mocking 금지)
 - **Hook(`useStore`)을 렌더링하지 말고, `useStore.getState()` / `setState()`를 사용해라.**
 - **이유:** React 렌더링 사이클 없이 상태 로직만 검증하기 위함.
 - `renderHook`을 사용하여 스토어를 테스트하는 것은 **Anti-Pattern**이다.
 
-### 초기화
+#### 초기화
 ```ts
 beforeEach(() => {
   store.setState(initialState, true);
 });
 ```
 
-### 검증
+#### 검증
 - setter 호출
 - 최종 state (`store.getState()`)
 - selector 결과
 
 ---
 
-# 5. Mocking Rules
+## 5. Mocking Rules
 
 > 📘 **참조**: 공통 Mock 규칙은 `test-coding-conventions.md` Section 4를 참조하세요.  
 > 이 섹션은 **Unit 테스트에 특화된** Mock 규칙입니다.
 
-## 5.1 아주 중요 💥
+### 5.1 아주 중요 💥
 
 > **비즈니스 로직(service/utils)을 Mock 하지 않는다.**  
 > **외부 IO/API(fetch/axios/repo)만 Mock한다.**
@@ -267,54 +268,23 @@ beforeEach(() => {
 
 **Mock 결정 플로우차트는 `test-coding-conventions.md` Section 4.1을 참조하세요.**
 
-### 올바른 예
+#### 올바른 예
 ```ts
 vi.spyOn(api, 'fetchUser').mockResolvedValue({ id: 1 });
 processUserData(1);
 ```
 
-### 절대 금지 ❌
+#### 절대 금지 ❌
 ```ts
 vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 ```
 → 로직 죽음 → 테스트 무의미
 
-### 5.1.1 공용 모듈 Mock 규칙 (Critical)
-
-**상수, 타입, 순수 함수는 Mock하지 않는다. 불가피한 경우 `vi.importActual`로 부분 Override한다.**
-
-```typescript
-// ❌ Bad: 전체 재정의 (누락 위험)
-vi.mock('@/constants', () => ({
-  ERROR_CODE: { INVALID: 101 },
-  // ⚠️ 다른 export 누락 가능
-}));
-
-// ✅ Good: importActual로 부분 Override
-import type * as ConstantsModule from '@/constants';
-
-vi.mock('@/constants', async () => {
-  const actual = await vi.importActual<typeof ConstantsModule>('@/constants');
-  return {
-    ...actual,
-    ERROR_CODE: {
-      ...actual.ERROR_CODE,
-      INVALID: 101, // 필요한 것만 변경
-    },
-  };
-});
-
-// ✅ Best: Mock하지 않기 (상수는 부작용 없음)
-import { ERROR_CODE } from '@/constants';
-
-### 5.1.2 Vitest hoisting 리마인드
-
-`vi.mock` 팩토리는 파일 최상단으로 hoist된다. 팩토리 밖 변수/상수를 참조하면 TDZ 에러가 발생하므로 팩토리 내부에서 mock 객체를 생성하거나 `vi.hoisted`를 사용한다.
-```
+> **Note**: 공용 모듈 Mock 규칙, Vitest hoisting 주의사항은 `test-coding-conventions.md` Section 4.4를 참조하세요.
 
 ---
 
-# 6. Anti-patterns (Fail Immediately)
+## 6. Anti-patterns (Fail Immediately)
 
 테스트 출력 전에 **스스로 검사**
 
@@ -330,7 +300,7 @@ import { ERROR_CODE } from '@/constants';
 
 ---
 
-# 8. Self Checklist
+## 7. Self Checklist
 
 - [ ] 입력/출력만 검증?
 - [ ] UI 요소 언급 없음?
@@ -344,36 +314,36 @@ import { ERROR_CODE } from '@/constants';
 
 ---
 
-# 9. Execution Steps (Chain of Thought) 🧠
+## 8. Execution Steps (Chain of Thought)
 
 > **단순히 코드를 작성하지 말고, 아래 순서대로 사고(Thinking)한 뒤 최종 결과물을 출력하시오.**
 
-## Step 1: Drafting (초안 작성)
+### Step 1: Drafting (초안 작성)
 - 테스트 대상 함수/훅의 로직을 파악한다.
 - `it.each`로 묶을 수 있는 케이스를 식별한다.
 - 필요한 Mock(외부 IO)을 결정한다.
 
-## Step 2: Auditing (자기 비판)
+### Step 2: Auditing (자기 비판)
 - **Anti-patterns**를 기준으로 비판한다.
 - 1. UI 렌더링(`render`)을 사용했는가? (Unit 테스트 위반)
 - 2. `waitFor` 내부에 `expect(mock)`이 있는가?
 - 3. 비즈니스 로직 자체를 Mocking 했는가? (테스트 무의미)
 - 4. `store`를 Hook으로 테스트했는가? (`getState`/`setState` 사용 필수)
 
-## Step 3: Refining (수정)
+### Step 3: Refining (수정)
 - 비판 내용을 반영하여 코드를 수정한다.
 - 중복 코드를 `it.each`로 리팩토링한다.
 
-## Step 4: Verification & Fix (검증 및 수정) - *Agentic Mode Only*
+### Step 4: Verification & Fix (검증 및 수정) - *Agentic Mode Only*
 - 터미널 사용이 가능하다면 실제 테스트를 실행한다.
 - 에러 발생 시 **최대 3회**까지 수정을 시도한다. (소스 코드 수정 금지)
 
-## Step 5: Final Output (최종 출력)
+### Step 5: Final Output (최종 출력)
 - **Thinking Process**와 **Final Code**를 분리하여 출력한다.
 
 ---
 
-## 10. Verification & Auto-Correction (Agentic Mode) 🛠️
+## 9. Verification & Auto-Correction (Agentic Mode)
 
 > **당신이 터미널 명령어 실행 권한이 있는 도구(Cursor, Claude Code 등)라면, 코드를 작성한 후 다음 절차를 반드시 따르십시오.**
 
@@ -392,7 +362,7 @@ import { ERROR_CODE } from '@/constants';
 
 ---
 
-## 11. Output Format
+## 10. Output Format
 
 반드시 아래 포맷을 지켜서 출력한다.
 
@@ -449,9 +419,9 @@ import { ERROR_CODE } from '@/constants';
 
 ---
 
-# 🔥 Summary
+## 11. Summary
 
-### 이 프롬프트는 아래 3가지를 절대 잊지 않는다
+### 11.1 이 프롬프트는 아래 3가지를 절대 잊지 않는다
 
 1. **UI Concern = ui-test 프롬프트**
 2. **Store Test = Vanilla API 사용 (Hook 렌더 금지)**
