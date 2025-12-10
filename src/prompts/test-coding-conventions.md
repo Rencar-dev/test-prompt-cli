@@ -89,7 +89,51 @@ export const mockLoginError = {
 - 타입을 import하여 타입 안전성 확보
 - `mock[Entity][State]` 명명 규칙
 
-### 2.2 Test 내부 사용 규칙
+### 2.2 에러 응답 Mock 규칙 (Critical)
+
+> **원칙**: 프로젝트의 에러 타입 정의를 정확히 따른다.
+
+**문제 상황:**
+프로젝트의 커스텀 에러 클래스가 특정 필드 경로에 접근하는데, Mock 응답이 해당 구조를 포함하지 않으면 `TypeError: Cannot read properties of undefined`가 발생한다.
+
+**체크리스트:**
+- [ ] 에러 타입 파일(`error.type.ts`, `api.type.ts` 등)을 확인했는가?
+- [ ] 커스텀 에러 클래스가 어떤 필드에 접근하는지 확인했는가?
+- [ ] 에러 응답 Mock이 실제 API 응답 구조와 동일한가?
+
+**Example:**
+
+```typescript
+// ❌ Bad: 최소한의 에러만 반환 (필드 누락 가능)
+server.use(
+  http.post(`${API_BASE_URL}/auth`, () =>
+    HttpResponse.json({ error_no: 101 }, { status: 401 })
+  )
+);
+// 만약 커스텀 에러 클래스가 error.response.data.error 접근 시 TypeError 발생
+
+// ✅ Good: 프로젝트의 에러 구조를 정확히 따름
+// (예: RencarError가 error.response.data.error 접근 시)
+server.use(
+  http.post(`${API_BASE_URL}/auth`, () =>
+    HttpResponse.json(
+      {
+        error_no: 101,
+        error: { data: null }, // 커스텀 에러 클래스가 접근하는 필드
+        message: '허용되지 않는 사용자',
+      },
+      { status: 401 }
+    )
+  )
+);
+```
+
+**디버깅 팁:**
+- 에러 발생 시 커스텀 에러 클래스(`RencarError`, `ApiError` 등)의 소스 코드를 확인하라.
+- `error.response.data.error`, `error.data.message` 등 중첩된 필드 접근 경로를 파악하라.
+- 실제 API 응답 스펙 문서가 있다면 그대로 따르라.
+
+### 2.3 Test 내부 사용 규칙
 
 **기본 원칙**:
 - **기본 handlers**: 성공/중립 시나리오만
@@ -110,7 +154,7 @@ it('로그인 실패 시 에러 toast 노출', async () => {
 - 테스트 내부에서 `server.listen()` 호출
 - 전역 server 기본 handlers에 에러 핸들러 섞기
 
-### 2.3 Server Lifecycle (Setup 파일에서 처리됨)
+### 2.4 Server Lifecycle (Setup 파일에서 처리됨)
 
 ```typescript
 // tests/setup.ts (참고용, AI가 생성할 필요 없음)
@@ -653,6 +697,92 @@ await vi.advanceTimersByTimeAsync(1000);
 ```
 
 > 💡 Timer + Date = **Deterministic** 유지
+
+### 5.3 MSW/Promise와의 충돌 (Critical) 🚨
+
+> **절대 금지**: 서버 응답(MSW)이나 Promise 기반 비동기 작업이 포함된 경우
+> fake timers를 사용하면 안 된다.
+
+**문제 상황:**
+- `vi.useFakeTimers()` 상태에서는 Promise의 `.then()`, `.catch()`, `async/await`가 제대로 진행되지 않음
+- MSW의 네트워크 응답도 멈춤 → `waitFor`가 무한 대기 → 타임아웃 발생 (`Test timed out in 5000ms`)
+
+**규칙:**
+
+1. **포커스 이동만 테스트하는 경우**: fake timers 사용 가능
+   - `vi.useFakeTimers()` → `runAllTimersAsync()` → `vi.useRealTimers()` → `waitFor`로 포커스 검증
+
+2. **서버 응답이 필요한 경우(로그인 제출 등)**: fake timers **절대 사용하지 않는다**
+   - 실시간 타이머로 테스트하거나, 포커스 이동과 로그인 제출을 **별도 테스트로 분리**
+
+3. **fake timers 사용 후 `waitFor` 전에 반드시 `vi.useRealTimers()`로 복귀**
+
+**올바른 예시:**
+
+```typescript
+// ✅ Case 1: 포커스 이동만 테스트 (서버 응답 없음)
+it('Enter 키로 비밀번호 입력으로 포커스 이동', async () => {
+  vi.useFakeTimers();
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  renderLogin();
+
+  await user.type(idInput, 'testid');
+  await user.keyboard('{Enter}');
+  await vi.runAllTimersAsync(); // setTimeout 기반 포커스 이동 실행
+  vi.useRealTimers();           // ✅ waitFor 전 실시간 타이머 복귀
+
+  await waitFor(() => {
+    expect(document.activeElement).toBe(passwordInput);
+  });
+});
+
+// ✅ Case 2: 로그인 제출 (MSW 응답 필요) - fake timers 사용 안 함
+it('비밀번호 입력 후 Enter로 로그인 제출', async () => {
+  // fake timers 사용하지 않음 (MSW 응답 필요)
+  const user = userEvent.setup();
+  renderLogin();
+
+  await user.type(idInput, 'testid');
+  await user.type(passwordInput, 'testpw');
+  await user.keyboard('{Enter}');
+
+  // MSW가 응답을 반환하고 router.reset이 호출될 때까지 대기
+  await waitFor(() => expect(routerMocks.reset).toHaveBeenCalled());
+});
+```
+
+**잘못된 예시:**
+
+```typescript
+// ❌ Wrong: API 호출 포함 시나리오에서 fake timers 재사용
+it('포커스 이동 후 로그인 제출', async () => {
+  // 첫 번째 fake timers (포커스 이동)
+  vi.useFakeTimers();
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+  await user.type(idInput, 'testid');
+  await user.keyboard('{Enter}');
+  await vi.runAllTimersAsync();
+  vi.useRealTimers();
+
+  await waitFor(() => expect(document.activeElement).toBe(passwordInput));
+
+  // ❌ 두 번째 fake timers (로그인 제출 - MSW 응답 필요)
+  vi.useFakeTimers();           // 🚨 금지! MSW 응답이 멈춤
+  await user.type(passwordInput, 'testpw');
+  await user.keyboard('{Enter}');
+  await vi.runAllTimersAsync(); // Promise/MSW는 진행되지 않음
+  vi.useRealTimers();
+
+  // ⏱️ 타임아웃! MSW 응답이 완료되지 않아 무한 대기
+  await waitFor(() => expect(routerMocks.reset).toHaveBeenCalled());
+});
+```
+
+**Self-Check:**
+- [ ] `vi.useFakeTimers()` 사용 후 MSW 응답이나 API 호출이 필요한가?
+- [ ] fake timers 사용 후 `waitFor` 전에 `vi.useRealTimers()`를 호출했는가?
+- [ ] 포커스 이동과 서버 응답 테스트를 분리했는가?
 
 ---
 

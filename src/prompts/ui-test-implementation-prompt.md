@@ -447,10 +447,45 @@ beforeEach(() => {
 - Store 초기화는 **부분 업데이트**로만 수행
 - 의심스러우면 beforeEach 후 `getState()`로 메서드 존재 확인
 
+**메서드 보존 검증 (방어적 코딩 - 권장)**:
+
+초기화 후 첫 테스트에서 메서드가 소실되지 않았는지 검증한다.
+
+```typescript
+const resetStores = () => {
+  userStore.setState({
+    ...userStore.getState(),  // 메서드 보존
+    user: null,
+    isLogin: null,
+    companyId: null,
+  });
+  loadingStore.setState({
+    ...loadingStore.getState(),
+    isLoading: false,
+  });
+
+  // 초기화 후 메서드 존재 확인 (방어적 코딩)
+  expect(typeof userStore.getState().setUser).toBe('function');
+  expect(typeof userStore.getState().setCompanyId).toBe('function');
+  expect(typeof loadingStore.getState().setIsLoading).toBe('function');
+};
+
+beforeEach(() => {
+  resetStores();
+});
+```
+
+**언제 메서드 검증을 추가하는가:**
+- ✅ 과거에 `setState(state, true)` 실수로 메서드 소실 경험이 있는 경우
+- ✅ 초기화 후 첫 테스트에서 한 번만 검증 (모든 테스트에서 할 필요 없음)
+- ✅ Store가 많고 복잡한 프로젝트
+- ❌ Store가 단순하고 초기화가 명확한 경우
+
 **Self-Check**:
 - [ ] `setState`의 두 번째 인자를 사용하지 않았는가?
 - [ ] beforeEach에서 store를 초기화했는가?
 - [ ] 초기화 후 store 메서드가 정상 동작하는가?
+- [ ] (선택) 메서드 보존을 명시적으로 검증했는가?
 
 #### 3.3.3 Test Helper 함수 규칙
 
@@ -1427,6 +1462,128 @@ expect(showAlertSpy).toHaveBeenCalledWith({ content: '반납 유류량을 입력
 
 ---
 
+### 7.11 에러 처리 검증 전략 (Critical)
+
+> **원칙**: 소스 코드에서 에러 처리 방식을 먼저 파악한 후 적절한 검증 방법을 선택한다.
+
+**문제 상황:**
+프로젝트마다 에러 처리 방식이 다르므로, 무조건 `getByText()`로 에러 메시지를 찾으면 실패할 수 있다.
+
+**검증 방법 결정 플로우:**
+
+1. **에러 메시지가 컴포넌트 state로 관리되고 DOM에 렌더링되는가?**
+   ```typescript
+   // ✅ DOM 검증
+   expect(screen.getByText('허용되지 않는 사용자입니다')).toBeVisible();
+   // 또는
+   expect(screen.getByRole('alert')).toHaveTextContent('허용되지 않는 사용자');
+   ```
+
+2. **globalErrorHandler가 `window.alert()`를 호출하는가?**
+   ```typescript
+   // ✅ window.alert spy 검증
+   const alertSpy = vi.spyOn(window, 'alert');
+
+   // ... 테스트 실행 ...
+
+   await waitFor(() =>
+     expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('오류가 발생했습니다'))
+   );
+   ```
+
+3. **alertStore/toastStore에 메시지를 추가하는가?**
+   ```typescript
+   // ✅ Store 상태 검증
+   await waitFor(() => {
+     const alerts = alertStore.getState().alerts;
+     expect(
+       alerts.some(alert =>
+         typeof alert.content === 'string' &&
+         alert.content.includes('고객센터')
+       )
+     ).toBe(true);
+   });
+   ```
+
+4. **`console.error`만 출력하는가?**
+   ```typescript
+   // ✅ console.error spy 검증
+   const consoleErrorSpy = vi.spyOn(console, 'error');
+
+   // ... 테스트 실행 ...
+
+   expect(consoleErrorSpy).toHaveBeenCalled();
+   consoleErrorSpy.mockRestore();
+   ```
+
+**소스 코드 분석 방법:**
+
+1. **에러 핸들러 확인:**
+   - `globalErrorHandler.ts`, `errorBoundary.tsx` 등의 파일 확인
+   - `onError` 콜백에서 `alert()`, `store.setState()`, `console.error()` 중 무엇을 호출하는지 파악
+
+2. **컴포넌트 내부 확인:**
+   - `catch` 블록에서 `setError(message)` 같은 state 업데이트가 있는지 확인
+   - 에러 state가 DOM에 렌더링되는지 확인 (`{error && <div>{error}</div>}`)
+
+3. **일관성 유지:**
+   - 같은 컴포넌트 내에서는 동일한 검증 방식 사용
+   - 예: S4, S5가 DOM 검증이면 S6도 DOM 검증 (가능하다면)
+
+**예시: 혼합 사용**
+
+```typescript
+// Case 1: 인증 에러 (globalErrorHandler → window.alert)
+it('[S5] 접근 제한 계정 로그인 시 경고', async () => {
+  const alertSpy = vi.spyOn(window, 'alert');
+  server.use(buildLoginErrorHandler(101));
+
+  await loginPage.actions.fillCredentialsAndSubmit(user, { id: 'blocked', password: 'pw' });
+
+  // ✅ window.alert 검증
+  await waitFor(() =>
+    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('허용되지 않는 사용자'))
+  );
+  expect(routerMocks.reset).not.toHaveBeenCalled();
+  alertSpy.mockRestore();
+});
+
+// Case 2: 입력 검증 에러 (컴포넌트 state → DOM)
+it('[S3] 필수 입력 누락 시 경고', async () => {
+  await loginPage.actions.submit(user);
+
+  // ✅ DOM 검증
+  expect(loginPage.elements.getWarningMessage('아이디와 비밀번호를 입력해주세요.')).toBeVisible();
+  expect(requestLoginSpy).not.toHaveBeenCalled();
+});
+
+// Case 3: 서버 오류 (globalErrorHandler → alertStore)
+it('[S6] 서버 오류 시 고객센터 안내', async () => {
+  server.use(buildLoginErrorHandler(999, 500));
+
+  await loginPage.actions.fillCredentialsAndSubmit(user, { id: 'user', password: 'pw' });
+
+  // ✅ alertStore 검증
+  await waitFor(() => {
+    const alerts = alertStore.getState().alerts;
+    expect(
+      alerts.some(alert =>
+        typeof alert.content === 'string' &&
+        alert.content.includes(SERVICE_CENTER_NUMBER.MAIN_NUMBER)
+      )
+    ).toBe(true);
+  });
+});
+```
+
+**체크리스트:**
+- [ ] 소스 코드에서 에러 처리 로직을 확인했는가?
+- [ ] globalErrorHandler가 있다면 내부 구현을 확인했는가?
+- [ ] 같은 컴포넌트 내에서 에러 검증 방식이 일관적인가?
+- [ ] `window.alert` spy를 사용했다면 테스트 종료 전 `mockRestore()`를 호출했는가?
+
+---
+
 ## 8. Business Logic & Hook Mocking (중요)
 
 UI 테스트는 **"복잡한 내부 로직의 정합성"**을 검증하지 않는다.
@@ -1551,6 +1708,166 @@ vi.mock('@/hooks/useCartLogic', () => ({
     MyInput: ({ value, onChange }) => <input value={value} onChange={e => onChange(e.target.value)} />
   }));
   ```
+
+### 8.5.1 고급 vi.hoisted 패턴 (동적 Mock 상태 관리)
+
+**상황**: Mock 상태를 테스트별로 동적으로 변경해야 할 때
+
+**패턴**: 클로저 기반 상태 관리
+
+**문제 상황:**
+- Router의 `searchParams`를 테스트별로 다르게 설정해야 하는 경우
+- JWT 디코딩 결과를 시나리오별로 다르게 반환해야 하는 경우
+- 외부 API 응답을 테스트별로 커스터마이징해야 하는 경우
+
+**기본 패턴:**
+
+```typescript
+// ❌ Bad: 상수로만 mock (테스트별 변경 불가)
+vi.mock('@/hooks/useCustomRouter', () => ({
+  useCustomRouter: () => ({
+    searchParams: { id: 'fixed-value' }, // 고정값 - 테스트별 변경 불가
+  }),
+}));
+```
+
+```typescript
+// ✅ Good: 클로저로 상태 관리 (테스트별 변경 가능)
+// Mock 이유: 테스트별로 searchParams를 동적으로 변경하여 초기값 테스트
+const { setSearchParams, getSearchParams } = vi.hoisted(() => {
+  let searchParams: Record<string, string | undefined> = {};
+
+  return {
+    setSearchParams: (params: Record<string, string | undefined>) => {
+      searchParams = params;
+    },
+    getSearchParams: () => searchParams,
+  };
+});
+
+vi.mock('@/hooks/useCustomRouter', () => ({
+  useCustomRouter: () => ({
+    searchParams: getSearchParams(), // 동적으로 변경되는 값 반환
+  }),
+}));
+
+// 테스트에서 사용
+beforeEach(() => {
+  setSearchParams({}); // 초기화
+});
+
+it('초기 아이디가 미리 채워진다', () => {
+  setSearchParams({ id: 'prefilled' }); // 동적 변경
+  renderLogin();
+  expect(idInput).toHaveValue('prefilled');
+});
+```
+
+**고급 예시: JWT 디코딩 결과 동적 변경**
+
+```typescript
+// Mock 이유: JWT 디코딩을 제어하여 accessToken 내용과 상관없이 원하는 사용자 정보로 분기 제어
+const { getDecodedUser, setDecodedUser, resetDecodedUser } = vi.hoisted(() => {
+  const defaultDecodedUser: Partial<User> = {
+    username: 'tester',
+    userType: 'rent_company_user',
+    permission: null,
+    useForm: true,
+    usePartner: false,
+    identity: 1,
+    companyId: 10,
+  };
+  let decodedUser: Partial<User> = { ...defaultDecodedUser };
+
+  return {
+    getDecodedUser: () => decodedUser,
+    setDecodedUser: (user: Partial<User>) => {
+      decodedUser = { ...defaultDecodedUser, ...user };
+    },
+    resetDecodedUser: () => {
+      decodedUser = { ...defaultDecodedUser };
+    },
+  };
+});
+
+vi.mock('jwt-decode', () => ({
+  jwtDecode: vi.fn(() => getDecodedUser()),
+}));
+
+// 테스트에서 사용
+beforeEach(() => {
+  resetDecodedUser();
+});
+
+it('폼 권한만 있으면 폼 메인으로 이동', async () => {
+  setDecodedUser({
+    useForm: true,
+    usePartner: false,
+    useExternal: false,
+  });
+
+  await loginPage.actions.fillCredentialsAndSubmit(user, credentials);
+
+  await waitFor(() => {
+    expect(routerMocks.reset).toHaveBeenCalledWith(PRIVATE_ROUTES.HOME, {
+      webRouteType: 'replace',
+    });
+  });
+});
+```
+
+**고급 예시: Router Mock 전체 제어**
+
+```typescript
+// Mock 이유: Next.js 커스텀 라우터 훅을 테스트 환경에서 제어하고 네비게이션 호출을 관찰
+const { routerMocks, setSearchParams, getSearchParams } = vi.hoisted(() => {
+  const baseRouter = {
+    push: vi.fn(),
+    replace: vi.fn(),
+    reset: vi.fn(),
+    back: vi.fn(),
+  };
+  let searchParams: Record<string, string | undefined> = {};
+
+  return {
+    routerMocks: baseRouter,
+    setSearchParams: (params: Record<string, string | undefined>) => {
+      searchParams = params;
+    },
+    getSearchParams: () => searchParams,
+  };
+});
+
+vi.mock('@/hooks/useCustomRouter', () => ({
+  useCustomRouter: () => ({
+    ...routerMocks,
+    searchParams: getSearchParams(),
+  }),
+}));
+
+// 테스트에서 사용
+beforeEach(() => {
+  Object.values(routerMocks).forEach((fn) => {
+    if (typeof fn === 'function') {
+      fn.mockClear();
+    }
+  });
+  setSearchParams({});
+});
+```
+
+**언제 사용하는가:**
+- ✅ Router의 searchParams를 테스트별로 변경
+- ✅ JWT 디코딩 결과를 시나리오별로 다르게 설정
+- ✅ 외부 API 응답을 테스트별로 커스터마이징
+- ✅ 날짜/시간을 테스트별로 다르게 설정
+- ❌ 단순히 고정값만 반환하는 경우 (기본 패턴 사용)
+
+**Self-Check:**
+- [ ] Mock 상태를 테스트별로 변경할 필요가 있는가?
+- [ ] `vi.hoisted` 내부에서 클로저로 상태와 setter를 반환했는가?
+- [ ] `beforeEach`에서 상태를 초기화했는가?
+- [ ] getter 함수를 `vi.mock` 내부에서 호출하여 동적 값을 반환하는가?
 
 ---
 
