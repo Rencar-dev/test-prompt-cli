@@ -1,6 +1,6 @@
 {
   "name": "@hsna/prompt",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AI 기반 프론트엔드 테스트 자동화 파트너",
   "publishConfig": {
     "access": "public"
