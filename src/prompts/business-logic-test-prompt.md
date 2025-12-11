@@ -123,6 +123,13 @@ it.each([
 {{PLAN_CONTENT}}
 >>>
 
+> **📌 Plan이 "(Plan 없음)"으로 표시된 경우:**
+> 소스 코드를 직접 분석하여 다음 관점에서 테스트 케이스를 스스로 도출하십시오:
+> 1. **Happy Path**: 정상적인 입력에 대한 기대 결과
+> 2. **Edge Cases**: 경계값, 빈 값, null/undefined
+> 3. **Error Cases**: 잘못된 입력, 예외 상황
+> 4. **Branch Coverage**: 모든 조건 분기 검증
+
 [프로젝트 설정]
 <<<
 ```yaml

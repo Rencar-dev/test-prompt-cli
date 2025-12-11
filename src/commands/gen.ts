@@ -32,14 +32,19 @@ export const genCommand = new Command('gen')
       logger.info(`ℹ️  ${getTestTypeLabel(testType)} 테스트 프롬프트 생성 중...`);
 
       // Core 로직 호출
-      const combinedPrompt = await generateGenPrompt(sourcePath, testType);
+      const { prompt, hasPlan } = await generateGenPrompt(sourcePath, testType);
 
       // 결과 처리 (Side Effect)
-      await copyToClipboard(combinedPrompt);
+      await copyToClipboard(prompt);
 
       logger.success('✅ 클립보드에 복사되었습니다!');
       logger.hint(`${getTestTypeLabel(testType)} 테스트 프롬프트가 생성되었습니다.`);
       logger.hint(`소스 코드(${sourcePath}) 분석 완료.`);
+
+      // Unit 테스트에서 Plan 없이 실행된 경우 안내
+      if (!hasPlan && testType === TEST_TYPES.UNIT) {
+        logger.hint('💡 Plan 없이 소스 코드 기반으로 테스트 케이스를 도출합니다.');
+      }
     } catch (error: unknown) {
       if (error instanceof Error && error.message === 'MANIFEST_NOT_FOUND') {
         logger.error('\n❌ [Error] project-manifest.yaml 파일을 찾을 수 없습니다.');

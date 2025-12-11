@@ -89,14 +89,23 @@ npx @hsna/prompt gen <source_path> [options]
 - `--type ui` (Default): React Component, Hook(Integration) 테스트
 - `--type unit`: 순수 함수, Utils, Store Logic 테스트
 
+**Plan 파일 요구사항:**
+| 타입 | Plan 파일 | 설명 |
+|------|----------|------|
+| `--type ui` | 필수 | ATDD → Plan 워크플로우 필요 |
+| `--type unit` | 선택적 | Plan 없이 소스 코드만으로 테스트 생성 가능 |
+
 ```bash
-# UI 테스트 생성 (기본값)
+# UI 테스트 생성 (기본값) - Plan 파일 필요
 npx @hsna/prompt gen app/login/page.tsx
 npx @hsna/prompt gen "app/(public)/user/login/page.tsx"  # 특수문자 포함 시 따옴표 사용
 
-# Unit 테스트 생성
-npx @hsna/prompt gen libs/utils/date.ts --type unit
+# Unit 테스트 생성 - Plan 파일 선택적
+npx @hsna/prompt gen libs/utils/date.ts --type unit      # Plan 없이 바로 실행 가능
+npx @hsna/prompt gen src/hooks/useAuth.ts --type unit
 ```
+
+> **💡 순수 함수/유틸 테스트**: `--type unit`은 Plan 파일 없이도 소스 코드를 분석하여 테스트 케이스를 자동 도출합니다.
 
 ### 5. `learn`
 테스트 실패 로그를 분석하여 **"오답노트(Lessons Learned)"**를 갱신합니다.
@@ -118,13 +127,23 @@ npx @hsna/prompt learn <source_path>
 
 ## 🔄 Workflow
 
-AI와 함께하는 개발 사이클은 다음과 같습니다.
+### 페이지/컴포넌트 (Full ATDD Workflow)
+
+복잡한 UI 컴포넌트는 전체 워크플로우를 따릅니다.
 
 1.  **Code**: 기능을 구현합니다. (예: `Login.tsx`)
 2.  **ATDD**: `npx @hsna/prompt atdd Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.atdd.md` 저장
 3.  **Plan**: `npx @hsna/prompt plan Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test-plan.md` 저장
 4.  **Test**: `npx @hsna/prompt gen Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `Login.test.tsx` 저장 & 실행
 5.  **Learn (If Failed)**: `npx @hsna/prompt learn Login.tsx` ➡️ AI에게 붙여넣기 ➡️ `project-test-lessons.md` 업데이트 ➡️ **Retry Step 4**
+
+### 순수 함수/유틸 (Simplified Workflow)
+
+순수 함수, 유틸, Hook 등은 ATDD/Plan 없이 바로 테스트를 생성할 수 있습니다.
+
+1.  **Code**: 유틸 함수를 구현합니다. (예: `formatDate.ts`)
+2.  **Test**: `npx @hsna/prompt gen formatDate.ts --type unit` ➡️ AI에게 붙여넣기 ➡️ `formatDate.test.ts` 저장 & 실행
+3.  **Learn (If Failed)**: `npx @hsna/prompt learn formatDate.ts` ➡️ **Retry Step 2**
 
 ---
 

@@ -68,17 +68,26 @@ export const generatePlanPrompt = async (sourcePath: string): Promise<string> =>
 };
 
 /**
+ * Gen 프롬프트 생성 결과
+ */
+export interface GenPromptResult {
+  prompt: string;
+  hasPlan: boolean;
+}
+
+/**
  * Gen 프롬프트 생성 로직
  * - UI 테스트 또는 Unit 테스트 프롬프트 생성
  * @param sourcePath - 소스 파일 경로
  * @param type - 테스트 타입
+ * @returns {GenPromptResult} 프롬프트와 Plan 존재 여부
  * @throws {Error} Manifest 파일이 없을 경우 'MANIFEST_NOT_FOUND' 에러 발생
- * @throws {Error} Plan 파일을 찾을 수 없을 경우 'PLAN_FILE_NOT_FOUND' 에러 발생
+ * @throws {Error} UI 테스트에서 Plan 파일을 찾을 수 없을 경우 'PLAN_FILE_NOT_FOUND' 에러 발생
  */
 export const generateGenPrompt = async (
   sourcePath: string,
   type: TestType = DEFAULT_TEST_TYPE
-): Promise<string> => {
+): Promise<GenPromptResult> => {
   await validateManifest();
   const manifestContent = await readManifest();
 
@@ -87,11 +96,15 @@ export const generateGenPrompt = async (
 
   // Plan 파일 찾기
   const planFilePath = await findPlanFile(sourcePath);
-  if (!planFilePath) {
+  const hasPlan = !!planFilePath;
+
+  // UI 테스트는 Plan 필수, Unit 테스트는 Plan 선택적
+  if (!hasPlan && type === 'ui') {
     throw new Error('PLAN_FILE_NOT_FOUND');
   }
 
-  const planContent = await readUserFile(planFilePath);
+  // Plan이 있으면 읽고, 없으면 빈 문자열 (Unit 테스트의 경우)
+  const planContent = planFilePath ? await readUserFile(planFilePath) : '';
 
   // 타입에 따라 다른 템플릿 사용
   const templateFileName = getTemplateFileName(type);
@@ -106,13 +119,18 @@ export const generateGenPrompt = async (
     lessonsContent = await fs.readFile(lessonsPath, 'utf-8');
   }
 
-  return promptTemplate
+  // Plan 없는 Unit 테스트를 위한 placeholder
+  const planPlaceholder = planContent || '(Plan 없음 - 소스 코드를 분석하여 테스트 케이스를 직접 도출하세요)';
+
+  const prompt = promptTemplate
     .replace('{{EXECUTION_GUIDE}}', executionGuide)
     .replace('{{LESSONS_LEARNED}}', lessonsContent || '(아직 기록된 교훈이 없습니다)')
-    .replace('{{PLAN_CONTENT}}', planContent)
+    .replace('{{PLAN_CONTENT}}', planPlaceholder)
     .replace('{{MANIFEST}}', manifestContent)
     .replace('{{SOURCE_CODE}}', sourceCode)
     .replace('{{SOURCE_PATH}}', sourcePath);
+
+  return { prompt, hasPlan };
 };
 
 /**

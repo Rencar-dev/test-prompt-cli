@@ -127,19 +127,20 @@ describe('prompt core', () => {
         .mockResolvedValueOnce(mockTemplate) // first call for ui template
         .mockResolvedValueOnce(mockExecutionGuide); // second call for execution guide
 
-      const result = await generateGenPrompt(sourcePath, 'ui');
+      const { prompt, hasPlan } = await generateGenPrompt(sourcePath, 'ui');
 
       // 올바른 템플릿 파일명으로 호출되었는지 확인
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('ui-test-implementation-prompt.md');
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('test-coding-conventions.md');
 
       // 프롬프트 구조 검증
-      expect(result).toContain('(아직 기록된 교훈이 없습니다)');
-      expect(result).toContain(mockExecutionGuide);
-      expect(result).toContain(mockPlanContent);
-      expect(result).toContain(mockManifest);
-      expect(result).toContain(mockSourceCode);
-      expect(result).toContain(sourcePath);
+      expect(prompt).toContain('(아직 기록된 교훈이 없습니다)');
+      expect(prompt).toContain(mockExecutionGuide);
+      expect(prompt).toContain(mockPlanContent);
+      expect(prompt).toContain(mockManifest);
+      expect(prompt).toContain(mockSourceCode);
+      expect(prompt).toContain(sourcePath);
+      expect(hasPlan).toBe(true);
     });
 
     it('Unit 타입일 때 올바른 템플릿과 포맷의 문자열 반환', async () => {
@@ -163,19 +164,20 @@ describe('prompt core', () => {
         .mockResolvedValueOnce(mockTemplate) // first call for unit template
         .mockResolvedValueOnce(mockExecutionGuide); // second call for execution guide
 
-      const result = await generateGenPrompt(sourcePath, 'unit');
+      const { prompt, hasPlan } = await generateGenPrompt(sourcePath, 'unit');
 
       // 올바른 템플릿 파일명으로 호출되었는지 확인
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('business-logic-test-prompt.md');
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('test-coding-conventions.md');
 
       // 프롬프트 구조 검증
-      expect(result).toContain('(아직 기록된 교훈이 없습니다)');
-      expect(result).toContain(mockExecutionGuide);
-      expect(result).toContain(mockPlanContent);
-      expect(result).toContain(mockManifest);
-      expect(result).toContain(mockSourceCode);
-      expect(result).toContain(sourcePath);
+      expect(prompt).toContain('(아직 기록된 교훈이 없습니다)');
+      expect(prompt).toContain(mockExecutionGuide);
+      expect(prompt).toContain(mockPlanContent);
+      expect(prompt).toContain(mockManifest);
+      expect(prompt).toContain(mockSourceCode);
+      expect(prompt).toContain(sourcePath);
+      expect(hasPlan).toBe(true);
     });
 
     it('기본값이 ui일 때 UI 템플릿 사용', async () => {
@@ -199,14 +201,14 @@ describe('prompt core', () => {
         .mockResolvedValueOnce(mockTemplate) // first call for ui template
         .mockResolvedValueOnce(mockExecutionGuide); // second call for execution guide
 
-      const result = await generateGenPrompt(sourcePath);
+      const { prompt } = await generateGenPrompt(sourcePath);
 
       // 기본값으로 UI 템플릿 사용 확인
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('ui-test-implementation-prompt.md');
-      expect(result).toContain('(아직 기록된 교훈이 없습니다)');
+      expect(prompt).toContain('(아직 기록된 교훈이 없습니다)');
     });
 
-    it('Plan 파일이 없을 때 PLAN_FILE_NOT_FOUND 에러 발생', async () => {
+    it('UI 타입에서 Plan 파일이 없을 때 PLAN_FILE_NOT_FOUND 에러 발생', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
@@ -219,6 +221,32 @@ describe('prompt core', () => {
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(null);
 
       await expect(generateGenPrompt(sourcePath, 'ui')).rejects.toThrow('PLAN_FILE_NOT_FOUND');
+    });
+
+    it('Unit 타입에서 Plan 파일이 없을 때 정상 동작 (Plan 선택적)', async () => {
+      const sourcePath = 'src/utils/date.ts';
+      const mockManifest = 'mock manifest content';
+      const mockSourceCode = 'mock source code';
+      const mockTemplate = 'mock unit template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
+      const mockExecutionGuide = 'mock execution guide';
+      const mockAbsolutePath = '/abs/src/utils/date.ts';
+
+      vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
+      vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
+      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
+      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockSourceCode);
+      vi.spyOn(locator, 'findPlanFile').mockResolvedValue(null); // Plan 없음
+      vi.spyOn(fileUtils, 'readPromptTemplate')
+        .mockResolvedValueOnce(mockTemplate)
+        .mockResolvedValueOnce(mockExecutionGuide);
+
+      const { prompt, hasPlan } = await generateGenPrompt(sourcePath, 'unit');
+
+      // Plan 없이도 정상 동작
+      expect(hasPlan).toBe(false);
+      expect(prompt).toContain('(Plan 없음 - 소스 코드를 분석하여 테스트 케이스를 직접 도출하세요)');
+      expect(prompt).toContain(mockSourceCode);
+      expect(prompt).toContain(mockManifest);
     });
 
     it('파일 읽기 실패 시 에러를 전파한다', async () => {
@@ -250,14 +278,13 @@ describe('prompt core', () => {
       vi.spyOn(fileUtils, 'readPromptTemplate')
         .mockResolvedValueOnce(mockTemplate)
         .mockResolvedValueOnce(mockExecutionGuide);
-      
+
       // fs.readFile 모킹 (lessons 파일 읽기)
       vi.spyOn(fs, 'readFile').mockResolvedValue(mockLessons as never);
 
-      const result = await generateGenPrompt(sourcePath, 'ui');
+      const { prompt } = await generateGenPrompt(sourcePath, 'ui');
 
-      expect(result).toContain(mockLessons);
-      expect(result).toContain(mockLessons);
+      expect(prompt).toContain(mockLessons);
     });
   });
 
