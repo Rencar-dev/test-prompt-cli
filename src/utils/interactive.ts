@@ -111,50 +111,73 @@ export const selectFileInteractively = async (
   logger.hint(`총 ${allCandidates.length}개 파일 발견`);
 
   // 4. autocomplete로 실시간 검색 + 선택
-  const { selected } = await prompts({
-    type: 'autocomplete',
-    name: 'selected',
-    message: message.prompt,
-    choices,
-    // 초기에는 빈 리스트, 타이핑하면 필터링 결과 표시
-    suggest: (input, choices) => {
-      // 입력이 없으면 placeholder만 표시 (빈 배열 반환)
-      if (!input.trim()) {
-        return Promise.resolve([
-          {
-            title: `💡 ${message.placeholder}`,
-            value: '__placeholder__',
-            disabled: true,
-          },
-        ]);
-      }
+  let isCancelled = false;
 
-      // 실시간 필터링
-      const inputLower = input.toLowerCase();
-      const filtered = choices.filter(
-        (c) =>
-          c.title.toLowerCase().includes(inputLower) ||
-          (typeof c.value === 'string' && c.value.toLowerCase().includes(inputLower)),
-      );
+  const response = await prompts(
+    {
+      type: 'autocomplete',
+      name: 'selected',
+      message: message.prompt,
+      choices,
+      // 초기에는 빈 리스트, 타이핑하면 필터링 결과 표시
+      suggest: (input, choices) => {
+        // 입력이 없으면 placeholder만 표시 (빈 배열 반환)
+        if (!input.trim()) {
+          return Promise.resolve([
+            {
+              title: `💡 ${message.placeholder}`,
+              value: '__placeholder__',
+              disabled: true,
+            },
+          ]);
+        }
 
-      // 결과가 없으면 안내 메시지
-      if (filtered.length === 0) {
-        return Promise.resolve([
-          {
-            title: `😢 '${input}'와 일치하는 파일이 없습니다`,
-            value: '__no_match__',
-            disabled: true,
-          },
-        ]);
-      }
+        // 실시간 필터링
+        const inputLower = input.toLowerCase();
+        const filtered = choices.filter(
+          (c) =>
+            c.title.toLowerCase().includes(inputLower) ||
+            (typeof c.value === 'string' && c.value.toLowerCase().includes(inputLower)),
+        );
 
-      // 최대 개수 제한
-      return Promise.resolve(filtered.slice(0, MAX_SUGGESTIONS));
+        // 결과가 없으면 안내 메시지
+        if (filtered.length === 0) {
+          return Promise.resolve([
+            {
+              title: `😢 '${input}'와 일치하는 파일이 없습니다`,
+              value: '__no_match__',
+              disabled: true,
+            },
+          ]);
+        }
+
+        // 최대 개수 제한
+        return Promise.resolve(filtered.slice(0, MAX_SUGGESTIONS));
+      },
+      /**
+       * ESC 키 감지를 위한 onState 콜백
+       *
+       * NOTE: prompts의 autocomplete에서 ESC는 aborted=true가 아니라 exited=true로 종료됩니다.
+       * (aborted는 보통 Ctrl+C / 강제 abort에 가깝습니다)
+       */
+      onState: (state: { aborted?: boolean; exited?: boolean }) => {
+        if (state.aborted || state.exited) {
+          isCancelled = true;
+        }
+      },
     },
-  });
+    {
+      // Ctrl+C 감지
+      onCancel: () => {
+        isCancelled = true;
+      },
+    },
+  );
 
-  // Ctrl+C 또는 placeholder 선택 처리
-  if (!selected || selected === '__placeholder__' || selected === '__no_match__') {
+  const selected = response.selected;
+
+  // ESC, Ctrl+C, placeholder 선택 처리
+  if (isCancelled || !selected || selected === '__placeholder__' || selected === '__no_match__') {
     logger.info('취소되었습니다.');
     return null;
   }

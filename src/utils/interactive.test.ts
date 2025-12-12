@@ -2,8 +2,31 @@
  * interactive Unit Tests
  * Source: src/utils/interactive.ts
  */
-import { describe, it, expect } from 'vitest';
-import { inferTestType } from './interactive.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('prompts', () => ({
+  default: vi.fn(),
+}));
+
+vi.mock('./file-scanner.js', () => ({
+  scanForAtdd: vi.fn(),
+  scanForPlan: vi.fn(),
+  scanForGen: vi.fn(),
+  scanForLearn: vi.fn(),
+}));
+
+vi.mock('./logger.js', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    hint: vi.fn(),
+    tip: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { inferTestType, selectFileInteractively } from './interactive.js';
 
 describe('inferTestType (확장자 기반 테스트 타입 추론)', () => {
   describe('UI 타입 반환 케이스', () => {
@@ -51,5 +74,45 @@ describe('inferTestType (확장자 기반 테스트 타입 추론)', () => {
       // Then
       expect(result).toBe(expected);
     });
+  });
+});
+
+describe('selectFileInteractively (ESC 취소 처리)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('ESC(exited=true)로 종료되면 선택값이 있어도 null을 반환한다', async () => {
+    const promptsModule = await import('prompts');
+    const promptsMock = promptsModule.default as unknown as ReturnType<typeof vi.fn>;
+
+    const scanners = await import('./file-scanner.js');
+    const scanForAtddMock = scanners.scanForAtdd as unknown as ReturnType<typeof vi.fn>;
+    scanForAtddMock.mockResolvedValue([{ title: 'login page', value: 'app/login/page.tsx' }]);
+
+    promptsMock.mockImplementation(async (question: any) => {
+      question.onState?.({ value: 'app/login/page.tsx', aborted: false, exited: true });
+      return { selected: 'app/login/page.tsx' };
+    });
+
+    const result = await selectFileInteractively('atdd');
+    expect(result).toBeNull();
+  });
+
+  it('정상 submit(exited=false, aborted=false)이면 선택된 filePath를 반환한다', async () => {
+    const promptsModule = await import('prompts');
+    const promptsMock = promptsModule.default as unknown as ReturnType<typeof vi.fn>;
+
+    const scanners = await import('./file-scanner.js');
+    const scanForAtddMock = scanners.scanForAtdd as unknown as ReturnType<typeof vi.fn>;
+    scanForAtddMock.mockResolvedValue([{ title: 'login page', value: 'app/login/page.tsx' }]);
+
+    promptsMock.mockImplementation(async (question: any) => {
+      question.onState?.({ value: 'app/login/page.tsx', aborted: false, exited: false });
+      return { selected: 'app/login/page.tsx' };
+    });
+
+    const result = await selectFileInteractively('atdd');
+    expect(result).toEqual({ filePath: 'app/login/page.tsx' });
   });
 });
