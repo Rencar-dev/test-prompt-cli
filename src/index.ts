@@ -21,8 +21,8 @@ const pkg = JSON.parse(
 const program = new Command();
 
 program
-  .name('rencar-prompt')
-  .description('Rencar Frontend SDET CLI')
+  .name(pkg.name)
+  .description(pkg.description)
   .version(pkg.version);
 
 // 명령어 등록
