@@ -23,8 +23,30 @@
 # 1. 프로젝트 초기 설정 (최초 1회)
 npx @hsna/prompt init
 
-# 2. ATDD 시나리오 생성 요청
+# 2. Interactive 모드로 시작 (권장)
+npx @hsna/prompt
+
+# 3. 또는 직접 명령어 실행
 npx @hsna/prompt atdd src/app/login/page.tsx
+```
+
+### Interactive 모드
+
+파일 경로 없이 실행하면 Interactive 모드가 활성화됩니다.
+
+```bash
+# 명령어 선택 메뉴
+npx @hsna/prompt
+? 실행할 명령어를 선택하세요
+❯ atdd   - ATDD 시나리오 생성
+  plan   - 테스트 계획 수립
+  gen    - 테스트 코드 생성
+  learn  - 오답노트 갱신
+
+# 파일 선택 (실시간 검색)
+npx @hsna/prompt atdd
+? ATDD를 생성할 파일을 검색하세요
+💡 파일명 또는 경로를 입력하세요 (예: login, user, auth)
 ```
 
 > **💡 경로에 특수문자(괄호, 공백 등)가 포함된 경우 따옴표로 감싸세요:**
@@ -55,10 +77,12 @@ npx @hsna/prompt init
 > 코드의 내부 구현 방식보다는 **"사용자가 어떤 행동을 했을 때 무엇이 보여야 하는가(Given-When-Then)"**에 집중하여 비즈니스 요구사항을 검증하는 테스트입니다.
 
 ```bash
-npx @hsna/prompt atdd <source_path>
+npx @hsna/prompt atdd [source_path]
 ```
-- **Example**: 
+- **Interactive**: 경로 생략 시 파일 선택 UI 표시
+- **Example**:
   ```bash
+  npx @hsna/prompt atdd                              # Interactive 모드
   npx @hsna/prompt atdd app/login/page.tsx
   npx @hsna/prompt atdd "app/(auth)/login/page.tsx"  # 특수문자 포함 시 따옴표 사용
   ```
@@ -68,10 +92,12 @@ npx @hsna/prompt atdd <source_path>
 작성된 ATDD 시나리오를 바탕으로 **테스트 라우팅(Unit vs UI vs E2E)** 계획을 수립합니다.
 
 ```bash
-npx @hsna/prompt plan <source_path>
+npx @hsna/prompt plan [source_path]
 ```
-- **Example**: 
+- **Interactive**: 경로 생략 시 ATDD가 작성된 파일만 표시
+- **Example**:
   ```bash
+  npx @hsna/prompt plan                                     # Interactive 모드
   npx @hsna/prompt plan app/login/page.tsx
   npx @hsna/prompt plan "app/(public)/user/login/page.tsx"  # 특수문자 포함 시 따옴표 사용
   ```
@@ -82,8 +108,12 @@ npx @hsna/prompt plan <source_path>
 실제 **테스트 코드(Spec)** 작성을 요청합니다. 설계된 Plan에 따라 UI 테스트와 Unit 테스트를 구분해 요청하세요.
 
 ```bash
-npx @hsna/prompt gen <source_path> [options]
+npx @hsna/prompt gen [source_path] [options]
 ```
+
+- **Interactive**: 경로 생략 시 파일 선택 UI 표시 (테스트 타입 자동 추론)
+  - `.tsx`, `.jsx` → UI 테스트
+  - `.ts`, `.js` → Unit 테스트
 
 **Options:**
 - `--type ui` (Default): React Component, Hook(Integration) 테스트
@@ -96,6 +126,9 @@ npx @hsna/prompt gen <source_path> [options]
 | `--type unit` | 선택적 | Plan 없이 소스 코드만으로 테스트 생성 가능 |
 
 ```bash
+# Interactive 모드 (테스트 타입 자동 추론)
+npx @hsna/prompt gen
+
 # UI 테스트 생성 (기본값) - Plan 파일 필요
 npx @hsna/prompt gen app/login/page.tsx
 npx @hsna/prompt gen "app/(public)/user/login/page.tsx"  # 특수문자 포함 시 따옴표 사용
@@ -112,14 +145,16 @@ npx @hsna/prompt gen src/hooks/useAuth.ts --type unit
 AI가 스스로 실수를 교정하고, 다음 테스트 생성 시 더 높은 정확도를 갖게 합니다.
 
 ```bash
-npx @hsna/prompt learn <source_path>
+npx @hsna/prompt learn [source_path]
 ```
+- **Interactive**: 경로 생략 시 테스트 파일이 존재하는 소스 파일만 표시
 - **Process**:
   1. 해당 소스 파일의 테스트(`npm test ...`)를 자동으로 실행합니다.
   2. 테스트가 **실패**하면, 에러 로그와 소스 코드를 분석하는 프롬프트를 생성합니다.
   3. AI에게 붙여넣으면, AI가 `project-test-lessons.md`에 교훈을 추가합니다.
 - **Example**:
   ```bash
+  npx @hsna/prompt learn                         # Interactive 모드
   npx @hsna/prompt learn src/app/login/page.tsx
   ```
 
