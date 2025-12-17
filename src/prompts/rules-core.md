@@ -430,6 +430,32 @@ server.use(
 );
 ```
 
+### 4.7 Weak Assertion 금지 (인자 검증 필수)
+
+**Void 함수(리턴값 없는 함수)는 "인자(Argument)가 곧 결과값"이다.**
+
+호출 여부만 검증하면 잘못된 인자로 호출되어도 테스트가 통과한다.
+
+```typescript
+// ❌ Bad: 호출 여부만 검증 - 잘못된 인자로 호출해도 통과
+expect(saveFn).toHaveBeenCalled();
+expect(saveFn).toHaveBeenCalledTimes(1);
+
+// ✅ Good: 인자까지 검증 - 정확한 값 전달 확인
+expect(saveFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
+```
+
+**적용 대상 (Side-Effect 함수):**
+- API 호출: `fetch`, `axios.post`
+- Storage 저장: `localStorage.setItem`, `sessionStorage.setItem`
+- Router 이동: `router.push`, `router.replace`
+- Store 액션: `dispatch`, `setState`, `setItem`
+- 외부 서비스: `analytics.track`, `logger.error`
+
+**예외:**
+- 호출 여부 자체가 중요한 경우 (예: `router.back()` - 인자 없음)
+- `not.toHaveBeenCalled()` (호출되지 않아야 함을 검증)
+
 ---
 
 ## 5. Anti-Patterns (즉시 중단)
@@ -445,6 +471,7 @@ server.use(
 - ❌ 비즈니스 로직 Mocking
 - ❌ 상수 파일 전체 재정의
 - ❌ className/style 등 스타일 단언
+- ❌ Weak Assertion (`toHaveBeenCalled()` 단독 사용 → `toHaveBeenCalledWith()` 필수)
 
 발견 즉시 수정.
 
@@ -460,6 +487,7 @@ server.use(
 - [ ] Snapshot 사용하지 않았는가?
 - [ ] Mock 내부 구현 검증하지 않았는가?
 - [ ] 상수 파일을 importActual로 부분 Override했는가?
+- [ ] Side-Effect 함수 검증 시 `toHaveBeenCalledWith()`로 인자까지 검증했는가?
 
 ---
 
