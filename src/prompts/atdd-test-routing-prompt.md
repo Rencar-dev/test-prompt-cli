@@ -131,8 +131,8 @@
 
 ## 4. 출력 형식
 
-### 4.1 “시나리오 분류 테이블”
-ATDD의 S1~Sn 전체를 아래처럼 분류한다:
+### 4.1 "시나리오 분류 테이블" (Scenario Summary)
+ATDD의 S1~Sn 전체를 아래처럼 분류한다. 이 테이블은 **분류 요약**으로, 실행 계획은 체크리스트로 별도 작성한다.
 
 | ID | Traceability ID | ATDD Title | Type | Prompt | Reason |
 |----|----------------|-----------|------|--------|--------|
@@ -141,13 +141,13 @@ ATDD의 S1~Sn 전체를 아래처럼 분류한다:
 | S3 | TC-05 | 비밀번호 validation | Unit | business-logic-test | pure utils |
 | S4 | TC-01 | 로그인 완료 후 홈 이동 | E2E→Integration | ui-test-implementation | router.reset only |
 
-**스타일 전용 시나리오 처리:** 색상/여백/간격/클래스명 등 디자인 결과만 언급된 시나리오는 `Excluded (style-only)`로 명시하고 구현 프롬프트로 넘기지 않는다. 필요 시 “관찰 가능한 동작으로 재서술 필요” 주석을 남긴다.
+**스타일 전용 시나리오 처리:** 색상/여백/간격/클래스명 등 디자인 결과만 언급된 시나리오는 `Excluded (style-only)`로 명시하고 구현 프롬프트로 넘기지 않는다. 필요 시 "관찰 가능한 동작으로 재서술 필요" 주석을 남긴다.
 
 ---
 
-### 4.2 “테스트 구현 방향” (Implementation Notes)
-각 시나리오 별로 **주석 수준의 Flow**와 **필요한 Mock Data 형태**를 구체적으로 명시한다.
-> **(Mock Requirement)**를 적어주면 구현 단계에서 AI가 데이터를 임의로 지어내지 않고 정확한 코드를 작성할 수 있다.
+### 4.2 "테스트 구현 체크리스트" (Implementation Checklist)
+분류된 시나리오를 **우선순위별 체크리스트**로 정리한다. 각 항목에는 Flow, Mock, Note를 인라인으로 포함한다.
+> 체크리스트 형식을 사용하면 AI/사용자가 진행 상황을 추적하고 완료 여부를 표시할 수 있다.
 
 ### 📋 작성 지침 (Critical Guidelines)
 
@@ -373,70 +373,76 @@ ATDD의 S1~Sn 전체를 아래처럼 분류한다:
 
 > **Thinking Process:**
 > 1. **Analyzing**: ATDD 4개 시나리오 확인. 소스 코드에서 `CONTRACT_TYPE` 상수 확인 불가 -> 하드코딩 전략 선택.
-> 2. **Planning**: S1, S2는 Integration, S3는 Unit으로 분류.
+> 2. **Planning**: S1, S4는 P0(핵심), S2는 P1(에러), S3는 P2(Unit)로 분류.
 > 3. **Auditing**:
 >    - Import: `PRIVATE_ROUTES`는 type import임. Value로 쓰지 않도록 주의 메모 추가.
 >    - E2E: S4 "홈 이동" -> `router.push` 검증으로 변환 확인.
 >
 > **Final Output:**
-> (아래 Markdown 내용)
+> (아래 체크리스트 형식의 Test Plan)
 
 ---
 
 ## 11. 최종 출력 예시 (실제 UX)
 
 > 아래는 ChatGPT가 출력해야 하는 **최종 포맷 예시**이다.
+> 체크리스트 형식으로 작성하여 AI/사용자가 진행 상황을 추적할 수 있도록 한다.
 
 ---
 
 **📌 Test Routing Plan — [FeatureName].test-plan.md**
 
-### 1. Scenario Table
+### 1. Scenario Summary (분류 요약)
 
-| ID | Title | Level | Prompt | Why |
-|----|------|------|--------|-----|
-| S1 | [Integration] 로그인 성공 | Integration | ui-test-implementation | UI+API+router |
-| S2 | [Integration] 잘못된 정보 → 에러 | Integration | ui-test-implementation | 실패 핸들링 |
-| S3 | [Unit] 비밀번호 유효성 | Unit | business-logic | pure utils |
-| S4 | [E2E] 로그인 후 홈 이동 | E2E→Integration | ui-test-implementation | router.reset only |
-
----
-
-### 2. Implementation Notes
-
-#### S1
-- (Flow): render(LoginForm) -> 입력 -> 제출 -> waitFor UI 변화 -> expect(mockRouter.push)
-- (Mock Requirement): POST /login -> { user: { id: 1 }, token: 'abc' }
-
-#### S2
-- (Flow): server.use(loginErrorHandler) -> 에러 toast 확인 -> expect(mockPush).not.toHaveBeenCalled()
-- (Mock Requirement): 400 Bad Request, { error: 'INVALID' }
-
-#### S3
-- (Flow): utils/validatePassword 호출 -> edge case 확인
-- (Mock Requirement): None (Pure Function)
-
-#### S4 (E2E 변환 케이스)
-- **ATDD Then:** "홈 화면이 보인다"
-- **Translate to:** `expect(router.push).toHaveBeenCalledWith('/home')` (홈 화면 DOM 렌더링 검증 X)
-- (Note): localStorage.setItem 검증 가능
+| ID | Title | Level | Prompt |
+|----|------|------|--------|
+| S1 | 로그인 성공 | Integration | ui-test-implementation |
+| S2 | 잘못된 정보 → 에러 | Integration | ui-test-implementation |
+| S3 | 비밀번호 유효성 | Unit | business-logic |
+| S4 | 로그인 후 홈 이동 | E2E→Integration | ui-test-implementation |
 
 ---
 
-### 3. Selector Policy
-- 아이디 input: getByPlaceholderText('아이디')
-- 비밀번호 input: getByPlaceholderText('비밀번호')
-- 제출 버튼: getByRole('button', { name: '로그인' })
+### 2. Test Implementation Checklist (실행 계획)
 
-### 4. MSW Plan
-- Success defaults: `mocks/handlers.ts` 사용
-- Error overrides: `mocks/login/errorHandlers.ts` 사용 (S2)
-- Queries: `useUserQuery` success handler
+#### P0 - Critical Path (핵심 플로우)
 
-### 5. Execution Order
-- P0: S1, S4 (핵심 플로우)
-- P1: S2 (에러 처리)
-- P2: S3 (Unit)
+- [ ] **S1: [Integration] 로그인 성공**
+  - Prompt: `ui-test-implementation-prompt.md`
+  - Flow: render(LoginForm) → 입력 → 제출 → waitFor UI 변화 → expect(mockRouter.push)
+  - Mock: `POST /login` → `{ user: { id: 1 }, token: 'abc' }`
+
+- [ ] **S4: [E2E→Integration] 로그인 후 홈 이동**
+  - Prompt: `ui-test-implementation-prompt.md`
+  - Flow: expect(router.push).toHaveBeenCalledWith('/home')
+  - Note: E2E "홈 화면이 보인다" → router.push 호출 검증으로 변환 (DOM 렌더링 검증 X)
+
+#### P1 - Error Handling (에러 처리)
+
+- [ ] **S2: [Integration] 잘못된 정보 → 에러**
+  - Prompt: `ui-test-implementation-prompt.md`
+  - Flow: server.use(loginErrorHandler) → 에러 toast 확인 → expect(mockPush).not.toHaveBeenCalled()
+  - Mock: `400 Bad Request`, `{ error: 'INVALID' }`
+
+#### P2 - Unit Tests (단위 테스트)
+
+- [ ] **S3: [Unit] 비밀번호 유효성**
+  - Prompt: `business-logic-test-prompt.md`
+  - Flow: utils/validatePassword 호출 → edge case 확인
+  - Mock: None (Pure Function)
+
+---
+
+### 3. Shared Resources
+
+#### Selector Policy
+- 아이디 input: `getByPlaceholderText('아이디')`
+- 비밀번호 input: `getByPlaceholderText('비밀번호')`
+- 제출 버튼: `getByRole('button', { name: '로그인' })`
+
+#### MSW Plan
+- Success: `mocks/handlers.ts` 사용
+- Error: `mocks/login/errorHandlers.ts` 사용 (S2 전용 override)
 
 ---
 
