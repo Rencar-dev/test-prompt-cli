@@ -23,7 +23,22 @@
 
 ---
 
-## 3. 분석 체크리스트
+## 3. Success Criteria (성공 기준)
+
+이 프롬프트의 출력이 성공적이라면:
+- [ ] `project-manifest.yaml`이 유효한 YAML 문법으로 생성됨
+- [ ] 필수 필드(`framework`, `runner`, `testPaths`, `testCommand`) 모두 채워짐
+- [ ] 추측한 값에는 요약 섹션에서 근거가 명시됨
+- [ ] `package.json`의 실제 의존성과 출력 결과가 일치함
+
+### How to Validate (검증 방법)
+1. 생성된 YAML을 YAML 파서로 검증
+2. 필수 필드 누락 여부 확인
+3. `package.json` dependencies와 출력된 라이브러리 비교
+
+---
+
+## 4. 분석 체크리스트
 1. **프레임워크/번들러**: Next.js, Vite, CRA 등과 버전을 파악한다.
 2. **테스트 러너**: `vitest`, `jest` 등 의존성을 확인하고 없으면 러너+환경(`jsdom`, `node`)을 제안한다. 또한 `scripts`에서 `test` 명령어를 확인한다.
 3. **경로 별칭**: `tsconfig.compilerOptions.paths`에서 대표 alias 1~2개만 추린다.
@@ -34,7 +49,7 @@
 
 ---
 
-## 4. 출력 형식
+## 5. 출력 형식
 아래 YAML 뼈대를 유지한 채 값만 채운다.
 
 ```yaml
@@ -88,7 +103,7 @@ quotes: "single"
 
 ---
 
-## 5. 요약 (YAML 아래)
+## 6. 요약 (YAML 아래)
 다음처럼 짧은 불릿을 추가한다.
 ```
 - Framework: Next.js 14 (from package.json)

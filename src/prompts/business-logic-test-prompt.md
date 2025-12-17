@@ -102,6 +102,21 @@ it.each([
 - [ ] 각 테스트 케이스에 명확한 설명(`desc`)을 포함했는가?
 - [ ] 성공 케이스/실패 케이스/경계값/null/undefined를 모두 검증했는가?
 
+### 1.4 Success Criteria (성공 기준)
+
+이 프롬프트의 출력이 성공적이라면:
+- [ ] 생성된 테스트가 **실행되어 Pass**함 (Verification 단계 통과)
+- [ ] UI 렌더링(`render`, `screen`) 코드가 **포함되지 않음**
+- [ ] 비즈니스 로직 자체를 Mock하지 않음 (외부 IO만 Mock)
+- [ ] Plan에 명시된 **모든 시나리오**가 구현됨
+- [ ] 경곗값/에러 케이스가 포함됨
+
+#### How to Validate (검증 방법)
+1. `npm test [파일경로]` 실행하여 Pass 확인
+2. `render`, `screen`, `userEvent` import 여부 검색
+3. `vi.spyOn(service,` 패턴 검색 (비즈니스 로직 Mock 여부)
+4. Plan의 시나리오 ID와 테스트 `describe`/`it` 블록 매핑 확인
+
 ---
 
 ## 2. Input Format

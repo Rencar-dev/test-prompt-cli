@@ -38,6 +38,21 @@ UI 테스트는 아래 범위를 포함한다:
 - **임의 생략 금지**: "시간 관계상 생략", "중요하지 않음" 등의 이유로 테스트를 건너뛰지 않는다.
 - **예외**: `[Unit]`으로 명시된 시나리오는 이 프롬프트 범위가 아니므로 제외한다.
 
+### 1.2 Success Criteria (성공 기준)
+
+이 프롬프트의 출력이 성공적이라면:
+- [ ] 생성된 테스트가 **실행되어 Pass**함 (Verification 단계 통과)
+- [ ] ATDD/Plan의 `[Integration]`, `[E2E]` 시나리오가 **모두 구현**됨
+- [ ] Snapshot 테스트, CSS/className 검증이 **포함되지 않음**
+- [ ] 사용자 관점의 쿼리(`getByRole`, `getByText`)가 우선 사용됨
+- [ ] MSW 핸들러가 적절히 설정되어 API 호출이 Mock됨
+
+#### How to Validate (검증 방법)
+1. `npm test [파일경로]` 실행하여 Pass 확인
+2. ATDD 시나리오 ID와 테스트 `describe`/`it` 블록 매핑 확인
+3. `toMatchSnapshot`, `className`, `.style` 패턴 검색 (포함 시 실패)
+4. `getByTestId` 사용 비율 확인 (최소화되어야 함)
+
 ---
 
 ## 2. 절대 포함 금지 항목 정의
