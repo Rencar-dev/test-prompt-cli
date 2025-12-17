@@ -2216,7 +2216,61 @@ await waitFor(() =>
 
 ---
 
-## 21. 실행/환경 관련 내용
+## 21. ⚡️ Critical Constraints Summary (Do Not Ignore)
+
+> **이 섹션은 가장 자주 위반되는 핵심 규칙입니다. 코드 출력 전 반드시 확인하세요.**
+
+### 1. Mutation Hook Mocking 절대 금지
+```typescript
+// ❌ 절대 금지
+vi.mock('@/hooks/useCustomMutation', () => ({ ... }));
+
+// ✅ MSW로 API 응답 제어
+server.use(http.post('/api/...', () => HttpResponse.json(...)));
+```
+
+### 2. waitFor는 UI 변화만
+```typescript
+// ❌ 금지 - Mock 검증에 waitFor 사용
+await waitFor(() => expect(mockFn).toHaveBeenCalled());
+
+// ✅ 올바름 - UI 변화 대기 후 동기 검증
+await waitFor(() => expect(screen.queryByText('로딩중')).not.toBeInTheDocument());
+expect(mockFn).toHaveBeenCalledWith({ id: 1 }); // 동기 검증
+```
+
+### 3. getByRole 우선 사용
+```typescript
+// ❌ 피하기 - testid 남발
+screen.getByTestId('submit-button');
+
+// ✅ 권장 - Role 기반 선택
+screen.getByRole('button', { name: /제출/ });
+```
+
+### 4. Store 초기화 규칙
+```typescript
+// ❌ 금지 - 두 번째 인자 true
+store.setState(initialState, true);
+
+// ✅ 올바름 - 부분 업데이트
+store.setState({ user: null, isLogin: false });
+```
+
+### 5. Weak Assertion 금지
+```typescript
+// ❌ 금지 - 호출 여부만 검증
+expect(mockFn).toHaveBeenCalled();
+
+// ✅ 필수 - 인자까지 검증
+expect(mockFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
+```
+
+**위 5가지 규칙을 위반한 코드는 즉시 수정하세요.**
+
+---
+
+## 22. 실행/환경 관련 내용
 
 이 프롬프트는 **“테스트 코드를 생성”**하는 역할만 담당한다.  
 테스트 실행/Node 버전/패키지 매니저/명령어 가이드는  
