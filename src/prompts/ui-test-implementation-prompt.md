@@ -1912,8 +1912,19 @@ render(<LoginView />, {
 > **단순히 코드를 작성하지 말고, 아래 순서대로 사고(Thinking)한 뒤 최종 결과물을 출력하시오.**
 
 ### Step 1: Drafting (초안 작성)
-- 테스트 대상의 로직을 파악하고 시나리오별 필요한 Mock을 결정하다
-- selector 전략(placeholder, role, text)을 결정한다
+
+**1-1. 컴포넌트 구조 분석**
+- 렌더링 조건(조건부 렌더링, 리스트)을 식별한다.
+- 사용자 인터랙션 포인트(버튼, 입력, 링크)를 나열한다.
+- 상태 변화 흐름을 추적한다: `초기 상태 → 액션 → 결과 상태`
+
+**1-2. 시나리오별 검증 포인트**
+| 시나리오 | 사용자 액션 | UI 변화 | Mock 필요 여부 |
+|----------|-------------|---------|----------------|
+| S1 | ... | ... | ... |
+
+**1-3. Selector 전략 결정**
+- 각 요소에 대해 getByRole → getByLabelText → getByText 순서로 선택자 결정
 
 ### Step 2: Mocking Strategy (Mock 전략 수립)
 
@@ -1931,12 +1942,27 @@ render(<LoginView />, {
 - [ ] Mock 데이터의 필드명(예: `user.type` vs `user.userType`)이 소스 코드와 정확히 일치하는가?
 
 ### Step 3: Auditing (자기 비판)
-- **Zero Tolerance Criteria**를 기준으로 초안을 매섭게 비판한다.
-- 1. `waitFor` 내부에 `expect(mock)`이 있는가? (있다면 동기 검증으로 분리)
-- 2. Mutation Hook을 직접 Mocking 했는가? (MSW로 대체)
-- 3. `useState` 로직을 Mock 내부에 복사했는가? (Shadow Logic 제거)
-- 4. 소스 코드에 없는 상수를 추측했는가? (Import Hallucination 제거)
-- 5. `[ID]` 태그와 원문 제목을 유지했는가?
+
+> **각 항목에 대해 "왜 문제인지" 설명하며 검토하시오.**
+
+**질문 기반 검토:**
+1. `waitFor` 내부에 `expect(mock)`이 있는가?
+   → 있다면: "Mock 호출은 동기적이므로 waitFor가 불필요하다. UI 대기와 분리해야 한다."
+
+2. Mutation Hook을 직접 Mocking 했는가?
+   → 했다면: "실제 네트워크 응답 흐름을 테스트하지 못한다. MSW로 대체해야 한다."
+
+3. `useState` 로직을 Mock 내부에 복사했는가?
+   → 했다면: "Shadow Logic은 실제 구현과 동기화가 안 된다. Hook의 실제 로직을 테스트해야 한다."
+
+4. 소스 코드에 없는 상수를 추측했는가?
+   → 했다면: "Import Hallucination은 런타임 에러를 유발한다. 하드코딩하거나 제거해야 한다."
+
+5. `[ID]` 태그와 원문 제목을 유지했는가?
+   → 안 했다면: "Plan과 연결이 끊어진다. 반드시 유지해야 한다."
+
+**Self-Correction:**
+- 위 문제가 발견되면 **즉시 수정 후** 다음 단계로 진행한다.
 
 ### Step 4: Refining (수정)
 - 비판 내용을 반영하여 코드를 수정한다.
