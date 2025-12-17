@@ -2012,7 +2012,18 @@ render(<LoginView />, {
 
 ---
 
-## 13. Output Format (Thinking + Code)
+## 13. Output Style (출력 스타일)
+
+> 간결하고 핵심적인 정보만 출력하세요.
+
+- ❌ 불필요한 인사말, 부연 설명 제거 (예: "안녕하세요", "~해드리겠습니다")
+- ❌ 같은 내용 반복 금지
+- ✅ 핵심 정보만 간결하게 출력
+- ✅ 마크다운 테이블/리스트/코드블록 활용
+
+---
+
+## 14. Output Format (Thinking + Code)
 
 반드시 아래 포맷을 지켜서 출력한다.
 
@@ -2031,7 +2042,7 @@ render(<LoginView />, {
 
 ---
 
-## 14. Final Self-Check (마지막 관문)
+## 15. Final Self-Check (마지막 관문)
 (코드 출력 전 마지막 확인)
 - [ ] **모든 `it` 블록에 G/W/T 주석이 있는가?**
 - [ ] **각 G/W/T 주석이 1줄 이상의 의미 있는 설명을 포함하는가?**
@@ -2056,7 +2067,7 @@ render(<LoginView />, {
 
 ---
 
-## 15. 실제 코드 템플릿 (복사용)
+## 16. 실제 코드 템플릿 (복사용)
 
 ```ts
 /**
@@ -2139,7 +2150,7 @@ describe('LoginView', () => {
 
 ---
 
-## 16. Selector Rules (강력)
+## 17. Selector Rules (강력)
 
 ### 16.0 셀렉터 우선 순위
 
@@ -2196,7 +2207,7 @@ CSS selector, className 기반 탐색은 가능한 한 피한다.
 
 ---
 
-## 17. Router 검증
+## 18. Router 검증
 
 가능하면 **Router 호출 자체**보다,  
 라우팅 결과로 나타나는 **UI 요소**를 검증한다.
@@ -2215,7 +2226,7 @@ await waitFor(() =>
 
 ---
 
-## 18. Anti-Pattern 목록 (Fail Immediately)
+## 19. Anti-Pattern 목록 (Fail Immediately)
 
 - ❌ Snapshot 테스트
 - ❌ mock 내부 구현/파생 로직 검증
@@ -2237,7 +2248,7 @@ await waitFor(() =>
 
 ---
 
-## 19. 테스트 완료 후 Self Checklist
+## 20. 테스트 완료 후 Self Checklist
 
 - [ ] selector는 접근성 기준(getByRole, getByLabelText)을 우선 사용했는가?
 - [ ] 실패 응답은 전역 handler가 아니라 `server.use()`로 override 했는가?
@@ -2249,7 +2260,7 @@ await waitFor(() =>
 
 ---
 
-## 20. 출력 형태 요약
+## 21. 출력 형태 요약
 
 - TypeScript 기반 RTL 테스트 코드
 - 파일명: `[컴포넌트명].test.tsx`
@@ -2258,7 +2269,7 @@ await waitFor(() =>
 
 ---
 
-## 21. ⚡️ Critical Constraints Summary (Do Not Ignore)
+## 22. ⚡️ Critical Constraints Summary (Do Not Ignore)
 
 > **이 섹션은 가장 자주 위반되는 핵심 규칙입니다. 코드 출력 전 반드시 확인하세요.**
 
@@ -2325,7 +2336,7 @@ vi.mocked(useAuth).mockReturnValue({
 
 ---
 
-## 22. 실행/환경 관련 내용
+## 23. 실행/환경 관련 내용
 
 이 프롬프트는 **“테스트 코드를 생성”**하는 역할만 담당한다.  
 테스트 실행/Node 버전/패키지 매니저/명령어 가이드는  
