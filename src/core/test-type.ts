@@ -59,3 +59,20 @@ export const getTemplateFileName = (type: TestType): string => {
 export const getTestTypeLabel = (type: TestType): string => {
   return TEST_TYPE_LABELS[type];
 };
+
+/**
+ * 테스트 타입별 규칙 파일 매핑
+ * - UI: core + ui 규칙
+ * - Unit: core + unit 규칙
+ */
+export const TEST_TYPE_RULES: Record<TestType, string[]> = {
+  [TEST_TYPES.UI]: ['rules-core.md', 'rules-ui.md'],
+  [TEST_TYPES.UNIT]: ['rules-core.md', 'rules-unit.md'],
+};
+
+/**
+ * 테스트 타입별 규칙 파일명 목록 가져오기
+ */
+export const getRulesFileNames = (type: TestType): string[] => {
+  return TEST_TYPE_RULES[type];
+};
