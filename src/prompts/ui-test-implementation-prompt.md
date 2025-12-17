@@ -1969,8 +1969,24 @@ render(<LoginView />, {
 - 불확실한 Import는 제거하거나 하드코딩으로 대체한다.
 
 ### Step 5: Verification & Fix (검증 및 수정) - *Agentic Mode Only*
-- 터미널 사용이 가능하다면 실제 테스트를 실행한다.
-- 에러 발생 시 **최대 3회**까지 수정을 시도한다. (소스 코드 수정 금지)
+
+> **테스트 실행 전 반드시 타입 체크를 먼저 수행하시오.**
+
+**5-1. TypeScript 타입 체크 (TS 프로젝트 필수)**
+
+> 💡 JavaScript 프로젝트(`.js`, `.jsx`)의 경우 이 단계를 건너뛰고 **5-2 테스트 실행**부터 진행하세요.
+
+- `npx tsc --noEmit [파일경로]` 또는 IDE의 타입 체크 실행
+- 타입 에러가 있으면 **테스트 실행 전에 먼저 수정**
+- 흔한 타입 에러:
+  - Mock 리턴 타입 불일치 (실제 Hook 리턴 타입과 다름)
+  - 제네릭 파라미터 누락 (`vi.fn<[], ReturnType>()`)
+  - import 경로 오류
+
+**5-2. 테스트 실행**
+- 타입 에러 해결 후 `project-manifest.yaml`의 `testCommand` 스크립트를 참고하여 테스트 실행
+- 예: `npm test [파일경로]`, `yarn vitest [파일경로]`
+- 에러 발생 시 **최대 3회**까지 수정 시도 (소스 코드 수정 금지)
 
 ### Step 6: Final Output (최종 출력)
 - **Thinking Process**와 **Final Code**를 분리하여 출력한다.
@@ -2292,7 +2308,20 @@ expect(mockFn).toHaveBeenCalled();
 expect(mockFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
 ```
 
-**위 5가지 규칙을 위반한 코드는 즉시 수정하세요.**
+### 6. Mock 리턴 타입 일치 필수
+```typescript
+// ❌ 금지 - 타입 불일치 (실제: { login, logout, user })
+vi.mocked(useAuth).mockReturnValue({ login: vi.fn() });
+
+// ✅ 필수 - 실제 타입과 일치
+vi.mocked(useAuth).mockReturnValue({
+  login: vi.fn(),
+  logout: vi.fn(),
+  user: null,
+});
+```
+
+**위 6가지 규칙을 위반한 코드는 즉시 수정하세요.**
 
 ---
 

@@ -368,8 +368,24 @@ vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 - 중복 코드를 `it.each`로 리팩토링한다.
 
 ### Step 4: Verification & Fix (검증 및 수정) - *Agentic Mode Only*
-- 터미널 사용이 가능하다면 실제 테스트를 실행한다.
-- 에러 발생 시 **최대 3회**까지 수정을 시도한다. (소스 코드 수정 금지)
+
+> **테스트 실행 전 반드시 타입 체크를 먼저 수행하시오.**
+
+**4-1. TypeScript 타입 체크 (TS 프로젝트 필수)**
+
+> 💡 JavaScript 프로젝트(`.js`, `.jsx`)의 경우 이 단계를 건너뛰고 **4-2 테스트 실행**부터 진행하세요.
+
+- `npx tsc --noEmit [파일경로]` 또는 IDE의 타입 체크 실행
+- 타입 에러가 있으면 **테스트 실행 전에 먼저 수정**
+- 흔한 타입 에러:
+  - Mock 리턴 타입 불일치 (실제 함수/Hook 리턴 타입과 다름)
+  - 제네릭 파라미터 누락 (`vi.fn<[], ReturnType>()`)
+  - import 경로 오류
+
+**4-2. 테스트 실행**
+- 타입 에러 해결 후 `project-manifest.yaml`의 `testCommand` 스크립트를 참고하여 테스트 실행
+- 예: `npm test [파일경로]`, `yarn vitest [파일경로]`
+- 에러 발생 시 **최대 3회**까지 수정 시도 (소스 코드 수정 금지)
 
 ### Step 5: Final Output (최종 출력)
 - **Thinking Process**와 **Final Code**를 분리하여 출력한다.
