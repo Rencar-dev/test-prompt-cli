@@ -68,7 +68,9 @@ npx @hsna/prompt init
 - **Output**: `project-convention-scanner.md` 내용 복사
 - **Action**: 
   1. AI에게 붙여넣고, 결과물인 `project-manifest.yaml`을 루트에 저장하세요.
-  2. 자동으로 생성된 `project-test-lessons.md` 파일을 확인하세요. (AI 오답노트)
+  2. 자동으로 생성된 `project-test-lessons.md` 파일을 확인하세요.
+     - **Section 0**: 프로젝트 맥락 및 팀 규칙 (직접 작성)
+     - **Section 1~3**: AI가 학습한 오답노트 (`learn` 명령어로 갱신)
 
 ### 2. `atdd`
 구현된 소스 코드를 분석하여 **수용 테스트(Acceptance Test) 시나리오** 설계를 요청합니다.
