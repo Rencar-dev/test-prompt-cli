@@ -67,6 +67,28 @@
     *   추상적인 조언(예: "Mocking을 잘 하세요")은 금지합니다.
     *   **반드시 코드로 된 해결책**을 제시해야 합니다. (예: `beforeAll(() => global.alert = vi.fn())` 추가)
 
+    **Good vs Bad 예시:**
+
+    **❌ Bad (추상적 조언):**
+    ```markdown
+    - **[Mocking 규칙]**: Mocking을 잘 해야 합니다.
+      - **Rule**: 필요한 것을 Mock하세요.
+    ```
+
+    **✅ Good (구체적 행동 지침):**
+    ```markdown
+    - **[Window Object Mocking]**: JSDOM 환경에서 `window.alert`, `window.scrollTo` 등 미구현
+      - **Rule**: UI 테스트 파일 상단에서 반드시 Mock 설정
+      - **Example**:
+        ```typescript
+        beforeAll(() => {
+          window.alert = vi.fn();
+          window.scrollTo = vi.fn();
+          window.confirm = vi.fn(() => true);
+        });
+        ```
+    ```
+
 4.  **📉 Document Optimization (문서 최적화 - 중요!)**:
     *   문서가 무한정 길어지는 것을 방지해야 합니다.
     *   **패턴화(Patternize)**: 특정 파일명(`Login.test.tsx`)이나 특정 변수명을 언급하지 마십시오. 대신 "UI 컴포넌트 테스트 시"와 같이 범용적인 조건으로 일반화하십시오.
