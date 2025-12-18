@@ -41,7 +41,13 @@ export const readManifest = async (): Promise<string> => {
  * project-manifest.yaml에서 testPaths 설정을 읽어옵니다.
  * @returns testPaths 설정 객체 (없으면 기본값 반환)
  */
-export const getTestPathsConfig = async (): Promise<{ dirName: string; atddSuffix: string; planSuffix: string; mode: string }> => {
+export const getTestPathsConfig = async (): Promise<{
+  dirName: string;
+  atddSuffix: string;
+  planSuffix: string;
+  testSuffix: string;
+  mode: string;
+}> => {
   try {
     const manifestContent = await readManifest();
     const manifest = yaml.load(manifestContent) as {
@@ -49,15 +55,17 @@ export const getTestPathsConfig = async (): Promise<{ dirName: string; atddSuffi
         dirName?: string;
         atddSuffix?: string;
         planSuffix?: string;
+        testSuffix?: string;
         mode?: string;
       };
     };
 
-    // 기본값: _tests, .atdd.md, .test-plan.md, co-location
+    // 기본값: _tests, .atdd.md, .test-plan.md, .test, co-location
     return {
       dirName: manifest.testPaths?.dirName || '_tests',
       atddSuffix: manifest.testPaths?.atddSuffix || '.atdd.md',
       planSuffix: manifest.testPaths?.planSuffix || '.test-plan.md',
+      testSuffix: manifest.testPaths?.testSuffix || '.test',
       mode: manifest.testPaths?.mode || 'co-location',
     };
   } catch {
@@ -66,6 +74,7 @@ export const getTestPathsConfig = async (): Promise<{ dirName: string; atddSuffi
       dirName: '_tests',
       atddSuffix: '.atdd.md',
       planSuffix: '.test-plan.md',
+      testSuffix: '.test',
       mode: 'co-location',
     };
   }

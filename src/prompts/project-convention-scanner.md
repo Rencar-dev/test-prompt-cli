@@ -92,12 +92,12 @@ apiEndpoints:
   # 기타 서비스 URL이 있으면 추가
 mockHandlers: "mocks/handlers.ts"  # MSW 핸들러 파일 경로
 
-testFileExtension: ".test.tsx"
 testPaths:
   mode: "co-location"   # 'co-location' | 'centralized'
   dirName: "_tests"     # '_tests' or '__tests__'
-  planSuffix: ".test-plan.md"
   atddSuffix: ".atdd.md"
+  planSuffix: ".test-plan.md"
+  testSuffix: ".test"   # '.test' or '.spec' (확장자 .tsx/.ts는 소스에 따라 자동 결정)
 
 testLocationStrategy: "Co-location"
 

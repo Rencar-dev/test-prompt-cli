@@ -40,7 +40,21 @@ UI 테스트는 아래 범위를 포함한다:
 - **임의 생략 금지**: "시간 관계상 생략", "중요하지 않음" 등의 이유로 테스트를 건너뛰지 않는다.
 - **예외**: `[Unit]`으로 명시된 시나리오는 이 프롬프트 범위가 아니므로 제외한다.
 
-### 1.2 Success Criteria (성공 기준)
+### 1.2 출력 파일 저장 규칙
+
+생성된 테스트 파일은 `project-manifest.yaml`의 `testPaths` 설정에 따라 저장한다.
+- **Co-location Mode**: `[SourceDir]/[testPaths.dirName]/[FeatureName][testPaths.testSuffix].tsx`
+
+**파일명 규칙**:
+- 소스 파일명이 `page`, `index`, `layout` 등 프레임워크 예약어이면 → **디렉토리명** 사용
+- 그 외 → **소스 파일명** 사용
+
+예시 (testPaths.dirName: "_tests", testPaths.testSuffix: ".test" 기준):
+- `app/login/page.tsx` → `_tests/login.test.tsx` (디렉토리명)
+- `app/(public)/user/login/page.tsx` → `_tests/login.test.tsx` (디렉토리명)
+- `components/LoginForm.tsx` → `_tests/LoginForm.test.tsx` (파일명)
+
+### 1.3 Success Criteria (성공 기준)
 
 이 프롬프트의 출력이 성공적이라면:
 - [ ] 생성된 테스트가 **실행되어 Pass**함 (Verification 단계 통과)

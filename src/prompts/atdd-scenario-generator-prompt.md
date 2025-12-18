@@ -290,3 +290,13 @@ Implementation Note: 한 줄 조언
 
 ## 10. 출력 예시 요약
 출력은 독립적인 `.atdd.md` 파일이 되도록 작성하며, 예시 코드를 직접 복사하지 않는다. 표와 시나리오 번호는 입력된 기능에 맞춰 재작성한다.
+
+**파일명 규칙**:
+- 소스 파일명이 `page`, `index`, `layout` 등 프레임워크 예약어이면 → **디렉토리명** 사용
+- 그 외 → **소스 파일명** 사용
+
+예시 (testPaths.dirName: "_tests", testPaths.atddSuffix: ".atdd.md" 기준):
+- `app/login/page.tsx` → `_tests/login.atdd.md` (디렉토리명)
+- `app/(public)/user/login/page.tsx` → `_tests/login.atdd.md` (디렉토리명)
+- `components/LoginForm.tsx` → `_tests/LoginForm.atdd.md` (파일명)
+- `hooks/useAuth.ts` → `_tests/useAuth.atdd.md` (파일명)

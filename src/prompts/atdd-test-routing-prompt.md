@@ -63,11 +63,17 @@
 
 ### 1.1 출력 파일 저장 규칙
 생성된 Test Plan은 **반드시 파일로 저장**한다.
-- **파일명 규칙**: `project-manifest.yaml`의 `testPaths` 설정 참조.
 - **Co-location Mode**: `[SourceDir]/[testPaths.dirName]/[FeatureName][testPaths.planSuffix]`
 - **Centralized Mode**: `tests/[FeatureName][testPaths.planSuffix]`
 
-(예: `app/(private)/login/_tests/login.test-plan.md`)
+**파일명 규칙**:
+- 소스 파일명이 `page`, `index`, `layout` 등 프레임워크 예약어이면 → **디렉토리명** 사용
+- 그 외 → **소스 파일명** 사용
+
+예시 (testPaths.dirName: "_tests", testPaths.planSuffix: ".test-plan.md" 기준):
+- `app/login/page.tsx` → `_tests/login.test-plan.md` (디렉토리명)
+- `app/(public)/user/login/page.tsx` → `_tests/login.test-plan.md` (디렉토리명)
+- `hooks/useAuth.ts` → `_tests/useAuth.test-plan.md` (파일명)
 
 > Plan 파일이 해당 경로에 없으면 테스트 생성 단계로 넘어가지 않는다. 경로를 확인하고 저장을 완료할 것.
 

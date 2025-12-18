@@ -104,7 +104,21 @@ it.each([
 - [ ] 각 테스트 케이스에 명확한 설명(`desc`)을 포함했는가?
 - [ ] 성공 케이스/실패 케이스/경계값/null/undefined를 모두 검증했는가?
 
-### 1.4 Success Criteria (성공 기준)
+### 1.4 출력 파일 저장 규칙
+
+생성된 테스트 파일은 `project-manifest.yaml`의 `testPaths` 설정에 따라 저장한다.
+- **Co-location Mode**: `[SourceDir]/[testPaths.dirName]/[FeatureName][testPaths.testSuffix].ts`
+
+**파일명 규칙**:
+- 소스 파일명이 `page`, `index`, `layout` 등 프레임워크 예약어이면 → **디렉토리명** 사용
+- 그 외 → **소스 파일명** 사용
+
+예시 (testPaths.dirName: "_tests", testPaths.testSuffix: ".test" 기준):
+- `utils/formatPrice.ts` → `_tests/formatPrice.test.ts` (파일명)
+- `hooks/useAuth.ts` → `_tests/useAuth.test.ts` (파일명)
+- `stores/authStore.ts` → `_tests/authStore.test.ts` (파일명)
+
+### 1.5 Success Criteria (성공 기준)
 
 이 프롬프트의 출력이 성공적이라면:
 - [ ] 생성된 테스트가 **실행되어 Pass**함 (Verification 단계 통과)
