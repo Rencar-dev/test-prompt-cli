@@ -242,3 +242,137 @@ await waitFor(() => expect(mockFn).toHaveBeenCalled());
 - [ ] `networkidle` 대신 UI 앵커 기반 대기를 사용했는가?
 - [ ] `waitFor`를 Mock 호출 검증에 사용하지 않았는가?
 - [ ] 대기 조건이 명확하고 결정적(Deterministic)인가?
+
+---
+
+## 4. Promise 상태별 UI 테스트 패턴
+
+> **목적**: 비동기 작업의 다양한 상태(pending, resolved, rejected)에 따른 UI 변화를 검증
+
+### 4.1 Promise가 resolve되지 않는 경우 (Pending 상태)
+
+**사용 시점**:
+- 바텀시트/모달이 응답 대기 중 유지되어야 하는 경우
+- 로딩 상태가 지속되어야 하는 경우
+- 네트워크 지연 시나리오 테스트
+
+```typescript
+it('결제 응답이 오지 않으면 확인 모달이 유지됩니다.', async () => {
+  const user = userEvent.setup();
+
+  // ✅ 영원히 resolve되지 않는 Promise
+  mockPayment.mockReturnValue(new Promise(() => {}));
+
+  renderWithProviders(<CheckoutPage />);
+
+  const payButton = await screen.findByText('결제하기');
+  await user.click(payButton);
+
+  const confirmButton = screen.getByText('확인');
+  await user.click(confirmButton);
+
+  // 모달이 여전히 존재함 (Promise가 pending 상태)
+  expect(screen.getByText('확인')).toBeInTheDocument();
+});
+```
+
+### 4.2 Promise가 resolve되는 경우 (Success 상태)
+
+```typescript
+it('결제 응답이 오면 확인 모달이 닫힙니다.', async () => {
+  const user = userEvent.setup();
+
+  // ✅ 즉시 resolve되는 Promise
+  mockPayment.mockResolvedValue({ success: true });
+
+  renderWithProviders(<CheckoutPage />);
+
+  const payButton = await screen.findByText('결제하기');
+  await user.click(payButton);
+
+  const confirmButton = screen.getByText('확인');
+  await user.click(confirmButton);
+
+  // 모달이 닫힘 (Promise가 resolved)
+  await waitFor(() => {
+    expect(screen.queryByText('확인')).not.toBeInTheDocument();
+  });
+});
+```
+
+### 4.3 핵심 패턴 비교
+
+| Mock 메서드 | Promise 상태 | UI 결과 |
+|------------|-------------|---------|
+| `mockReturnValue(new Promise(() => {}))` | Pending (영원히) | 로딩/모달 유지 |
+| `mockResolvedValue(value)` | Fulfilled | 성공 UI 표시 |
+| `mockRejectedValue(error)` | Rejected | 에러 UI 표시 |
+
+### 4.4 Self-Check
+
+- [ ] 비동기 작업의 pending 상태 UI를 테스트했는가?
+- [ ] 성공/실패 각각의 UI 변화를 검증했는가?
+- [ ] `new Promise(() => {})` 패턴으로 영구 pending 상태를 테스트했는가?
+
+---
+
+## 5. 테스트 에러 메시지 개선 (setup.ts)
+
+> **목적**: 요소를 찾지 못했을 때 전체 DOM 구조를 출력하여 디버깅 시간을 단축
+
+### 5.1 prettyDOM 에러 개선 설정
+
+**`tests/setup.ts`에 추가:**
+
+```typescript
+import { cleanup, configure, prettyDOM } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
+configure({
+  getElementError: (message: string | null, container) => {
+    const error = new Error();
+
+    if (message && message.includes('<body>')) {
+      // 이미 DOM이 포함된 경우 그대로 사용
+      error.message = message;
+    } else {
+      // DOM 스냅샷 추가
+      const prettifiedDOM = prettyDOM(container);
+      error.message = `${message}\n\n${prettifiedDOM}`;
+    }
+
+    error.name = 'TestingLibraryElementError';
+    return error;
+  },
+});
+```
+
+### 5.2 효과
+
+**Before (기본 에러 메시지):**
+```
+Unable to find an element with the text: 홍길동
+```
+
+**After (prettyDOM 적용):**
+```
+Unable to find an element with the text: 홍길동
+
+<body>
+  <div>
+    <header>
+      <h1>사용자 정보</h1>
+    </header>
+    <main>
+      <p>로딩중...</p>  <!-- 여기서 문제 원인 발견! -->
+    </main>
+  </div>
+</body>
+```
+
+### 5.3 장점
+
+- 실패 원인을 즉시 파악 가능
+- "왜 요소를 찾지 못했는지" DOM 구조로 확인
+- 비동기 타이밍 문제 (로딩 상태에서 검증 시도) 빠르게 발견
+- 디버깅 시간 대폭 단축

@@ -153,6 +153,66 @@ it('로그인 실패 시 에러 toast 노출', async () => {
 - 테스트 내부에서 `server.listen()` 호출
 - 전역 server 기본 handlers에 에러 핸들러 섞기
 
+### 2.3.1 Stateful Mock 응답 패턴 (Advanced)
+
+> **목적**: 여러 API 호출 간 상태 연동이 필요한 복잡한 시나리오 테스트
+
+**사용 시점**:
+- 장바구니 추가 → 총액 동기화
+- 쿠폰 적용 → 할인 금액 반영
+- 여러 단계의 상태 전이 테스트
+
+```typescript
+// ✅ Good: 클로저로 상태 관리
+it('상품을 장바구니에 추가하면 총액이 동기화됩니다.', async () => {
+  let totalAmount = 0;  // 클로저로 상태 추적
+  let cartItems: number[] = [];
+
+  mockServer.use(
+    http.get('/api/cart', () =>
+      HttpResponse.json({ totalAmount, items: cartItems })
+    ),
+    http.post('/api/cart/:productId', ({ params }) => {
+      totalAmount += 15000;  // API 호출 시 상태 변경
+      cartItems.push(Number(params.productId));
+      return HttpResponse.json({ success: true });
+    })
+  );
+
+  renderWithProviders(<ProductPage />);
+  await screen.findByText('0원');
+
+  const button = await screen.findByRole('button', { name: '장바구니 담기' });
+  await user.click(button);
+
+  await screen.findByText('15,000원');  // 변경된 상태가 UI에 반영됨
+});
+```
+
+```typescript
+// ✅ Good: 알림 설정 상태 변경 테스트
+it('알림을 허용하면 설정 화면이 정상적으로 출력됩니다.', async () => {
+  let notificationEnabled = false;  // 초기 알림 비활성화
+
+  mockRequestNotification.mockImplementation(async () => {
+    notificationEnabled = true;  // 알림 요청 시 상태 변경
+    return true;
+  });
+  mockCheckNotification.mockImplementation(async () => notificationEnabled);
+
+  renderWithProviders(<SettingsPage />);
+
+  await user.click(await screen.findByText('알림 허용'));
+
+  await screen.findByText(/알림이 활성화되었습니다/);  // 설정 변경 후 UI 업데이트
+});
+```
+
+**핵심 원칙**:
+- 상태 변수는 테스트 함수 스코프 내에서 선언 (클로저 활용)
+- `afterEach`에서 `mockServer.resetHandlers()` 호출로 자동 정리됨
+- 복잡한 상태 흐름도 단일 테스트 내에서 검증 가능
+
 ### 2.4 Server Lifecycle (Setup 파일에서 처리됨)
 
 ```typescript

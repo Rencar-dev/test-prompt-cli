@@ -31,6 +31,44 @@ await vi.advanceTimersByTimeAsync(1000);
 
 > 💡 Timer + Date = **Deterministic** 유지
 
+### 1.2.1 주기적 동작(setInterval) 테스트 패턴
+
+> **목적**: `setInterval` 기반의 주기적 API 호출, 폴링 등을 테스트
+
+**핵심 옵션**: `shouldAdvanceTime: true`
+
+```typescript
+it('10초에 한번씩 서버에 주문 상태를 조회합니다.', async () => {
+  const mockAPIRequested = vi.fn();
+
+  // ✅ shouldAdvanceTime: true 옵션 필수
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+
+  mockServer.use(
+    http.get('/api/order/status', () => {
+      mockAPIRequested();
+      return HttpResponse.json({ status: 'processing' });
+    })
+  );
+
+  renderWithProviders(<OrderTrackingPage />);
+
+  // 1분(60초) 동안 시간 진행 → 10초 간격으로 6회 호출
+  await vi.advanceTimersByTime(60_000);
+
+  expect(mockAPIRequested).toHaveBeenCalledTimes(6);
+});
+```
+
+**`shouldAdvanceTime` 옵션 설명**:
+- `true`: 타이머가 진행될 때 `Date.now()`도 함께 증가
+- `false` (기본값): 타이머만 진행, `Date.now()`는 고정
+
+**사용 시점**:
+- `setInterval` 기반 폴링/동기화 테스트
+- 시간 경과에 따른 상태 변화 테스트
+- 타임아웃 로직 테스트
+
 ### 1.3 MSW/Promise와의 충돌 (Critical) 🚨
 
 > **절대 금지**: 서버 응답(MSW)이나 Promise 기반 비동기 작업이 포함된 경우
@@ -159,3 +197,79 @@ beforeEach(() => {
 - [ ] Store 상태가 테스트 간 공유되지 않는가?
 - [ ] Browser API Mock이 `beforeEach`에서 초기화되는가?
 - [ ] `afterEach`에서 Mock이 정리(cleanup)되는가?
+
+---
+
+## 3. Parameterized Test (test.each) 패턴
+
+> **목적**: 유사한 테스트 케이스를 간결하게 작성하고 테스트 의도를 명확히 표현
+
+### 3.1 기본 형태
+
+```typescript
+// 단순 배열 형태
+test.each([1000, 5000, 10000])(
+  '%s 걸음을 걸었으면 보상 받기 버튼이 활성화됩니다.',
+  async (steps) => {
+    mockStepCount.mockResolvedValue({ stepCount: steps });
+    // ...
+  }
+);
+```
+
+### 3.2 라벨 포함 복합 파라미터 형태 (권장)
+
+> **목적**: 테스트 케이스의 의도를 명확히 표현하고 가독성을 높임
+
+```typescript
+// ✅ Good: 라벨과 설명을 포함한 복합 파라미터
+test.each([
+  ['주문 없음', '주문 내역이 없습니다', 0, /주문 내역이 없습니다/],
+  ['배송 중', '배송 중인 상품이 있습니다', 3, /배송 중인 상품.*있습니다/],
+  ['배송 완료', '모든 상품이 배송 완료되었습니다', 5, /배송 완료되었습니다/],
+])(
+  "'주문 현황' 섹션에 '%s' 케이스의 '%s' 문구가 출력됩니다.",
+  async (caseLabel, expectedText, orderCount, regexPattern) => {
+    const today = new Date().toISOString().split('T')[0];
+    mockServer.use(
+      mockAPI.get('/api/orders', {
+        orders: Array(orderCount).fill({ date: today, status: 'delivered' }),
+      })
+    );
+
+    renderWithProviders(<OrderHistoryPage />);
+
+    const text = await screen.findByText(regexPattern);
+    expect(text).toBeInTheDocument();
+  }
+);
+```
+
+**복합 파라미터 구조**:
+```
+[라벨, 설명, 입력값, 기대값]
+```
+
+**장점**:
+- 테스트 실행 시 `'주문 없음' 케이스의 '주문 내역이 없습니다' 문구가 출력됩니다.`처럼 읽기 쉬운 로그
+- 각 케이스의 의도가 명확히 드러남
+- 실패 시 어떤 케이스가 실패했는지 즉시 파악 가능
+
+### 3.3 객체 형태 (타입 안전성 필요 시)
+
+```typescript
+test.each([
+  { input: 17, expected: false, desc: '최솟값 - 1 (경계 밖)' },
+  { input: 18, expected: true, desc: '최솟값 (경계)' },
+  { input: 65, expected: true, desc: '최댓값 (경계)' },
+  { input: 66, expected: false, desc: '최댓값 + 1 (경계 밖)' },
+])('$desc: validateAge($input) → $expected', ({ input, expected }) => {
+  expect(validateAge(input)).toBe(expected);
+});
+```
+
+### 3.4 Self-Check
+
+- [ ] 3개 이상의 유사한 테스트 케이스를 `test.each`로 통합했는가?
+- [ ] 각 케이스에 의미 있는 라벨/설명을 포함했는가?
+- [ ] 테스트 제목 템플릿이 케이스 내용을 잘 설명하는가?
