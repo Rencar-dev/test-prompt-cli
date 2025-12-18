@@ -475,6 +475,79 @@ expect(saveFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
 
 발견 즉시 수정.
 
+### 5.1 코드 생성 품질 규칙
+
+#### 5.1.1 테스트 하드코딩 금지
+
+**정의**: 테스트 통과만을 위해 소스 코드에 특정 입력값을 하드코딩하는 행위
+
+```typescript
+// ❌ Bad: 테스트 케이스별 하드코딩
+function calculateDiscount(price: number): number {
+  if (price === 1000) return 100;  // 테스트 통과용
+  if (price === 5000) return 500;  // 테스트 통과용
+  return price * 0.1;
+}
+
+// ✅ Good: 일반화된 로직
+function calculateDiscount(price: number): number {
+  return price * 0.1;
+}
+```
+
+**Self-Check:**
+- [ ] 특정 테스트 입력값에만 동작하는 조건문을 추가했는가?
+- [ ] 테스트 실패 시 로직 수정 대신 하드코딩으로 해결하려 했는가?
+
+#### 5.1.2 과도한 엔지니어링 금지
+
+**정의**: 테스트 코드에 불필요한 추상화, 헬퍼, 유틸리티를 생성하는 행위
+
+**판단 기준 (Concrete Rules):**
+
+| 상황 | 판단 | 이유 |
+|-----|------|-----|
+| 헬퍼 함수가 **1회만** 사용됨 | ❌ 생성 금지 | 인라인으로 작성 |
+| 데이터 객체가 **5개 이하** 필드 | ❌ Builder 금지 | 객체 리터럴 사용 |
+| setup 코드가 **10줄 이하** | ❌ 추상화 금지 | beforeEach에 직접 작성 |
+| Testing Library 함수 래핑 | ❌ 래퍼 금지 | 원본 함수 직접 사용 |
+
+**예시:**
+
+```typescript
+// ❌ Bad: 1회 사용 헬퍼 + Builder 패턴
+class UserBuilder {
+  private data: Partial<User> = {};
+  withName(n: string) { this.data.name = n; return this; }
+  withEmail(e: string) { this.data.email = e; return this; }
+  build() { return this.data as User; }
+}
+const user = new UserBuilder().withName('test').withEmail('a@b.com').build();
+
+// ✅ Good: 객체 리터럴
+const user: User = { name: 'test', email: 'a@b.com' };
+```
+
+```typescript
+// ❌ Bad: Testing Library 래퍼
+const clickButton = (name: string) =>
+  userEvent.click(screen.getByRole('button', { name }));
+await clickButton('제출');
+
+// ✅ Good: 직접 사용
+await userEvent.click(screen.getByRole('button', { name: '제출' }));
+```
+
+**예외 (허용되는 경우):**
+- 3회 이상 반복되는 복잡한 setup 로직
+- 프로젝트 전역에서 재사용되는 테스트 유틸리티 (`tests/utils/`)
+- MSW 핸들러, Provider 래퍼 등 인프라성 코드
+
+**Self-Check:**
+- [ ] 이 헬퍼/유틸이 2회 이상 사용되는가?
+- [ ] 객체 리터럴로 충분한데 Builder를 만들었는가?
+- [ ] Testing Library 함수를 불필요하게 감쌌는가?
+
 ---
 
 ## 6. Self Checklist
