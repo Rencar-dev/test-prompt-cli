@@ -196,11 +196,24 @@
 
 ---
 
-### Step 2: 간결한 요약 출력 (Brief Summary Output)
+### Step 2: 사고 과정 및 요약 출력 (Thinking Process & Summary Output)
 
-파일 수정 후, **다음 내용만** 간결하게 출력하십시오:
+파일 수정 후, **다음 형식으로** 출력하십시오:
 
 ```
+## 🧠 사고 과정 (Thinking Process)
+
+### 1. Root Cause Analysis
+(에러의 근본 원인 분석 - 환경/라이브러리/일회성 중 어떤 문제인지)
+
+### 2. Deduplication Check
+(기존 오답노트와 비교 결과 - 동일/부족/새로운 유형 판단 근거)
+
+### 3. Decision Rationale
+(추가/수정/삭제/유지 결정의 이유)
+
+---
+
 ## 📝 분석 완료 (Analysis Complete)
 
 ### 원인 (Root Cause)
@@ -220,10 +233,23 @@
 
 **출력 예시**:
 ```
+## 🧠 사고 과정 (Thinking Process)
+
+### 1. Root Cause Analysis
+`waitFor` 내부에서 8초 타임아웃 발생. `useFakeTimers` 상태에서는 실제 시간이 흐르지 않아 `waitFor`가 무한 대기 상태에 빠짐. 이는 환경 문제가 아닌 **라이브러리 사용법 문제**임.
+
+### 2. Deduplication Check
+기존 오답노트에 "Fake Timers for Keyboard Flow" 규칙이 있으나, `waitFor`와의 상호작용에 대한 설명이 부족함. **기존 규칙 보강 필요**.
+
+### 3. Decision Rationale
+새 항목 추가가 아닌 기존 규칙 **수정** 결정. 이유: 동일한 Fake Timer 카테고리이며, 분리 시 문서가 비효율적으로 길어짐.
+
+---
+
 ## 📝 분석 완료 (Analysis Complete)
 
 ### 원인 (Root Cause)
-S8 타임아웃은 `useFakeTimers` 상태에서 `waitFor`를 사용해 비동기 작업을 기다리려 했으나 타이머가 진행되지 않아 발생
+`useFakeTimers` 상태에서 `waitFor` 사용 시 타이머가 진행되지 않아 타임아웃 발생
 
 ### 조치 (Action Taken)
 - **수정**: 2. Library & Framework Specifics
@@ -237,7 +263,7 @@ S8 타임아웃은 `useFakeTimers` 상태에서 `waitFor`를 사용해 비동기
 ✅ `project-test-lessons.md` 업데이트 완료
 ```
 
-**중요**: 
+**중요**:
+- ✅ **사고 과정(Thinking Process)을 반드시 출력하십시오** - CoT 원칙 준수
 - ❌ 전체 파일 내용을 출력하지 마십시오
-- ❌ 긴 설명이나 부연 설명을 추가하지 마십시오
-- ✅ 위 형식의 간결한 요약만 출력하십시오
+- ❌ 사고 과정 외에 불필요한 부연 설명을 추가하지 마십시오
