@@ -3,6 +3,7 @@
  * 명령어별로 다른 필터링 전략을 적용하여 파일 목록을 반환합니다.
  */
 import fg from 'fast-glob';
+import fs from 'fs';
 import path from 'path';
 
 export interface FileCandidate {
@@ -102,11 +103,12 @@ export const scanForPlan = async (): Promise<FileCandidate[]> => {
       path.join(dir, 'page.tsx'),
     ];
 
-    // 실제 존재하는 소스 파일 찾기
-    const existingSources = await fg(possibleSources, { cwd: process.cwd() });
+    // 실제 존재하는 소스 파일 찾기 (fs.existsSync 사용 - 괄호 등 특수문자 경로 지원)
+    const sourceFile = possibleSources.find((p) =>
+      fs.existsSync(path.join(process.cwd(), p)),
+    );
 
-    if (existingSources.length > 0) {
-      const sourceFile = existingSources[0];
+    if (sourceFile) {
       const isPage = sourceFile.includes('/page.');
       const title = isPage ? filePathToRoute(sourceFile) : path.basename(sourceFile);
 
@@ -205,10 +207,12 @@ export const scanForLearn = async (): Promise<FileCandidate[]> => {
       path.join(dir, '..', 'page.tsx'),
     ];
 
-    const existingSources = await fg(possibleSources, { cwd: process.cwd() });
+    // 실제 존재하는 소스 파일 찾기 (fs.existsSync 사용 - 괄호 등 특수문자 경로 지원)
+    const sourceFile = possibleSources.find((p) =>
+      fs.existsSync(path.join(process.cwd(), p)),
+    );
 
-    if (existingSources.length > 0) {
-      const sourceFile = existingSources[0];
+    if (sourceFile) {
       const isPage = sourceFile.includes('/page.');
       const title = isPage ? filePathToRoute(sourceFile) : path.basename(sourceFile);
 
