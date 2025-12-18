@@ -30,21 +30,23 @@
 
 ## 1. 입력 데이터 수집 (Input Data)
 
+> 아래 XML 태그로 구분된 3가지 입력 데이터를 분석에 사용하십시오.
+
 ### 1.1 실패한 코드 (Failed Code Snippet)
-```typescript
+<failed_code>
 {{FAILED_CODE}}
-```
+</failed_code>
 
 ### 1.2 에러 로그 (Error Log)
-```text
+<error_log>
 {{ERROR_LOG}}
-```
+</error_log>
 
 ### 1.3 기존 오답노트 내용 (Current project-test-lessons.md)
 > 파일이 비어있다면 '없음'으로 간주합니다.
-```markdown
+<existing_lessons>
 {{EXISTING_LESSONS}}
-```
+</existing_lessons>
 
 ---
 
@@ -53,12 +55,13 @@
 다음 알고리즘에 따라 생각하고 문서를 작성하십시오:
 
 1.  **Root Cause Analysis (원인 분석)**:
+    *   `<error_log>` 태그의 에러 로그와 `<failed_code>` 태그의 코드를 분석하십시오.
     *   이 에러가 **환경(Environment)** 문제인가? (예: JSDOM `window.alert` 미구현)
     *   이 에러가 **라이브러리 사용법(Usage)** 문제인가? (예: Zustand 초기화 실수, MSW 핸들러 누락)
     *   단순한 **일회성 오타/로직 오류**인가? (이 경우엔 오답노트에 추가하지 않습니다.)
 
 2.  **Deduplication & Refinement (중복 제거 및 정제)**:
-    *   '기존 오답노트'를 확인하여 **이미 존재하는 규칙인지 확인**하십시오.
+    *   `<existing_lessons>` 태그의 기존 오답노트를 확인하여 **이미 존재하는 규칙인지 확인**하십시오.
     *   **완벽히 동일한 내용**이라면? → 기존 내용을 유지합니다.
     *   **기존 내용이 부정확하거나 부족하다면?** → 더 나은 해결책으로 **수정(Update)**하십시오.
     *   **새로운 유형의 에러라면?** → 새로운 항목을 **추가(Append)**하십시오.
@@ -103,12 +106,12 @@
 > **단순히 결과를 출력하지 말고, 아래 순서대로 사고(Thinking)한 뒤 최종 결과물을 출력하시오.**
 
 ### Step 1: Root Cause Analysis (근본 원인 분석)
-- 에러 로그를 분석하여 근본 원인을 파악한다.
+- `<error_log>`와 `<failed_code>` 태그의 내용을 분석하여 근본 원인을 파악한다.
 - 환경 문제인가? 라이브러리 사용법 문제인가? 일회성 오타인가?
 - 일회성 오타/로직 오류라면 오답노트에 추가하지 않는다.
 
 ### Step 2: Deduplication Check (중복 확인)
-- 기존 오답노트(`{{EXISTING_LESSONS}}`)를 꼼꼼히 확인한다.
+- `<existing_lessons>` 태그의 기존 오답노트를 꼼꼼히 확인한다.
 - 완전히 동일한 내용이면 → 기존 내용 유지
 - 기존 내용이 부정확하거나 부족하면 → 더 나은 해결책으로 수정
 - 새로운 유형의 에러면 → 새 항목 추가
@@ -137,7 +140,7 @@
 **`project-test-lessons.md` 파일을 직접 수정하십시오.**
 
 - 파일 경로: 프로젝트 루트 디렉토리 `/project-test-lessons.md`
-- 기존 내용(`{{EXISTING_LESSONS}}`)을 기반으로 새로운 교훈을 **병합/추가/수정/삭제**합니다.
+- `<existing_lessons>` 태그의 기존 내용을 기반으로 새로운 교훈을 **병합/추가/수정/삭제**합니다.
 - 파일 전체를 새로 작성하되, 다음 규칙을 준수하십시오:
 
 **파일 구조 규칙**:
