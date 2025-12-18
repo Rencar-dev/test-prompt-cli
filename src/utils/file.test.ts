@@ -40,6 +40,7 @@ describe('file utils', () => {
         dirName: '__specs__',
         atddSuffix: '.spec.md',
         planSuffix: '.plan.md',
+        testSuffix: '.test',
         mode: 'separation',
       });
     });
@@ -64,6 +65,7 @@ describe('file utils', () => {
         dirName: 'custom_tests', // 사용자 설정
         atddSuffix: '.atdd.md', // 기본값
         planSuffix: '.test-plan.md', // 기본값
+        testSuffix: '.test', // 기본값
         mode: 'co-location', // 기본값
       });
     });
@@ -79,6 +81,7 @@ describe('file utils', () => {
         dirName: '_tests',
         atddSuffix: '.atdd.md',
         planSuffix: '.test-plan.md',
+        testSuffix: '.test',
         mode: 'co-location',
       });
     });

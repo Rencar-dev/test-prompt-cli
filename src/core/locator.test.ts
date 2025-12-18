@@ -326,6 +326,7 @@ describe('locator', () => {
       mockManifestRead({
         testPaths: {
           dirName: '__specs__',
+          testSuffix: '.spec',
         },
       });
 

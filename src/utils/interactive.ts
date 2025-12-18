@@ -10,6 +10,7 @@ import {
   scanForPlan,
   scanForGen,
   scanForLearn,
+  filterCandidates,
 } from './file-scanner.js';
 
 export type CommandType = 'atdd' | 'plan' | 'gen' | 'learn';
@@ -120,7 +121,7 @@ export const selectFileInteractively = async (
       message: message.prompt,
       choices,
       // 초기에는 빈 리스트, 타이핑하면 필터링 결과 표시
-      suggest: (input, choices) => {
+      suggest: (input, _choices) => {
         // 입력이 없으면 placeholder만 표시 (빈 배열 반환)
         if (!input.trim()) {
           return Promise.resolve([
@@ -132,13 +133,12 @@ export const selectFileInteractively = async (
           ]);
         }
 
-        // 실시간 필터링
-        const inputLower = input.toLowerCase();
-        const filtered = choices.filter(
-          (c) =>
-            c.title.toLowerCase().includes(inputLower) ||
-            (typeof c.value === 'string' && c.value.toLowerCase().includes(inputLower)),
-        );
+        // 실시간 필터링 (filterCandidates 활용)
+        const filteredCandidates = filterCandidates(sortedCandidates, input);
+        const filtered = filteredCandidates.map((c) => ({
+          title: c.title,
+          value: c.value,
+        }));
 
         // 결과가 없으면 안내 메시지
         if (filtered.length === 0) {

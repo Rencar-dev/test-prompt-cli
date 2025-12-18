@@ -16,6 +16,25 @@ export interface FileCandidate {
 }
 
 /**
+ * 관련 파일(ATDD, 테스트 등)에서 원본 소스 파일 경로를 찾습니다.
+ * @param dir - 관련 파일이 있는 디렉토리
+ * @param baseName - 관련 파일의 기본 이름 (확장자 제외)
+ * @returns 존재하는 소스 파일 경로 (없으면 undefined)
+ */
+const findSourceFile = (dir: string, baseName: string): string | undefined => {
+  const possibleSources = [
+    path.join(dir, `${baseName}.tsx`),
+    path.join(dir, `${baseName}.ts`),
+    path.join(dir, '..', `${baseName}.tsx`), // _tests 폴더인 경우
+    path.join(dir, '..', `${baseName}.ts`),
+    path.join(dir, '..', 'page.tsx'), // _tests/login.atdd.md → ../page.tsx
+    path.join(dir, 'page.tsx'),
+  ];
+
+  return possibleSources.find((p) => fs.existsSync(path.join(process.cwd(), p)));
+};
+
+/**
  * 파일 경로를 Next.js App Router 형태의 route로 변환
  * 예: app/(auth)/login/page.tsx → /login
  */
@@ -87,26 +106,9 @@ export const scanForPlan = async (): Promise<FileCandidate[]> => {
   const candidates: FileCandidate[] = [];
 
   for (const atddFile of atddFiles) {
-    // atdd 파일에서 원본 소스 파일 경로 추론
-    // 예: app/login/_tests/login.atdd.md → app/login/page.tsx
-    //     app/login/page.atdd.md → app/login/page.tsx
     const dir = path.dirname(atddFile);
     const baseName = path.basename(atddFile, '.atdd.md');
-
-    // 가능한 소스 파일 경로들
-    const possibleSources = [
-      path.join(dir, `${baseName}.tsx`),
-      path.join(dir, `${baseName}.ts`),
-      path.join(dir, '..', `${baseName}.tsx`), // _tests 폴더인 경우
-      path.join(dir, '..', `${baseName}.ts`),
-      path.join(dir, '..', 'page.tsx'), // _tests/login.atdd.md → ../page.tsx
-      path.join(dir, 'page.tsx'),
-    ];
-
-    // 실제 존재하는 소스 파일 찾기 (fs.existsSync 사용 - 괄호 등 특수문자 경로 지원)
-    const sourceFile = possibleSources.find((p) =>
-      fs.existsSync(path.join(process.cwd(), p)),
-    );
+    const sourceFile = findSourceFile(dir, baseName);
 
     if (sourceFile) {
       const isPage = sourceFile.includes('/page.');
@@ -194,23 +196,9 @@ export const scanForLearn = async (): Promise<FileCandidate[]> => {
   const candidates: FileCandidate[] = [];
 
   for (const testFile of testFiles) {
-    // 테스트 파일에서 원본 소스 파일 경로 추론
     const dir = path.dirname(testFile);
-    const testBaseName = path.basename(testFile).replace(/\.(test|spec)\.(ts|tsx)$/, '');
-
-    // 가능한 소스 파일 경로들
-    const possibleSources = [
-      path.join(dir, `${testBaseName}.tsx`),
-      path.join(dir, `${testBaseName}.ts`),
-      path.join(dir, '..', `${testBaseName}.tsx`), // _tests 폴더인 경우
-      path.join(dir, '..', `${testBaseName}.ts`),
-      path.join(dir, '..', 'page.tsx'),
-    ];
-
-    // 실제 존재하는 소스 파일 찾기 (fs.existsSync 사용 - 괄호 등 특수문자 경로 지원)
-    const sourceFile = possibleSources.find((p) =>
-      fs.existsSync(path.join(process.cwd(), p)),
-    );
+    const baseName = path.basename(testFile).replace(/\.(test|spec)\.(ts|tsx)$/, '');
+    const sourceFile = findSourceFile(dir, baseName);
 
     if (sourceFile) {
       const isPage = sourceFile.includes('/page.');
