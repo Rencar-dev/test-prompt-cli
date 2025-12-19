@@ -516,6 +516,49 @@ expect(saveFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
 - 호출 여부 자체가 중요한 경우 (예: `router.back()` - 인자 없음)
 - `not.toHaveBeenCalled()` (호출되지 않아야 함을 검증)
 
+### 4.8 Module Path Mock 주의사항 (Critical)
+
+> **동일 모듈이라도 import 경로가 다르면 각각 mock해야 한다.**
+
+**문제 상황:**
+- `@/hooks`에서 re-export된 훅을 mock
+- 하지만 다른 파일에서 직접 경로(`@/hooks/useCustomRouter`)로 import하면 mock 미적용
+- 테스트 시 mock 함수가 호출되지 않음
+
+**예시:**
+```typescript
+// LoginForm.tsx
+import { useCustomRouter } from '@/hooks';  // ← @/hooks mock 적용됨
+
+// useAuth.ts (간접 의존성)
+import { useCustomRouter } from '../useCustomRouter';  // ← @/hooks mock 적용 안 됨!
+```
+
+**해결 패턴:**
+```typescript
+// ❌ Bad: 한 경로만 mock
+vi.mock('@/hooks', () => ({
+  useCustomRouter: () => ({ push: mockPush }),
+}));
+
+// ✅ Good: 가능한 모든 import 경로를 mock
+vi.mock('@/hooks', () => ({
+  useCustomRouter: () => ({ push: mockPush }),
+}));
+vi.mock('@/hooks/useCustomRouter', () => ({
+  useCustomRouter: () => ({ push: mockPush }),
+}));
+```
+
+**디버깅 팁:**
+- mock이 호출되지 않으면 **테스트 대상 파일의 import 경로**를 확인
+- barrel export(`index.ts`)와 직접 import 경로가 다를 수 있음
+- 상대 경로(`../useCustomRouter`)는 절대 경로(`@/hooks/useCustomRouter`)로 변환하여 mock
+
+**Self-Check:**
+- [ ] barrel export와 직접 import 경로 둘 다 mock했는가?
+- [ ] 간접 의존성(테스트 대상이 사용하는 훅/유틸)의 import 경로를 확인했는가?
+
 ---
 
 ## 5. Anti-Patterns (즉시 중단)

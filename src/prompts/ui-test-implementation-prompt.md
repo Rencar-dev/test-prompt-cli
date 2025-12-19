@@ -117,6 +117,12 @@ window.open = vi.fn();
 
 // ✅ window.scrollTo Mock (필수)
 window.scrollTo = vi.fn();
+
+// ✅ window.alert/confirm/prompt Mock (필수 - JSDOM 미구현)
+// JSDOM 환경에서 이 API들은 구현되지 않아 "Not implemented" 에러 발생
+vi.stubGlobal('alert', vi.fn());
+vi.stubGlobal('confirm', vi.fn(() => true));  // 기본값: 확인 클릭
+vi.stubGlobal('prompt', vi.fn(() => ''));     // 기본값: 빈 문자열
 ```
 
 **라우터 훅 (필수 Mock):**
@@ -169,6 +175,56 @@ vi.mock('react-router-dom', () => ({
 const { setIsFullScreenContainerUsed } = useFullScreenContainerStore([...]);
 // ↑ 이 store도 Mock에 포함해야 함!
 ```
+
+#### 2.1.3 Framework Router Mock 필수 규칙 (Critical)
+
+> **커스텀 라우터 훅을 mock해도 반드시 프레임워크 라우터도 함께 mock하라.**
+
+**문제 상황:**
+- `useCustomRouter`만 mock → 내부에서 `next/navigation`의 `useRouter` 호출 시 에러
+- `Error: invariant expected app router to be mounted`
+
+**원인:**
+커스텀 라우터 훅(`useCustomRouter`)이 내부적으로 프레임워크 라우터(`next/navigation`, `react-router-dom`)를 사용하기 때문.
+
+**필수 패턴:**
+```typescript
+// ✅ 반드시 둘 다 mock
+
+// 1. 프레임워크 라우터 (하위 의존성) - 먼저 mock
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => '/current-path',
+  useSearchParams: () => ({
+    get: (key: string) => null,
+    toString: () => '',
+  }),
+}));
+
+// 2. 커스텀 라우터 훅 (직접 사용) - 테스트에서 검증할 mock
+const mockPush = vi.fn();
+const mockReset = vi.fn();
+
+vi.mock('@/hooks/useCustomRouter', () => ({
+  useCustomRouter: () => ({
+    push: mockPush,
+    reset: mockReset,
+    searchParams: {},
+  }),
+}));
+```
+
+**Self-Check:**
+- [ ] Next.js 프로젝트에서 `next/navigation` mock을 추가했는가?
+- [ ] React Router 프로젝트에서 `react-router-dom` mock을 추가했는가?
+- [ ] 커스텀 라우터 훅과 프레임워크 라우터 **둘 다** mock했는가?
 
 ---
 
