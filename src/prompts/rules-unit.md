@@ -273,3 +273,177 @@ test.each([
 - [ ] 3개 이상의 유사한 테스트 케이스를 `test.each`로 통합했는가?
 - [ ] 각 케이스에 의미 있는 라벨/설명을 포함했는가?
 - [ ] 테스트 제목 템플릿이 케이스 내용을 잘 설명하는가?
+
+---
+
+## 4. 경곗값 분석 (Boundary Value Analysis)
+
+> **숫자 범위를 검증하는 함수는 반드시 경곗값 테스트를 포함해야 한다.**
+
+### 4.1 필수 요구사항
+
+숫자 범위 검증 함수: **최소 6개 케이스** 필수
+
+| 케이스 | 설명 |
+|--------|------|
+| 최솟값 - 1 | 경계 밖 (실패 케이스) |
+| 최솟값 | 경계 (성공 케이스) |
+| 최솟값 + 1 | 경계 안 (성공 케이스) |
+| 최댓값 - 1 | 경계 안 (성공 케이스) |
+| 최댓값 | 경계 (성공 케이스) |
+| 최댓값 + 1 | 경계 밖 (실패 케이스) |
+
+### 4.2 예시
+
+```typescript
+describe('validateAge', () => {
+  it.each([
+    { input: 17, expected: false, desc: '최솟값 - 1 (경계 밖)' },
+    { input: 18, expected: true, desc: '최솟값 (경계)' },
+    { input: 19, expected: true, desc: '최솟값 + 1 (경계 안)' },
+    { input: 64, expected: true, desc: '최댓값 - 1 (경계 안)' },
+    { input: 65, expected: true, desc: '최댓값 (경계)' },
+    { input: 66, expected: false, desc: '최댓값 + 1 (경계 밖)' },
+  ])('$desc: $input → $expected', ({ input, expected }) => {
+    expect(validateAge(input)).toBe(expected);
+  });
+});
+```
+
+### 4.3 Self-Check
+
+- [ ] 숫자 범위 검증 함수에 최소 6개 경곗값 케이스를 포함했는가?
+- [ ] 각 테스트 케이스에 명확한 설명(`desc`)을 포함했는가?
+
+---
+
+## 5. 순수 함수(Unit) 테스트 규칙 — utils/lib
+
+> 입력 → 출력만 검증하는 **Black-box Testing**
+
+### 5.1 금지 사항
+
+아래가 조금이라도 보이면 즉시 실패 처리:
+
+- ❌ DOM API (`window`, `document`, `navigator`)
+- ❌ React 렌더링 (`render`, `screen`)
+- ❌ 이벤트 라이브러리 (`userEvent`)
+- ❌ Snapshot test
+
+### 5.2 필수 Edge Cases
+
+```typescript
+// 반드시 포함해야 할 Edge Cases
+- null, undefined
+- 빈 값: [], "", {}
+- 경계 numeric:
+  - 0
+  - 음수
+  - 소수점
+  - MAX_SAFE_INTEGER
+- 잘못된 타입
+- 예외 throw
+```
+
+### 5.3 Red Team / Boundary Testing
+
+```typescript
+// 추가 검증 권장
+- 초대형 입력값 (String length > 10,000)
+- 특수문자 / 이모지
+- SQL Injection 시도 문자열
+- Integer Overflow
+```
+
+---
+
+## 6. Custom Hook 테스트 규칙
+
+> Hook이지만 "UI 없는 로직" 검증
+
+### 6.1 도구
+
+```typescript
+import { renderHook, act, waitFor } from '@testing-library/react';
+```
+
+### 6.2 Wrapper 필요 시
+
+```typescript
+renderHook(() => useX(), { wrapper: Provider });
+```
+
+### 6.3 핵심 규칙
+
+> 상태 변경을 유발하는 모든 코드는 반드시 `act()` 안에서 실행
+
+### 6.4 props 변화 검증
+
+```typescript
+const { rerender, result } = renderHook(
+  ({ v }) => useCalc(v),
+  { initialProps: { v: 1 } }
+);
+rerender({ v: 2 });
+expect(result.current).toBe(2);
+```
+
+---
+
+## 7. Store (Zustand/Recoil/Vanilla) 테스트 규칙
+
+> **Hook Mocking 금지** — Vanilla API만 사용
+
+### 7.1 핵심 원칙
+
+- **Hook(`useStore`)을 렌더링하지 말고, `useStore.getState()` / `setState()`를 사용해라.**
+- **이유:** React 렌더링 사이클 없이 상태 로직만 검증하기 위함
+- `renderHook`을 사용하여 스토어를 테스트하는 것은 **Anti-Pattern**
+
+### 7.2 초기화
+
+```typescript
+beforeEach(() => {
+  store.setState(initialState, true);
+});
+```
+
+### 7.3 검증 대상
+
+- setter 호출
+- 최종 state (`store.getState()`)
+- selector 결과
+
+### 7.4 예시
+
+```typescript
+describe('cartStore', () => {
+  beforeEach(() => {
+    cartStore.setState({ items: [], total: 0 });
+  });
+
+  it('상품 추가 시 total이 증가한다', () => {
+    // Given
+    const { addItem, getState } = cartStore;
+
+    // When
+    addItem({ id: 1, price: 1000 });
+
+    // Then
+    expect(getState().total).toBe(1000);
+    expect(getState().items).toHaveLength(1);
+  });
+});
+```
+
+### 7.5 Anti-Pattern
+
+```typescript
+// ❌ Bad: renderHook으로 스토어 테스트
+const { result } = renderHook(() => useCartStore());
+// → React 렌더링 사이클이 개입되어 순수 로직 테스트가 아님
+
+// ✅ Good: Vanilla API 직접 사용
+const state = cartStore.getState();
+cartStore.setState({ items: [] });
+```

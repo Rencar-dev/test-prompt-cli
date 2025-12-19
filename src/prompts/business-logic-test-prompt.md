@@ -4,9 +4,17 @@
 > **이 프롬프트는 "순수 비즈니스 로직(Unit)" 테스트만 생성**합니다.
 > *UI / DOM / Interaction / 렌더링 테스트는 절대 포함하지 않습니다.*
 > UI는 `ui-test-implementation-prompt.md`를 사용하세요.
->
-> 📘 **중요**: 테스트 실행 환경, Mock 전략, waitFor 규칙은
-> **`test-coding-conventions.md`**를 엄격히 준수하세요.
+
+---
+
+## 📘 적용 규칙
+
+**이 프롬프트와 함께 제공되는 규칙 파일들을 반드시 준수하세요:**
+
+| 파일 | 적용 범위 |
+|------|----------|
+| `rules-core.md` | 공통 규칙 (MSW, Mock 전략, waitFor, Anti-patterns) |
+| `rules-unit.md` | Unit 테스트 전용 (경곗값 분석, Hook/Store 테스트 패턴) |
 
 ---
 
@@ -41,67 +49,9 @@
 
 ### 1.3 품질 기준 (Quality Criteria)
 
-**당신은 15년 차 QA 리드로서, 다음 정량적 기준을 충족하는 테스트만 제공한다:**
-
-#### 1.3.1 경곗값 분석 (Boundary Value Analysis)
-
-**필수 요구사항:**
-- 숫자 범위 검증 함수: **최소 6개 케이스** 필수
-  - 최솟값 - 1 (경계 밖)
-  - 최솟값 (경계)
-  - 최솟값 + 1 (경계 안)
-  - 최댓값 - 1 (경계 안)
-  - 최댓값 (경계)
-  - 최댓값 + 1 (경계 밖)
-
-**예시:**
-```typescript
-describe('validateAge', () => {
-  it.each([
-    { input: 17, expected: false, desc: '최솟값 - 1 (경계 밖)' },
-    { input: 18, expected: true, desc: '최솟값 (경계)' },
-    { input: 19, expected: true, desc: '최솟값 + 1 (경계 안)' },
-    { input: 64, expected: true, desc: '최댓값 - 1 (경계 안)' },
-    { input: 65, expected: true, desc: '최댓값 (경계)' },
-    { input: 66, expected: false, desc: '최댓값 + 1 (경계 밖)' },
-  ])('$desc: $input → $expected', ({ input, expected }) => {
-    expect(validateAge(input)).toBe(expected);
-  });
-});
-```
-
-#### 1.3.2 it.each 사용 기준
-
-**3개 이상의 유사한 케이스가 있다면 반드시 `it.each` 사용:**
-
-```typescript
-// ❌ Bad: 중복된 테스트
-it('formatPrice(1000) → "1,000원"', () => {
-  expect(formatPrice(1000)).toBe('1,000원');
-});
-it('formatPrice(10000) → "10,000원"', () => {
-  expect(formatPrice(10000)).toBe('10,000원');
-});
-it('formatPrice(100000) → "100,000원"', () => {
-  expect(formatPrice(100000)).toBe('100,000원');
-});
-
-// ✅ Good: it.each로 간결화
-it.each([
-  { input: 1000, expected: '1,000원' },
-  { input: 10000, expected: '10,000원' },
-  { input: 100000, expected: '100,000원' },
-])('formatPrice($input) → "$expected"', ({ input, expected }) => {
-  expect(formatPrice(input)).toBe(expected);
-});
-```
-
-#### 1.3.3 Self-Check
-
 **테스트 생성 후 체크리스트:**
 - [ ] 숫자 범위 검증 함수에 최소 6개 경곗값 케이스를 포함했는가?
 - [ ] 3개 이상의 유사한 케이스를 `it.each`로 작성했는가?
-- [ ] 각 테스트 케이스에 명확한 설명(`desc`)을 포함했는가?
 - [ ] 성공 케이스/실패 케이스/경계값/null/undefined를 모두 검증했는가?
 
 ### 1.4 출력 파일 저장 규칙
@@ -204,155 +154,7 @@ it.each([
 
 ---
 
-## 4. Test Strategy (핵심 설계)
-
----
-
-### 🟢 A. 순수 함수(Unit) 테스트 — utils/lib
-
-#### 금지 사항
-> 아래가 조금이라도 보이면 즉시 실패 처리
-
-- DOM API (`window`, `document`, `navigator`)
-- React 렌더링 (`render`, `screen`)
-- 이벤트 라이브러리 (`userEvent`)
-- Snapshot test
-
-#### 핵심 원칙
-> 입력 → 출력만 검증하는 **Black-box Testing**
-
-#### 🧪 Parameterized Test (강력 권장)
-- 입력값에 따른 출력값 패턴이 명확한 경우 **`it.each`를 선택이 아닌 기본 패턴**으로 사용한다.
-- 중복 코드를 줄이고 다양한 케이스를 한눈에 검증한다.
-
-#### 필수 Edge Cases
-- `null`, `undefined`
-- 빈 값: `[]`, `""`, `{}`
-- 경계 numeric:
-  - 0
-  - 음수
-  - 소수점
-  - `MAX_SAFE_INTEGER`
-- 잘못된 타입
-- 예외 throw
-- **Red Team / Boundary Testing**:
-  - 초대형 입력값 (String length > 10,000)
-  - 특수문자 / 이모지 / SQL Injection 시도 문자열
-  - Integer Overflow
-
-#### Data Fixture Strategy (Unit Level)
-- 단순 더미 데이터 대신 **의미 있는 페르소나**를 사용한다.
-- 예: `const legacyUser = { ... }`, `const edgeCaseUser = { ... }`
-
----
-
-### 🐣 B. Custom Hook (로직) 테스트
-
-> Hook 이지만 “UI 없는 로직” 검증
-
-#### 도구
-```ts
-import { renderHook, act, waitFor } from '@testing-library/react';
-```
-
-#### Wrapper 필요 시
-```ts
-renderHook(() => useX(), { wrapper: Provider });
-```
-
-#### 핵심 규칙
-> 상태 변경을 유발하는 모든 코드는 반드시 `act()` 안에서 실행
-
-#### props 변화 검증
-```ts
-const { rerender, result } = renderHook(({ v }) => useCalc(v), { initialProps: { v: 1 }});
-rerender({ v: 2 });
-expect(result.current).toBe(2);
-```
-
----
-
-### 🏪 C. Store (Zustand/Recoil/Vanilla)
-
-#### Store 테스트 핵심 (Hook Mocking 금지)
-- **Hook(`useStore`)을 렌더링하지 말고, `useStore.getState()` / `setState()`를 사용해라.**
-- **이유:** React 렌더링 사이클 없이 상태 로직만 검증하기 위함.
-- `renderHook`을 사용하여 스토어를 테스트하는 것은 **Anti-Pattern**이다.
-
-#### 초기화
-```ts
-beforeEach(() => {
-  store.setState(initialState, true);
-});
-```
-
-#### 검증
-- setter 호출
-- 최종 state (`store.getState()`)
-- selector 결과
-
----
-
-## 5. Mocking Rules
-
-> 📘 **참조**: 공통 Mock 규칙은 `test-coding-conventions.md` Section 4를 참조하세요.  
-> 이 섹션은 **Unit 테스트에 특화된** Mock 규칙입니다.
-
-### 5.1 아주 중요 💥
-
-> **비즈니스 로직(service/utils)을 Mock 하지 않는다.**  
-> **외부 IO/API(fetch/axios/repo)만 Mock한다.**
-> (단, `timer`, `Date`, `navigator` 등 테스트 환경에서 제어 불가능한 요소는 예외적으로 Mocking 허용)
-
-**Mock 결정 플로우차트는 `test-coding-conventions.md` Section 4.1을 참조하세요.**
-
-#### 올바른 예
-```ts
-vi.spyOn(api, 'fetchUser').mockResolvedValue({ id: 1 });
-processUserData(1);
-```
-
-#### 절대 금지 ❌
-```ts
-vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
-```
-→ 로직 죽음 → 테스트 무의미
-
-> **Note**: 공용 모듈 Mock 규칙, Vitest hoisting 주의사항은 `test-coding-conventions.md` Section 4.4를 참조하세요.
-
----
-
-## 6. Anti-patterns (Fail Immediately)
-
-테스트 출력 전에 **스스로 검사**
-
-- ❌ Snapshot
-- ❌ private variable 검증
-- ❌ hook rerender 횟수 검증
-- ❌ subscribe 호출 수 확인
-- ❌ MSW server / handlers
-- ❌ waitFor + toHaveBeenCalled
-- ❌ **store hook 렌더링 (`renderHook(() => useStore())`)**
-
-발견 즉시 수정.
-
----
-
-## 7. Self Checklist
-
-- [ ] 입력/출력만 검증?
-- [ ] UI 요소 언급 없음?
-- [ ] 랜덤/시간 고정?
-- [ ] Edge case 포함?
-- [ ] Mock = IO Layer만?
-- [ ] console.log 제거?
-- [ ] **it.each를 활용해 반복 케이스를 압축했는가?**
-
----
-
----
-
-## 8. Execution Steps (Chain of Thought)
+## 4. Execution Steps (Chain of Thought)
 
 > **단순히 코드를 작성하지 말고, 아래 순서대로 사고(Thinking)한 뒤 최종 결과물을 출력하시오.**
 
@@ -423,7 +225,7 @@ vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 
 ---
 
-## 9. Verification & Auto-Correction (Agentic Mode)
+## 5. Verification & Auto-Correction (Agentic Mode)
 
 > **당신이 터미널 명령어 실행 권한이 있는 도구(Cursor, Claude Code 등)라면, 코드를 작성한 후 다음 절차를 반드시 따르십시오.**
 
@@ -435,11 +237,9 @@ vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 - **Pass:** "✅ 테스트 통과" 메시지와 함께 최종 코드를 출력하고 종료하십시오.
 - **Fail:** 에러 메시지를 분석하여 **테스트 코드만** 수정하십시오.
 
-> 🚨 **Critical Constraints (Safety Rules)**: `rules-core.md` 섹션 7 참조
-
 ---
 
-## 10. Output Style (출력 스타일)
+## 6. Output Style (출력 스타일)
 
 > 간결하고 핵심적인 정보만 출력하세요.
 
@@ -450,7 +250,7 @@ vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 
 ---
 
-## 11. Output Format
+## 7. Output Format
 
 반드시 아래 포맷을 지켜서 출력한다.
 
@@ -507,9 +307,9 @@ vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 
 ---
 
-## 11. Summary
+## 8. Summary
 
-### 11.1 이 프롬프트는 아래 3가지를 절대 잊지 않는다
+이 프롬프트는 아래 3가지를 절대 잊지 않는다:
 
 1. **UI Concern = ui-test 프롬프트**
 2. **Store Test = Vanilla API 사용 (Hook 렌더 금지)**

@@ -561,7 +561,183 @@ vi.mock('@/hooks/useCustomRouter', () => ({
 
 ---
 
-## 5. Anti-Patterns (즉시 중단)
+## 5. Test Helper 함수 규칙
+
+**테스트에서 반복되는 패턴은 Helper 함수로 추출하되, 명확한 네이밍을 사용한다.**
+
+### 5.1 네이밍 컨벤션
+
+- **동사로 시작**하여 행위를 명확히 표현
+- **구체적인 동작**을 설명
+- 모호한 동사 피하기
+
+**✅ Good Naming**:
+```typescript
+// 명확한 동사 + 대상
+const enterCredentials = async (user, { id, password }) => { ... };
+const clickLoginButton = async (user) => { ... };
+const waitForNavigation = async (route) => { ... };
+const selectDropdownOption = async (user, optionName) => { ... };
+```
+
+**❌ Bad Naming**:
+```typescript
+// 모호한 동사
+const fillCredentials = async (user, id, pw) => { ... };  // fill은 모호
+const doLogin = async (user) => { ... };                  // do는 불명확
+const testLogin = async () => { ... };                     // test는 중복
+const handleSubmit = async () => { ... };                  // handle은 구현 용어
+```
+
+### 5.2 매개변수 패턴
+
+```typescript
+// ✅ 옵션 객체 사용 (확장성)
+const enterCredentials = async (
+  user: ReturnType<typeof userEvent.setup>,
+  { id = 'test-id', password = 'test-pw' } = {},
+) => { ... };
+
+// ❌ 위치 기반 매개변수 (확장 어려움)
+const enterCredentials = async (user, id = 'default', pw = 'default') => { ... };
+```
+
+**Self-Check:**
+- [ ] Helper 함수명이 동사로 시작하는가?
+- [ ] 함수명만 보고 무엇을 하는지 명확한가?
+- [ ] 옵션 객체를 사용하여 확장 가능한가?
+
+---
+
+## 6. Zustand Store 초기화 규칙
+
+**Zustand store를 `setState`로 초기화할 때, 두 번째 인자를 `true`로 전달하면 모든 메서드가 사라진다.**
+
+### 6.1 문제 이해
+
+- Zustand의 `setState(state, true)`에서 두 번째 인자 `true`는 "전체 교체" 모드
+- 기존 state를 완전히 덮어쓰므로 **store의 모든 메서드가 삭제됨**
+- 결과: `TypeError: setUser is not a function`
+
+### 6.2 올바른 패턴
+
+**❌ Bad Pattern (메서드 손실)**:
+```typescript
+beforeEach(() => {
+  userStore.setState({ user: null, isLogin: null }, true);
+  // ← true = "전체 교체" → setUser, setIsLogin 등 모든 메서드 삭제됨!
+});
+```
+
+**✅ Good Pattern 1 (두 번째 인자 생략 - 권장)**:
+```typescript
+beforeEach(() => {
+  // 두 번째 인자 생략 = 기본값 false = 병합 모드
+  userStore.setState({ user: null, isLogin: null, companyId: null });
+  loadingStore.setState({ isLoading: false });
+  // 메서드는 그대로 유지됨 ✅
+});
+```
+
+**✅ Good Pattern 2 (getState 활용 - 더 안전)**:
+```typescript
+beforeEach(() => {
+  const currentState = userStore.getState();
+  userStore.setState({
+    ...currentState,
+    user: null,
+    isLogin: null,
+  });
+  // 메서드는 spread로 보존됨 ✅
+});
+```
+
+### 6.3 메서드 보존 검증 (방어적 코딩)
+
+```typescript
+const resetStores = () => {
+  userStore.setState({
+    ...userStore.getState(),
+    user: null,
+    isLogin: null,
+  });
+
+  // 초기화 후 메서드 존재 확인
+  expect(typeof userStore.getState().setUser).toBe('function');
+};
+```
+
+**Self-Check**:
+- [ ] `setState`의 두 번째 인자를 사용하지 않았는가?
+- [ ] beforeEach에서 store를 초기화했는가?
+- [ ] 초기화 후 store 메서드가 정상 동작하는가?
+
+---
+
+## 7. Hook 내부 구현 확인
+
+**Mocking 여부를 결정하기 전에, 해당 Hook이 API 통신을 수행하는지 반드시 소스 코드를 읽어 확인하라.**
+
+### 7.1 확인 절차
+
+1. 컴포넌트가 사용하는 Custom Hook의 파일을 연다. (예: `useAuth.ts`)
+2. 내부에서 `useMutation`, `useQuery`, `fetch`, `axios` 등을 사용하는지 검색한다.
+3. **API 통신이 포함된 경우**: 절대 Mocking 하지 말고, MSW를 사용한다.
+4. **순수 계산/로직인 경우**: 원칙적으로 Mocking 하지 않고 실제 코드를 사용한다.
+
+**Self-Check**:
+- [ ] 테스트 대상 Hook 내부 코드를 확인했는가?
+- [ ] `useMutation`, `useQuery` 사용 여부를 확인했는가?
+- [ ] API 통신이 포함되면 MSW를 사용하기로 결정했는가?
+
+---
+
+## 8. Data Fixture Strategy (Context-Aware Mocking)
+
+**테스트 코드를 작성하기 전, 처리해야 할 현실적인 데이터 페르소나 3가지를 먼저 정의하시오.**
+
+### 8.1 Example Strategy
+
+1. **Happy User:** 모든 필드가 완벽하게 입력된 상태 (정상 케이스)
+2. **Edge User:** 이름이 100자이거나, 특수문자가 포함된 상태 (경계값)
+3. **Legacy User:** 필수 값이 일부 누락되었으나(구 데이터) 렌더링되어야 하는 상태
+
+### 8.2 Action
+
+- 위 3가지 케이스에 대한 Mock Data 객체(`fixture`)를 테스트 코드 상단에 먼저 선언
+- 단순 `foo`, `bar` 대신 **도메인 맥락이 있는 데이터**를 사용
+
+```typescript
+// ✅ Good: 도메인 맥락이 있는 fixture
+const happyUser = { name: '홍길동', email: 'hong@example.com', age: 30 };
+const edgeUser = { name: 'A'.repeat(100), email: 'edge@test.com', age: 0 };
+const legacyUser = { name: '구회원', email: null, age: undefined };
+
+// ❌ Bad: 의미 없는 더미 데이터
+const user1 = { name: 'foo', email: 'bar', age: 123 };
+```
+
+---
+
+## 9. Red Team / Negative Testing
+
+**당신은 Red Team QA 엔지니어입니다.** 기능이 "작동하는지" 확인하는 것보다, **"어떻게 하면 망가뜨릴 수 있을지"**를 고민해야 합니다.
+
+### 9.1 필수 포함 시나리오
+
+1. **Validation Attack:** 입력 필드에 스크립트(`<script>`), 초장문 텍스트, 이모지 등을 입력.
+2. **Network Chaos:** API가 500 에러를 뱉거나, 응답이 10초 뒤에 오는(Loading) 상황.
+3. **Interaction Spam:** 제출 버튼을 1초에 10번 클릭하는 따닥(Double Submit) 상황.
+
+### 9.2 검증 목표
+
+- 위 상황에서도 UI가 깨지지 않고(Crash Free), 사용자에게 적절한 피드백(Toast/Alert)을 주는지 검증하시오.
+
+---
+
+## 10. Anti-Patterns (즉시 중단)
+
+> 📘 **Note**: 기존 섹션 5에서 이동됨
 
 테스트 출력 전에 **스스로 검사**:
 
@@ -653,7 +829,7 @@ await userEvent.click(screen.getByRole('button', { name: '제출' }));
 
 ---
 
-## 6. Self Checklist
+## 11. Self Checklist
 
 - [ ] 테스트가 jsdom 필요한가? (UI만)
 - [ ] waitFor는 DOM 변화에만 사용했는가?
@@ -667,7 +843,7 @@ await userEvent.click(screen.getByRole('button', { name: '제출' }));
 
 ---
 
-## 7. 🚨 Critical Constraints (Safety Rules)
+## 12. 🚨 Critical Constraints (Safety Rules)
 
 > **이 섹션은 AI가 테스트 코드를 생성할 때 반드시 지켜야 할 안전 규칙입니다.**
 > UI 테스트와 Unit 테스트 모두에 적용됩니다.
@@ -694,7 +870,7 @@ await userEvent.click(screen.getByRole('button', { name: '제출' }));
 
 ---
 
-## 8. 최종 요약
+## 13. 최종 요약
 
 📌 **business-logic / ui-test / routing 모두 이 문서를 따른다.**
 
