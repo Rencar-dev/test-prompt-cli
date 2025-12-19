@@ -126,7 +126,7 @@ export const generateGenPrompt = async (
   const planPlaceholder = planContent || '(Plan 없음 - 소스 코드를 분석하여 테스트 케이스를 직접 도출하세요)';
 
   const prompt = promptTemplate
-    .replace('{{EXECUTION_GUIDE}}', rules)
+    .replace('{{RULES}}', rules)
     .replace('{{LESSONS_LEARNED}}', lessonsContent || '(아직 기록된 교훈이 없습니다)')
     .replace('{{PLAN_CONTENT}}', planPlaceholder)
     .replace('{{MANIFEST}}', manifestContent)

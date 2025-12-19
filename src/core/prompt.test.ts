@@ -113,8 +113,8 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockExecutionGuide = 'mock execution guide from rules-loader';
+      const mockTemplate = 'mock ui template {{RULES}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
+      const mockRules = 'mock rules from rules-loader';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
 
@@ -126,7 +126,7 @@ describe('prompt core', () => {
         .mockResolvedValueOnce(mockPlanContent); // second call for plan content
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockExecutionGuide);
+      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockRules);
 
       const { prompt, hasPlan } = await generateGenPrompt(sourcePath, 'ui');
 
@@ -137,7 +137,7 @@ describe('prompt core', () => {
 
       // 프롬프트 구조 검증
       expect(prompt).toContain('(아직 기록된 교훈이 없습니다)');
-      expect(prompt).toContain(mockExecutionGuide);
+      expect(prompt).toContain(mockRules);
       expect(prompt).toContain(mockPlanContent);
       expect(prompt).toContain(mockManifest);
       expect(prompt).toContain(mockSourceCode);
@@ -150,8 +150,8 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock unit template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockExecutionGuide = 'mock execution guide from rules-loader';
+      const mockTemplate = 'mock unit template {{RULES}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
+      const mockRules = 'mock rules from rules-loader';
       const mockAbsolutePath = '/abs/src/utils/date.ts';
       const mockPlanPath = '/abs/src/utils/date.test-plan.md';
 
@@ -163,7 +163,7 @@ describe('prompt core', () => {
         .mockResolvedValueOnce(mockPlanContent); // second call for plan content
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockExecutionGuide);
+      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockRules);
 
       const { prompt, hasPlan } = await generateGenPrompt(sourcePath, 'unit');
 
@@ -174,7 +174,7 @@ describe('prompt core', () => {
 
       // 프롬프트 구조 검증
       expect(prompt).toContain('(아직 기록된 교훈이 없습니다)');
-      expect(prompt).toContain(mockExecutionGuide);
+      expect(prompt).toContain(mockRules);
       expect(prompt).toContain(mockPlanContent);
       expect(prompt).toContain(mockManifest);
       expect(prompt).toContain(mockSourceCode);
@@ -187,8 +187,8 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockExecutionGuide = 'mock execution guide';
+      const mockTemplate = 'mock ui template {{RULES}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
+      const mockRules = 'mock rules';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
 
@@ -200,7 +200,7 @@ describe('prompt core', () => {
         .mockResolvedValueOnce(mockPlanContent); // second call for plan content
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockExecutionGuide);
+      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockRules);
 
       const { prompt } = await generateGenPrompt(sourcePath);
 
@@ -228,8 +228,8 @@ describe('prompt core', () => {
       const sourcePath = 'src/utils/date.ts';
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
-      const mockTemplate = 'mock unit template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockExecutionGuide = 'mock execution guide';
+      const mockTemplate = 'mock unit template {{RULES}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
+      const mockRules = 'mock rules';
       const mockAbsolutePath = '/abs/src/utils/date.ts';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
@@ -238,7 +238,7 @@ describe('prompt core', () => {
       vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockSourceCode);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(null); // Plan 없음
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockExecutionGuide);
+      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockRules);
 
       const { prompt, hasPlan } = await generateGenPrompt(sourcePath, 'unit');
 
@@ -262,8 +262,8 @@ describe('prompt core', () => {
       const mockManifest = 'mock manifest content';
       const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template {{EXECUTION_GUIDE}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockExecutionGuide = 'mock execution guide';
+      const mockTemplate = 'mock ui template {{RULES}} {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
+      const mockRules = 'mock rules';
       const mockLessons = '## Lessons Learned Content';
       const mockAbsolutePath = '/abs/src/app/login/page.tsx';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
@@ -276,7 +276,7 @@ describe('prompt core', () => {
         .mockResolvedValueOnce(mockPlanContent);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockExecutionGuide);
+      vi.spyOn(rulesLoader, 'loadRules').mockResolvedValue(mockRules);
 
       // fs.readFile 모킹 (lessons 파일 읽기)
       vi.spyOn(fs, 'readFile').mockResolvedValue(mockLessons as never);
