@@ -80,9 +80,17 @@ serverState: "TanStack Query"
 apiMocking: "MSW"
 router: "Next.js App Router"
 
-devServerCommand: "npm run dev" # package.json scripts 분석
-testCommand: "npm test --" # package.json scripts 분석 (test, test:unit 등)
-lintCommand: "npm run lint" # package.json scripts 분석 (lint, lint:fix 등)
+# 개발 서버 스크립트(dev, start 등)를 찾아 명령어 값을 그대로 기재
+# 예: "dev": "next dev -p 3000" → devServerCommand: "next dev -p 3000"
+devServerCommand: "next dev -p 3000"
+
+# 테스트 실행 스크립트(test, test:unit, vitest 등)를 찾아 명령어 값을 그대로 기재
+# 예: "test": "vitest --run" → testCommand: "vitest --run"
+testCommand: "vitest --run --config vitest.config.ts"
+
+# 린트 스크립트(lint, lint:fix 등)를 찾아 명령어 값을 그대로 기재
+# 예: "lint": "eslint src" → lintCommand: "eslint src"
+lintCommand: "eslint src --ext .ts,.tsx"
 baseUrl: "http://localhost:3000" # vite.config 또는 next output 분석
 
 # API Configuration (from .env.development)
