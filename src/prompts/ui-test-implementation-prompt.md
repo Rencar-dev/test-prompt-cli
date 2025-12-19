@@ -22,6 +22,34 @@
 
 ---
 
+## 🛑 STOP - 작업 시작 전 필수 확인
+
+> **이 섹션은 매 시나리오 작성 시 반드시 확인해야 합니다.**
+> 아래 항목들은 가장 자주 누락되는 규칙이며, 누락 시 재작업이 필요합니다.
+
+### 자주 누락되는 항목 TOP 5
+
+| # | 항목 | 확인 방법 | 누락 시 결과 |
+|---|------|-----------|--------------|
+| 1 | **it 제목 원문 유지** | ATDD/Plan 텍스트를 **복사-붙여넣기** (요약/수정 금지) | 문서 추적 불가 |
+| 2 | **G/W/T 주석 필수** | 모든 `it` 블록에 Given/When/Then 주석 + **한글 1줄 이상** | 테스트 의도 불명확 |
+| 3 | **E2E→Integration 변환 주석** | E2E 시나리오 기반 테스트에 `// E2E→Integration: router 호출만 검증` 추가 | 검증 범위 혼란 |
+| 4 | **초기값 확인 주석** | useState/useEffect 확인 후 불일치 시 `// NOTE: 실제 구현은...` 추가 | 테스트 실패 원인 추적 어려움 |
+| 5 | **간접 의존성 문서화** | 자식 컴포넌트가 사용하는 store/hook 목록을 주석으로 명시 | Mock 누락으로 런타임 에러 |
+
+### 시나리오 완료 시 자문자답 (매번 확인)
+
+```
+□ "제목을 내 말로 바꾸진 않았나?" → ATDD 원문 그대로 사용
+□ "Given 주석을 빼먹지 않았나?" → 한글 설명 1줄 이상 포함
+□ "이게 E2E 시나리오였으면 변환 주석 달았나?" → router 검증만 한다는 주석 추가
+□ "초기값 로직을 실제 코드에서 확인했나?" → trim/변환 적용 여부 확인
+```
+
+⚠️ **하나라도 불확실하면 즉시 수정 후 다음 시나리오로 진행**
+
+---
+
 ## 1. 적용 범위
 
 UI 테스트는 아래 범위를 포함한다:
@@ -34,7 +62,7 @@ UI 테스트는 아래 범위를 포함한다:
 - API 응답 처리(성공/실패)에 따른 UI 변화
 - Hook + UI 조합(페이지·컨테이너 컴포넌트)
 
-### 1.1 ATDD 시나리오 100% 구현 원칙 (Critical)
+### 1.1 ATDD 시나리오 100% 구현 원칙
 
 - **모든 시나리오 구현 필수**: 제공된 ATDD 파일의 P0, P1, P2, P3 모든 시나리오를 빠짐없이 구현한다.
 - **임의 생략 금지**: "시간 관계상 생략", "중요하지 않음" 등의 이유로 테스트를 건너뛰지 않는다.
@@ -85,7 +113,7 @@ UI 테스트는 아래 범위를 포함한다:
   - `vi.importActual<typeof import('./store')>` 형태 금지 (ESLint 에러)
   - 대신 상단에 `import type`을 선언하고 사용한다.
 
-### 2.1 UI 테스트 전용 Mocking 규칙 (Critical)
+### 2.1 UI 테스트 전용 Mocking 규칙
 
 > **공통 Mock 규칙** (Mock 결정 플로우차트, Mock하지 말아야 하는 것, Vitest hoisting 등)은
 > `test-coding-conventions.md`를 참조하세요. 아래는 **UI 테스트에서 추가로 필요한 Mock**입니다.
@@ -155,7 +183,7 @@ vi.mock('react-router-dom', () => ({
 }));
 ```
 
-#### 2.1.2 간접 의존성 체크리스트 (Critical)
+#### 2.1.2 간접 의존성 체크리스트
 
 **자식 컴포넌트의 의존성도 반드시 확인하라.**
 
@@ -178,7 +206,7 @@ const { setIsFullScreenContainerUsed } = useFullScreenContainerStore([...]);
 // ↑ 이 store도 Mock에 포함해야 함!
 ```
 
-#### 2.1.3 Framework Router Mock 필수 규칙 (Critical)
+#### 2.1.3 Framework Router Mock 필수 규칙
 
 > **커스텀 라우터 훅을 mock해도 반드시 프레임워크 라우터도 함께 mock하라.**
 
@@ -252,7 +280,7 @@ vi.mock('@/hooks/useCustomRouter', () => ({
 
 ---
 
-### 2.3 Functional Page Object Model (POM) 패턴 (Critical)
+### 2.3 Functional Page Object Model (POM) 패턴
 
 > **목적**: UI 변경 시 테스트 유지보수 비용을 획기적으로 줄이고, 테스트 코드의 재사용성을 높인다.
 
@@ -427,12 +455,12 @@ const somePage = {
 - Mock 데이터 구조가 실제 타입과 불일치하여 TypeScript 에러 발생
 - 테스트 실행 시 런타임 에러 발생 가능
 
-[참조 문서: 실행 및 환경 가이드] (Critical)
+[참조 문서: 실행 및 환경 가이드]
 <<<
 {{EXECUTION_GUIDE}}
 >>>
 
-[Lessons Learned: 오답노트] (Critical - 반드시 준수)
+[Lessons Learned: 오답노트]
 <<<
 {{LESSONS_LEARNED}}
 >>>
@@ -481,7 +509,7 @@ const somePage = {
 
 > **Note**: 간접 의존성(자식 컴포넌트가 사용하는 store/hook) 확인은 위 섹션 2.2.2 참조
 
-#### 3.3.2 Zustand Store 초기화 규칙 (Critical)
+#### 3.3.2 Zustand Store 초기화 규칙
 
 **Zustand store를 `setState`로 초기화할 때, 두 번째 인자를 `true`로 전달하면 모든 메서드가 사라진다.**
 
@@ -620,7 +648,7 @@ const enterCredentials = async (user, id = 'default', pw = 'default') => { ... }
 - [ ] 함수명만 보고 무엇을 하는지 명확한가?
 - [ ] 옵션 객체를 사용하여 확장 가능한가?
 
-#### 3.3.4 렌더링 검증 규칙 (Critical)
+#### 3.3.4 렌더링 검증 규칙
 
 **모든 테스트는 Given 단계 직후 기본 UI가 렌더링되었는지 검증한다.**
 
@@ -750,7 +778,7 @@ useEffect(() => {
 - [ ] beforeEach 후 메서드 타입이 'function'인지 검증했는가?
 - [ ] resetStores에서 setState의 두 번째 인자를 사용하지 않았는가?
 
-### 3.5 Hook 내부 구현 확인 (Critical)
+### 3.5 Hook 내부 구현 확인
 
 **Mocking 여부를 결정하기 전에, 해당 Hook이 API 통신을 수행하는지 반드시 소스 코드를 읽어 확인하라.**
 
@@ -764,7 +792,7 @@ useEffect(() => {
   - [ ] `useAuth` 내부 코드를 확인했는가? (`useMutation` 사용 여부)
   - [ ] `usePayment` 내부 코드를 확인했는가?
 
-### 3.6 Store 상태 검증 (Critical)
+### 3.6 Store 상태 검증
 
 **UI 상으로 직접 드러나지 않는 Store의 상태 변화도 검증해야 한다.**
 
@@ -788,7 +816,7 @@ expect(setItemSpy).toHaveBeenCalledWith({ productId: 'P123', quantity: 1 });
 - [ ] 해당 Store의 액션 또는 셀렉터를 스파이/모킹하여 상태 변화를 검증했는가?
 - [ ] 스파이/모킹된 함수가 올바른 인자와 함께 호출되었는지 확인했는가?
 
-### 3.7 초기값 처리 로직 검증 (Critical)
+### 3.7 초기값 처리 로직 검증
 
 **시나리오와 실제 구현의 불일치를 반드시 확인하라.**
 
@@ -890,7 +918,36 @@ it('[S1] 잘못된 패스워드 입력 시 오류 메시지가 렌더링된다',
 });
 ```
 
-### 4.4 시나리오 분기 처리 규칙 (Critical)
+---
+
+### 🚫 GATE 1: 시나리오별 체크포인트 (각 시나리오 작성 완료 시)
+
+> **각 시나리오(it 블록) 작성이 완료되면, 다음 시나리오로 진행하기 전에 반드시 아래를 확인하세요.**
+
+다음 중 하나라도 **❌**이면 **즉시 수정 후 다음 시나리오로 진행**:
+
+| # | 체크 항목 | ✅/❌ |
+|---|-----------|-------|
+| 1 | it 제목이 ATDD/Plan 원문 **그대로**인가? (요약/의역 금지) | |
+| 2 | Given/When/Then 주석이 **모두** 있고, 각각 **한글 1줄 이상**인가? | |
+| 3 | E2E 시나리오 기반이면 `// E2E→Integration: router 호출만 검증` 주석이 있는가? | |
+| 4 | 초기값 관련 시나리오면 실제 코드(useState/useEffect)를 확인하고 주석을 달았는가? | |
+
+**출력 형식 (각 시나리오 완료 후 반드시 출력)**:
+
+```
+[S1 체크포인트]
+- 제목 원문 유지: ✅
+- G/W/T 주석: ✅ (Given: 1줄, When: 1줄, Then: 1줄)
+- E2E 변환 주석: N/A (Integration 시나리오)
+- 초기값 확인: N/A (초기값 관련 시나리오 아님)
+```
+
+⚠️ **❌가 하나라도 있으면 즉시 수정 후 다음 시나리오로 진행**
+
+---
+
+### 4.4 시나리오 분기 처리 규칙
 
 **"또는", "~이면 ~하고, ~이면 ~한다" 같은 조건부 시나리오 처리:**
 
@@ -967,7 +1024,7 @@ screen.getByRole('button', { name: /로그인/ });
 > ❗ querySelector / test-id / class 기반 selector는 **최후의 수단**  
 > 되도록 `role` / `label` / `text` 우선 사용.
 
-**⚠️ 줄바꿈(Multi-line) 텍스트 검증 규칙 (Critical):**
+**⚠️ 줄바꿈(Multi-line) 텍스트 검증 규칙:**
 
 - HTML에서는 줄바꿈(`\n`)이 공백으로 치환되거나 무시될 수 있으므로, **단순 문자열 매칭(`'A\nB'`)은 실패할 확률이 높다.**
 - **반드시 Regex(정규식)를 사용**하여 유연하게 검증한다.
@@ -982,7 +1039,7 @@ screen.getByText('입력하신 정보와 일치하는 계정이 없습니다.\n�
 screen.getByText(/입력하신 정보와 일치하는 계정이 없습니다\..*로그인 정보를 확인해주세요/s);
 ```
 
-**⚠️ 초기값 검증 시 주의사항 (Critical):**
+**⚠️ 초기값 검증 시 주의사항:**
 
 - **실제 소스 코드 확인 필수**: 초기값이 `useState`, `useEffect`, `useMemo` 등에서 어떻게 설정되는지 **반드시 실제 코드를 읽어 확인**한다.
 - **변환 로직 확인**: 
@@ -1046,7 +1103,7 @@ expect(screen.getByPlaceholderText('아이디')).toHaveValue('  prefillUser  ');
   expect(routerMocks.replace).toHaveBeenCalledWith(...);
   ```
 
-**⚠️ E2E→Integration 시나리오의 비동기 처리 (Critical):**
+**⚠️ E2E→Integration 시나리오의 비동기 처리:**
 - **`waitFor` 사용 필수**: E2E→Integration 시나리오라고 해서 `waitFor`를 사용하지 않는 것은 **잘못된 접근**입니다.
 - Router 호출은 **비동기 작업 완료 후** 발생하므로, 반드시 `waitFor`로 기다려야 합니다.
 - `flushPromises()`만으로는 충분하지 않습니다. React Query, MSW, 비동기 함수 체인이 모두 완료될 때까지 기다려야 합니다.
@@ -1105,7 +1162,7 @@ await waitFor(() => {
 
 ---
 
-## 6. async / waitFor 규칙 (Critical)
+## 6. async / waitFor 규칙
 
 > 📘 **기본 규칙은 [참조 문서: 실행 및 환경 가이드]의 섹션 5 (waitFor 사용 규칙)을 엄격히 준수하세요.**
 
@@ -1137,7 +1194,7 @@ expect(loginApi).toHaveBeenCalledWith({ id: 'user', password: 'pw' });
 
 ## 7. MSW 사용 규칙 (UI 테스트 관점)
 
-### 7.1 MSW Handler URL 규칙 (Critical)
+### 7.1 MSW Handler URL 규칙
 
 **MSW 핸들러는 반드시 실제 API 요청 URL과 정확히 매칭되어야 한다.**
 
@@ -1187,7 +1244,7 @@ const loginHandler = http.post(`${API_BASE_URL}/auth`, () =>
 - ✅ 에러용 handler 파일(`mocks/login/errorHandlers.ts`)은 **존재해도 된다.**
 - ❌ 하지만 **전역 server 기본 handlers에 에러 핸들러를 섞어 넣지 않는다.**
 
-### 7.3 Mutation(POST/PUT) 테스트 원칙 (Critical)
+### 7.3 Mutation(POST/PUT) 테스트 원칙
 
 - **Mutation Hook 자체를 Mocking 하지 않는다. (절대 금지 🚫)**
   - `useMutation`을 mock하면 `onError`, `onSuccess`, `tryCustomErrorHandling` 등 **실제 에러 처리 로직이 실행되지 않는다.**
@@ -1551,7 +1608,7 @@ expect(showAlertSpy).toHaveBeenCalledWith({ content: '반납 유류량을 입력
 
 ---
 
-### 7.11 에러 처리 검증 전략 (Critical)
+### 7.11 에러 처리 검증 전략
 
 > **원칙**: 소스 코드에서 에러 처리 방식을 먼저 파악한 후 적절한 검증 방법을 선택한다.
 
@@ -1680,7 +1737,7 @@ UI 컴포넌트가 **"데이터 상태에 따라 올바르게 렌더링되는지
 
 따라서, 계산 로직이나 복잡한 State를 가진 Custom Hook은 **과감하게 Mocking**하여 **고정된 UI State**를 주입한다.
 
-### 8.1 Store/Hook Mocking 체크리스트 (Critical)
+### 8.1 Store/Hook Mocking 체크리스트
 
 **Mock 작성 전 반드시 확인:**
 
@@ -1758,7 +1815,7 @@ vi.mock('@/hooks/useCartLogic', () => ({
 
 ### 8.4 UI Component Stubbing Rules
 
-### 8.5 Vitest Mocking & Hoisting Rules (Critical)
+### 8.5 Vitest Mocking & Hoisting Rules
 
 **`vi.mock`은 파일의 최상단으로 hoisting 되므로, mock factory 내부에서 외부 변수를 참조하면 `ReferenceError`가 발생한다.**
 
@@ -2094,10 +2151,7 @@ render(<LoginView />, {
 - **Pass:** "✅ 테스트 통과" 메시지와 함께 최종 코드를 출력하고 종료하십시오.
 - **Fail:** 에러 메시지를 분석하여 **테스트 코드만** 수정하십시오.
 
-### 🚨 Critical Constraints (For Safety)
-1. **Max Retries:** 수정 및 재실행은 **최대 3회**까지만 허용합니다. 3회 실패 시 "❌ 3회 실패" 메시지와 함께 마지막 에러 로그를 출력하고 멈추십시오.
-2. **Scope Limitation:** 오직 **테스트 파일**만 수정하십시오. 원본 소스 코드(`app/...`, `src/...`)나 설정 파일은 **절대 수정하지 마십시오.**
-3. **Mandatory Execution:** 당신이 **Agentic Mode**이거나 터미널 도구를 사용할 수 있다면, **반드시** 테스트를 실행하고 검증해야 합니다. 단순히 코드를 출력하고 끝내지 마십시오.
+> 🚨 **Critical Constraints (Safety Rules)**: `rules-core.md` 섹션 7 참조
 
 ---
 
@@ -2131,30 +2185,70 @@ render(<LoginView />, {
 
 ---
 
-## 15. Final Self-Check (마지막 관문)
-(코드 출력 전 마지막 확인)
-- [ ] **모든 `it` 블록에 G/W/T 주석이 있는가?**
-- [ ] **각 G/W/T 주석이 1줄 이상의 의미 있는 설명을 포함하는가?**
-- [ ] **시나리오에 조건부 분기("또는", "~이면 ~하고")가 있는가?**
-- [ ] **각 분기를 별도 테스트 케이스로 분리했는가?**
-- [ ] **각 테스트에서 조건값을 명시적으로 설정했는가?**
-- [ ] **초기값 처리 로직을 실제 소스 코드에서 확인했는가?** (useState, useEffect 등)
-- [ ] **초기값에 변환 로직(trim, toLowerCase 등)이 적용되는지 확인했는가?**
-- [ ] **ATDD 시나리오/Test Plan의 기대값과 실제 구현이 일치하는가?** (불일치 시 주석 명시)
-- [ ] **직접 의존성뿐만 아니라 간접 의존성(자식 컴포넌트의 store/hook)도 Mock에 포함했는가?**
-- [ ] **테스트 대상 컴포넌트가 렌더링하는 모든 자식 컴포넌트의 의존성을 확인했는가?**
-- [ ] **메시지에 줄바꿈 문자(`\n`)가 포함된 경우 정규식이나 부분 매칭을 사용했는가?**
-- [ ] **E2E→Integration 시나리오에서도 비동기 작업 완료를 `waitFor`로 기다렸는가?** (`flushPromises()`만으로는 부족)
-- [ ] **비동기 체인(예: login → prepareNecessaryData → router.reset)이 완료될 때까지 기다렸는가?**
-- [ ] **비즈니스적으로 중요한 Toast 메시지는 내용까지 검증했는가?**
-- [ ] `waitFor` 오용 없음?
-- [ ] Mutation Mocking 없음?
-- [ ] Shadow Logic 없음?
-- [ ] Import Hallucination 없음?
-- [ ] ID/제목 유지?
-- [ ] E2E→Integration 시나리오에 router 검증 주석이 있는가?
-- [ ] **사용하지 않는 import가 없는가?** (리팩토링 후 정리 확인)
-- [ ] **컴포넌트의 required prop을 모두 전달했는가?** (`initialId: string | undefined` ≠ `initialId?: string`)
+## 🚫 GATE 2: 최종 코드 출력 전 체크
+
+> **모든 시나리오 작성이 완료된 후, 코드를 출력하기 전에 반드시 아래 체크리스트를 확인하세요.**
+> 아래 항목 중 하나라도 **❌**이면 **코드 출력을 중단하고 즉시 수정**하세요.
+
+### 🔴 BLOCKER (미충족 시 코드 출력 금지)
+
+| # | 체크 항목 | ✅/❌ | 비고 |
+|---|-----------|-------|------|
+| 1 | 모든 `it` 블록에 G/W/T 주석이 있는가? | | |
+| 2 | 각 G/W/T 주석이 **한글 1줄 이상**의 설명을 포함하는가? | | |
+| 3 | 시나리오 ID/제목이 ATDD/Plan **원문 그대로**인가? | | |
+| 4 | E2E→Integration 시나리오에 `// E2E→Integration: router 호출만 검증` 주석이 있는가? | | |
+
+### 🟠 CRITICAL (미충족 시 재작업 필요)
+
+| # | 체크 항목 | ✅/❌ | 비고 |
+|---|-----------|-------|------|
+| 5 | 시나리오에 조건부 분기가 있으면 **각 분기를 별도 테스트 케이스**로 분리했는가? | | |
+| 6 | 각 테스트에서 조건값(`useConnect`, `isAdditional` 등)을 **명시적으로 설정**했는가? | | |
+| 7 | 초기값 처리 로직을 **실제 소스 코드**(useState, useEffect)에서 확인했는가? | | |
+| 8 | 초기값에 변환 로직(trim, toLowerCase 등)이 적용되는지 확인하고 **주석**을 달았는가? | | |
+| 9 | ATDD/Plan 기대값과 실제 구현이 불일치하면 **주석으로 명시**했는가? | | |
+| 10 | 간접 의존성(자식 컴포넌트의 store/hook)도 Mock에 포함하고 **주석으로 문서화**했는가? | | |
+
+### 🟡 IMPORTANT (권고사항)
+
+| # | 체크 항목 | ✅/❌ | 비고 |
+|---|-----------|-------|------|
+| 11 | 메시지에 줄바꿈(`\n`)이 포함된 경우 **정규식/부분 매칭**을 사용했는가? | | |
+| 12 | E2E→Integration 시나리오에서 비동기 작업을 **`waitFor`로 대기**했는가? | | |
+| 13 | 비동기 체인(login → prepare → router.reset)이 완료될 때까지 기다렸는가? | | |
+| 14 | 비즈니스적으로 중요한 Toast 메시지는 **내용까지 검증**했는가? | | |
+| 15 | `waitFor` 오용 없음? (Mock 호출 검증에 사용 금지) | | |
+| 16 | Mutation Hook Mocking 없음? (MSW 사용) | | |
+| 17 | Shadow Logic 없음? (구현 로직 복제 금지) | | |
+| 18 | Import Hallucination 없음? (존재하지 않는 모듈 import 금지) | | |
+| 19 | 사용하지 않는 import가 없는가? | | |
+| 20 | 컴포넌트의 required prop을 모두 전달했는가? | | |
+
+### 출력 형식 (코드 출력 전 반드시 작성)
+
+```
+---
+GATE 2 최종 체크 결과
+
+| # | 항목 | 상태 | 비고 |
+|---|------|------|------|
+| 1 | G/W/T 주석 존재 | ✅ | 모든 it 블록에 포함 |
+| 2 | G/W/T 주석 설명 | ✅ | 한글 1줄 이상 |
+| 3 | ID/제목 원문 유지 | ✅ | S1-S14 모두 확인 |
+| 4 | E2E 변환 주석 | ✅ | S1-S3에 주석 추가 |
+| 5 | 분기 분리 | ✅ | S4(3개), S6(2개) 분리 |
+| ... | ... | ... | ... |
+
+🔴 BLOCKER: 0개 ❌
+🟠 CRITICAL: 0개 ❌
+🟡 IMPORTANT: 0개 ❌
+
+→ 코드 출력 진행
+---
+```
+
+⚠️ **🔴 BLOCKER에 ❌가 하나라도 있으면 코드 출력 금지. 즉시 수정 후 다시 체크.**
 
 ---
 
@@ -2259,7 +2353,7 @@ CSS selector, className 기반 탐색은 가능한 한 피한다.
   2. `within` 또는 `name`/`role` 옵션을 사용하여 **대상을 명확히 좁힌다.**
 - ❌ 무작정 `.getAllByText(...)[0]` 인덱스로 접근 금지 (순서 의존성)
 
-### 16.2 줄바꿈 문자(`\n`)가 포함된 텍스트 검증 (Critical)
+### 16.2 줄바꿈 문자(`\n`)가 포함된 텍스트 검증
 
 **문제 상황:**
 - 메시지에 줄바꿈 문자(`\n`)가 포함된 경우, `findByText`나 `getByText`로 정확한 텍스트 매칭이 실패할 수 있음
@@ -2360,74 +2454,7 @@ await waitFor(() =>
 
 ---
 
-## 22. ⚡️ Critical Constraints Summary (Do Not Ignore)
-
-> **이 섹션은 가장 자주 위반되는 핵심 규칙입니다. 코드 출력 전 반드시 확인하세요.**
-
-### 1. Mutation Hook Mocking 절대 금지
-```typescript
-// ❌ 절대 금지
-vi.mock('@/hooks/useCustomMutation', () => ({ ... }));
-
-// ✅ MSW로 API 응답 제어
-server.use(http.post('/api/...', () => HttpResponse.json(...)));
-```
-
-### 2. waitFor는 UI 변화만
-```typescript
-// ❌ 금지 - Mock 검증에 waitFor 사용
-await waitFor(() => expect(mockFn).toHaveBeenCalled());
-
-// ✅ 올바름 - UI 변화 대기 후 동기 검증
-await waitFor(() => expect(screen.queryByText('로딩중')).not.toBeInTheDocument());
-expect(mockFn).toHaveBeenCalledWith({ id: 1 }); // 동기 검증
-```
-
-### 3. getByRole 우선 사용
-```typescript
-// ❌ 피하기 - testid 남발
-screen.getByTestId('submit-button');
-
-// ✅ 권장 - Role 기반 선택
-screen.getByRole('button', { name: /제출/ });
-```
-
-### 4. Store 초기화 규칙
-```typescript
-// ❌ 금지 - 두 번째 인자 true
-store.setState(initialState, true);
-
-// ✅ 올바름 - 부분 업데이트
-store.setState({ user: null, isLogin: false });
-```
-
-### 5. Weak Assertion 금지
-```typescript
-// ❌ 금지 - 호출 여부만 검증
-expect(mockFn).toHaveBeenCalled();
-
-// ✅ 필수 - 인자까지 검증
-expect(mockFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
-```
-
-### 6. Mock 리턴 타입 일치 필수
-```typescript
-// ❌ 금지 - 타입 불일치 (실제: { login, logout, user })
-vi.mocked(useAuth).mockReturnValue({ login: vi.fn() });
-
-// ✅ 필수 - 실제 타입과 일치
-vi.mocked(useAuth).mockReturnValue({
-  login: vi.fn(),
-  logout: vi.fn(),
-  user: null,
-});
-```
-
-**위 6가지 규칙을 위반한 코드는 즉시 수정하세요.**
-
----
-
-## 23. 실행/환경 관련 내용
+## 22. 실행/환경 관련 내용
 
 이 프롬프트는 **“테스트 코드를 생성”**하는 역할만 담당한다.  
 테스트 실행/Node 버전/패키지 매니저/명령어 가이드는  

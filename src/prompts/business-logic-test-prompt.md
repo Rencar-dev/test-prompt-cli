@@ -1,11 +1,11 @@
 <!-- Source: business-logic-test-prompt.md -->
 # 📌 Business Logic Unit Test Prompt (for utils/hooks/stores)
 
-> **이 프롬프트는 “순수 비즈니스 로직(Unit)” 테스트만 생성**합니다.  
-> *UI / DOM / Interaction / 렌더링 테스트는 절대 포함하지 않습니다.*  
+> **이 프롬프트는 "순수 비즈니스 로직(Unit)" 테스트만 생성**합니다.
+> *UI / DOM / Interaction / 렌더링 테스트는 절대 포함하지 않습니다.*
 > UI는 `ui-test-implementation-prompt.md`를 사용하세요.
 >
-> 📘 **중요**: 테스트 실행 환경, Mock 전략, waitFor 규칙은  
+> 📘 **중요**: 테스트 실행 환경, Mock 전략, waitFor 규칙은
 > **`test-coding-conventions.md`**를 엄격히 준수하세요.
 
 ---
@@ -139,12 +139,12 @@ it.each([
 
 > 아래 정보가 프롬프트 하단에 제공됩니다.
 
-[참조 문서: 실행 및 환경 가이드] (Critical)
+[참조 문서: 실행 및 환경 가이드]
 <<<
 {{EXECUTION_GUIDE}}
 >>>
 
-[Lessons Learned: 오답노트] (Critical - 반드시 준수)
+[Lessons Learned: 오답노트]
 <<<
 {{LESSONS_LEARNED}}
 >>>
@@ -435,10 +435,7 @@ vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 - **Pass:** "✅ 테스트 통과" 메시지와 함께 최종 코드를 출력하고 종료하십시오.
 - **Fail:** 에러 메시지를 분석하여 **테스트 코드만** 수정하십시오.
 
-### 🚨 Critical Constraints (For Safety)
-1. **Max Retries:** 수정 및 재실행은 **최대 3회**까지만 허용합니다. 3회 실패 시 "❌ 3회 실패" 메시지와 함께 마지막 에러 로그를 출력하고 멈추십시오.
-2. **Scope Limitation:** 오직 **테스트 파일**만 수정하십시오. 원본 소스 코드(`app/...`, `src/...`)나 설정 파일은 **절대 수정하지 마십시오.**
-3. **Capability Check:** 터미널 실행 권한이 없다면, 이 단계를 건너뛰고 코드만 출력하십시오.
+> 🚨 **Critical Constraints (Safety Rules)**: `rules-core.md` 섹션 7 참조
 
 ---
 

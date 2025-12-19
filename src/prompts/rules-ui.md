@@ -6,7 +6,7 @@
 
 ---
 
-## 1. Element Selector Priority (Critical)
+## 1. Element Selector Priority
 
 > **목적**: 접근성(Accessibility) 개선과 테스트 안정성을 동시에 향상한다.
 
@@ -101,7 +101,7 @@ screen.getByRole('heading', { name: /섹션 제목/, level: 2 });
 
 ---
 
-## 2. Robust Click Strategy (Critical)
+## 2. Robust Click Strategy
 
 > **목적**: Playwright/Testing Library에서 간헐적 클릭 실패(Flaky)를 방지한다.
 
@@ -176,7 +176,7 @@ export async function robustClick(element: HTMLElement) {
 
 ---
 
-## 3. Safe Wait Strategy (Critical)
+## 3. Safe Wait Strategy
 
 > **목적**: `networkidle` 대기의 불안정성을 해결하고 UI 앵커 기반 대기로 안정성을 향상한다.
 

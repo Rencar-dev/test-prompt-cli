@@ -56,7 +56,7 @@ mocks/
 │   └── data.ts       # Mock 데이터 (순수 데이터만)
 ```
 
-**URL 매칭 규칙** (Critical):
+**URL 매칭 규칙**:
 ```typescript
 // ❌ Bad: 상대 경로 (baseURL이 있으면 매칭 실패)
 const loginHandler = http.post('/auth', () => HttpResponse.json({ ... }));
@@ -88,7 +88,7 @@ export const mockLoginError = {
 - 타입을 import하여 타입 안전성 확보
 - `mock[Entity][State]` 명명 규칙
 
-### 2.2 에러 응답 Mock 규칙 (Critical)
+### 2.2 에러 응답 Mock 규칙
 
 > **원칙**: 프로젝트의 에러 타입 정의를 정확히 따른다.
 
@@ -224,7 +224,7 @@ afterEach(() => server.resetHandlers());
 
 ---
 
-## 3. Async & waitFor Rules (Critical)
+## 3. Async & waitFor Rules
 
 ### 3.1 핵심 원칙
 
@@ -256,7 +256,7 @@ await waitFor(() => expect(mockFn).toHaveBeenCalled());
 
 ## 4. Mocking Strategy
 
-### 4.1 Mock 결정 플로우차트 (Critical)
+### 4.1 Mock 결정 플로우차트
 
 **Mocking 여부를 결정할 때 아래 플로우차트를 따라라:**
 
@@ -328,7 +328,7 @@ vi.spyOn(service, 'calculateTotal').mockReturnValue(100);
 // → 로직 죽음 → 테스트 무의미
 ```
 
-### 4.4 Mock하지 말아야 하는 것 상세 예시 (Critical)
+### 4.4 Mock하지 말아야 하는 것 상세 예시
 
 #### 4.4.1 상수 파일
 
@@ -431,7 +431,7 @@ vi.mock('@/utils', () => {
 });
 ```
 
-### 4.5 Mock 주석 필수 규칙 (Critical)
+### 4.5 Mock 주석 필수 규칙
 
 **모든 Mock에는 반드시 주석을 달아야 한다.**
 
@@ -516,7 +516,7 @@ expect(saveFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
 - 호출 여부 자체가 중요한 경우 (예: `router.back()` - 인자 없음)
 - `not.toHaveBeenCalled()` (호출되지 않아야 함을 검증)
 
-### 4.8 Module Path Mock 주의사항 (Critical)
+### 4.8 Module Path Mock 주의사항
 
 > **동일 모듈이라도 import 경로가 다르면 각각 mock해야 한다.**
 
@@ -667,7 +667,34 @@ await userEvent.click(screen.getByRole('button', { name: '제출' }));
 
 ---
 
-## 7. 최종 요약
+## 7. 🚨 Critical Constraints (Safety Rules)
+
+> **이 섹션은 AI가 테스트 코드를 생성할 때 반드시 지켜야 할 안전 규칙입니다.**
+> UI 테스트와 Unit 테스트 모두에 적용됩니다.
+
+### 7.1 Max Retries (최대 재시도 횟수)
+
+- 수정 및 재실행은 **최대 3회**까지만 허용합니다.
+- 3회 실패 시 "❌ 3회 실패" 메시지와 함께 마지막 에러 로그를 출력하고 멈추십시오.
+- 무한 루프 방지를 위한 필수 규칙입니다.
+
+### 7.2 Scope Limitation (수정 범위 제한)
+
+- 오직 **테스트 파일**만 수정하십시오.
+- 원본 소스 코드(`app/...`, `src/...`)나 설정 파일은 **절대 수정하지 마십시오.**
+- 테스트 실패 시 테스트 코드를 수정해야지, 소스 코드를 수정하면 안 됩니다.
+
+### 7.3 Execution Policy (실행 정책)
+
+- **Agentic Mode** (터미널 실행 권한이 있는 경우):
+  - 반드시 테스트를 실행하고 검증해야 합니다.
+  - 단순히 코드를 출력하고 끝내지 마십시오.
+- **Chat Mode** (터미널 권한이 없는 경우):
+  - 이 단계를 건너뛰고 코드만 출력하십시오.
+
+---
+
+## 8. 최종 요약
 
 📌 **business-logic / ui-test / routing 모두 이 문서를 따른다.**
 
