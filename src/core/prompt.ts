@@ -3,7 +3,8 @@ import path from 'path';
 import { readManifest, readPromptTemplate, readUserFile } from '../utils/file.js';
 import { resolveUserPath } from '../utils/path.js';
 import { findAtddFile, findPlanFile } from './locator.js';
-import { TestType, DEFAULT_TEST_TYPE, getTemplateFileName, getRulesFileNames } from './test-type.js';
+import { TestType, DEFAULT_TEST_TYPE, getTemplateFileName } from './test-type.js';
+import { loadRules } from './rules-loader.js';
 
 /**
  * Manifest 파일 존재 여부를 검증합니다.
@@ -111,13 +112,8 @@ export const generateGenPrompt = async (
 
   const promptTemplate = await readPromptTemplate(templateFileName);
 
-  // 타입에 따라 규칙 파일 조합 (UI: core+ui, Unit: core+unit)
-  const rulesFileNames = getRulesFileNames(type);
-  const rulesContents: string[] = [];
-  for (const fileName of rulesFileNames) {
-    rulesContents.push(await readPromptTemplate(fileName));
-  }
-  const executionGuide = rulesContents.join('\n\n');
+  // manifest 기반 모듈식 규칙 로드
+  const rules = await loadRules(type);
 
   // Lessons Learned 파일 읽기 (선택적)
   const lessonsPath = 'project-test-lessons.md';
@@ -130,7 +126,7 @@ export const generateGenPrompt = async (
   const planPlaceholder = planContent || '(Plan 없음 - 소스 코드를 분석하여 테스트 케이스를 직접 도출하세요)';
 
   const prompt = promptTemplate
-    .replace('{{EXECUTION_GUIDE}}', executionGuide)
+    .replace('{{EXECUTION_GUIDE}}', rules)
     .replace('{{LESSONS_LEARNED}}', lessonsContent || '(아직 기록된 교훈이 없습니다)')
     .replace('{{PLAN_CONTENT}}', planPlaceholder)
     .replace('{{MANIFEST}}', manifestContent)

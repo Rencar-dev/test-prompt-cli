@@ -50,7 +50,10 @@ export const genCommand = new Command('gen')
 /**
  * Gen 프롬프트 생성 실행
  */
-const executeGen = async (sourcePath: string, testType: TestType): Promise<void> => {
+const executeGen = async (
+  sourcePath: string,
+  testType: TestType
+): Promise<void> => {
   try {
     logger.info(`ℹ️  ${getTestTypeLabel(testType)} 테스트 프롬프트 생성 중...`);
 

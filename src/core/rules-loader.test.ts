@@ -1,0 +1,366 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { getRuleModulePaths, loadRules } from './rules-loader.js';
+import * as fileUtils from '../utils/file.js';
+import * as loggerUtils from '../utils/logger.js';
+import * as manifestUtils from '../utils/manifest.js';
+import type { ManifestConfig } from '../utils/manifest.js';
+
+vi.mock('../utils/file.js');
+vi.mock('../utils/logger.js');
+vi.mock('../utils/manifest.js');
+
+describe('rules-loader', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getRuleModulePaths', () => {
+    it('항상 core.md를 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/core.md');
+    });
+
+    it('vitest 설정 시 vitest 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'vitest',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/runner/vitest.md');
+    });
+
+    it('jest 설정 시 jest 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'jest',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/runner/jest.md');
+    });
+
+    it('zustand 설정 시 zustand 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'zustand',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/state/zustand.md');
+    });
+
+    it('redux 설정 시 redux 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'redux',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/state/redux.md');
+    });
+
+    it('redux-toolkit은 redux 규칙을 사용한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'redux-toolkit',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/state/redux.md');
+    });
+
+    it('tanstack-query 설정 시 tanstack-query 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'tanstack-query',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/query/tanstack-query.md');
+    });
+
+    it('swr 설정 시 swr 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'swr',
+        mockStrategy: 'none',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/query/swr.md');
+    });
+
+    it('msw 설정 시 msw 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'msw',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/mock/msw.md');
+    });
+
+    it('module-mock 설정 시 module-mock 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'module-mock',
+        router: 'none',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/mock/module-mock.md');
+    });
+
+    it('next-app 설정 시 next-router 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'next-app',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/router/next-router.md');
+    });
+
+    it('next-pages도 next-router 규칙을 사용한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'next-pages',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/router/next-router.md');
+    });
+
+    it('react-router 설정 시 react-router 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'react-router',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/router/react-router.md');
+    });
+
+    it('모든 설정이 있을 때 모든 규칙을 포함한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'vitest',
+        stateManagement: 'zustand',
+        queryLibrary: 'tanstack-query',
+        mockStrategy: 'msw',
+        router: 'next-app',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      expect(paths).toContain('rules/core.md');
+      expect(paths).toContain('rules/runner/vitest.md');
+      expect(paths).toContain('rules/state/zustand.md');
+      expect(paths).toContain('rules/query/tanstack-query.md');
+      expect(paths).toContain('rules/mock/msw.md');
+      expect(paths).toContain('rules/router/next-router.md');
+      expect(paths).toHaveLength(6);
+    });
+
+    it('지원하지 않는 값은 무시한다', () => {
+      const manifest: ManifestConfig = {
+        testRunner: 'unknown-runner',
+        stateManagement: 'unknown-state',
+        queryLibrary: 'unknown-query',
+        mockStrategy: 'unknown-mock',
+        router: 'unknown-router',
+      };
+
+      const paths = getRuleModulePaths(manifest);
+
+      // core.md만 포함
+      expect(paths).toEqual(['rules/core.md']);
+    });
+  });
+
+  describe('loadRules', () => {
+    it('ui 타입일 때 core.md와 type/ui.md 및 manifest 기반 모듈을 조합한다', async () => {
+      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue({
+        testRunner: 'vitest',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      });
+
+      const coreContent = '# Core Rules';
+      const uiContent = '# UI Rules';
+      const vitestContent = '# Vitest Rules';
+
+      vi.spyOn(fileUtils, 'readPromptTemplate')
+        .mockResolvedValueOnce(coreContent) // rules/core.md
+        .mockResolvedValueOnce(uiContent) // rules/type/ui.md
+        .mockResolvedValueOnce(vitestContent); // rules/runner/vitest.md
+
+      const result = await loadRules('ui');
+
+      expect(result).toContain(coreContent);
+      expect(result).toContain(uiContent);
+      expect(result).toContain(vitestContent);
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/core.md');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/type/ui.md');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/runner/vitest.md');
+    });
+
+    it('unit 타입일 때 core.md와 type/unit.md 및 manifest 기반 모듈을 조합한다', async () => {
+      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue({
+        testRunner: 'jest',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      });
+
+      const coreContent = '# Core Rules';
+      const unitContent = '# Unit Rules';
+      const jestContent = '# Jest Rules';
+
+      vi.spyOn(fileUtils, 'readPromptTemplate')
+        .mockResolvedValueOnce(coreContent) // rules/core.md
+        .mockResolvedValueOnce(unitContent) // rules/type/unit.md
+        .mockResolvedValueOnce(jestContent); // rules/runner/jest.md
+
+      const result = await loadRules('unit');
+
+      expect(result).toContain(coreContent);
+      expect(result).toContain(unitContent);
+      expect(result).toContain(jestContent);
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/core.md');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/type/unit.md');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/runner/jest.md');
+    });
+
+    it('중복 모듈 경로는 한 번만 로드한다', async () => {
+      // BASE_RULES에 core.md가 포함되어 있고, getRuleModulePaths도 core.md를 반환
+      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue({
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      });
+
+      const coreContent = '# Core Rules';
+      const uiContent = '# UI Rules';
+
+      vi.spyOn(fileUtils, 'readPromptTemplate')
+        .mockResolvedValueOnce(coreContent)
+        .mockResolvedValueOnce(uiContent);
+
+      await loadRules('ui');
+
+      // core.md가 한 번만 호출되어야 함
+      const calls = vi.mocked(fileUtils.readPromptTemplate).mock.calls;
+      const coreCalls = calls.filter(([path]) => path === 'rules/core.md');
+      expect(coreCalls).toHaveLength(1);
+    });
+
+    it('모듈 파일이 없으면 건너뛰고 경고를 출력한다', async () => {
+      const warnSpy = vi.spyOn(loggerUtils.logger, 'warn').mockImplementation(() => {});
+
+      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue({
+        testRunner: 'vitest',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      });
+
+      const coreContent = '# Core Rules';
+      const uiContent = '# UI Rules';
+
+      vi.spyOn(fileUtils, 'readPromptTemplate')
+        .mockResolvedValueOnce(coreContent)
+        .mockResolvedValueOnce(uiContent)
+        .mockRejectedValueOnce(new Error('File not found')); // vitest.md 없음
+
+      const result = await loadRules('ui');
+
+      expect(result).toContain(coreContent);
+      expect(result).toContain(uiContent);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('규칙 모듈을 찾을 수 없습니다')
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('규칙 모듈들을 구분자로 연결한다', async () => {
+      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue({
+        testRunner: 'none',
+        stateManagement: 'none',
+        queryLibrary: 'none',
+        mockStrategy: 'none',
+        router: 'none',
+      });
+
+      vi.spyOn(fileUtils, 'readPromptTemplate')
+        .mockResolvedValueOnce('Content A')
+        .mockResolvedValueOnce('Content B');
+
+      const result = await loadRules('ui');
+
+      expect(result).toBe('Content A\n\n---\n\nContent B');
+    });
+  });
+});

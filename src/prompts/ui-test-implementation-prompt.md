@@ -20,12 +20,12 @@
 
 ## 📘 적용 규칙
 
-**이 프롬프트와 함께 제공되는 규칙 파일들을 반드시 준수하세요:**
+**이 프롬프트와 함께 제공되는 규칙 모듈을 반드시 준수하세요:**
 
-| 파일 | 적용 범위 |
-|------|----------|
-| `rules-core.md` | 공통 규칙 (MSW, Mock 전략, waitFor, Anti-patterns) |
-| `rules-ui.md` | UI 테스트 전용 (렌더링 검증, POM 패턴, Store Mock, Router Mock) |
+| 파일/모듈 | 적용 범위 |
+|-----------|----------|
+| `rules/core.md` | 공통 규칙 (Mock 전략, waitFor, Anti-patterns 등) |
+| manifest 기반 모듈 (`rules/runner/*`, `rules/state/*`, `rules/query/*`, `rules/mock/*`, `rules/router/*`) | 프로젝트 설정에 따라 자동 주입되는 추가 규칙 |
 
 ---
 
