@@ -82,6 +82,7 @@ router: "Next.js App Router"
 
 devServerCommand: "npm run dev" # package.json scripts 분석
 testCommand: "npm test --" # package.json scripts 분석 (test, test:unit 등)
+lintCommand: "npm run lint" # package.json scripts 분석 (lint, lint:fix 등)
 baseUrl: "http://localhost:3000" # vite.config 또는 next output 분석
 
 # API Configuration (from .env.development)

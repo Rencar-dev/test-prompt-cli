@@ -62,12 +62,14 @@ UI 테스트는 아래 범위를 포함한다:
 - [ ] Snapshot 테스트, CSS/className 검증이 **포함되지 않음**
 - [ ] 사용자 관점의 쿼리(`getByRole`, `getByText`)가 우선 사용됨
 - [ ] MSW 핸들러가 적절히 설정되어 API 호출이 Mock됨
+- [ ] 생성된 코드에 **lint 에러가 없음** (사용하지 않는 import, 타입 에러 등)
 
 #### How to Validate (검증 방법)
 1. `npm test [파일경로]` 실행하여 Pass 확인
-2. ATDD 시나리오 ID와 테스트 `describe`/`it` 블록 매핑 확인
-3. `toMatchSnapshot`, `className`, `.style` 패턴 검색 (포함 시 실패)
-4. `getByTestId` 사용 비율 확인 (최소화되어야 함)
+2. `project-manifest.yaml`의 `lintCommand`로 생성한 파일 lint 실행 (예: `yarn lint [파일경로]`)
+3. ATDD 시나리오 ID와 테스트 `describe`/`it` 블록 매핑 확인
+4. `toMatchSnapshot`, `className`, `.style` 패턴 검색 (포함 시 실패)
+5. `getByTestId` 사용 비율 확인 (최소화되어야 함)
 
 ---
 
@@ -2151,6 +2153,8 @@ render(<LoginView />, {
 - [ ] Import Hallucination 없음?
 - [ ] ID/제목 유지?
 - [ ] E2E→Integration 시나리오에 router 검증 주석이 있는가?
+- [ ] **사용하지 않는 import가 없는가?** (리팩토링 후 정리 확인)
+- [ ] **컴포넌트의 required prop을 모두 전달했는가?** (`initialId: string | undefined` ≠ `initialId?: string`)
 
 ---
 
