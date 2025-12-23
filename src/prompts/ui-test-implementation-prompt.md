@@ -185,12 +185,27 @@ UI 테스트는 아래 범위를 포함합니다:
 - 테스트 코드 작성 후 타입 에러 해결
 - `npx tsc --noEmit` 또는 IDE 에러 확인
 
-### Step 6: Verification (Agentic Mode)
+### Step 6: Lint/Format 후처리 (Agentic Mode)
+프로젝트에 설정 파일이 있는 도구만 선택적으로 실행:
+
+1. **ESLint** (`.eslintrc.*` 또는 `eslint.config.*` 존재 시):
+   ```bash
+   npx eslint --fix <테스트_파일_경로>
+   ```
+
+2. **Prettier** (`.prettierrc*` 또는 `prettier.config.*` 존재 시):
+   ```bash
+   npx prettier --write <테스트_파일_경로>
+   ```
+
+- 둘 다 없으면 이 단계 생략
+
+### Step 7: Verification (Agentic Mode)
 - `project-manifest.yaml`의 `testCommand` 참고하여 테스트 실행
 - 예: `npm test [파일경로]`, `yarn vitest [파일경로]`
 - 에러 시 최대 3회 수정 후 중단
 
-### Step 7: `/test-verify` 실행 (필수)
+### Step 8: `/test-verify` 실행 (필수)
 - **구현 완료 후 반드시 `/test-verify` SKILL을 실행하세요**
 - P0/P1/P2 체크리스트로 규칙 준수 여부 검증
 
