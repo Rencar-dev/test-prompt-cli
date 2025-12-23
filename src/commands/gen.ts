@@ -12,6 +12,7 @@ import {
   getTestTypeLabel,
 } from '../core/test-type.js';
 import { selectFileInteractively } from '../utils/interactive.js';
+import { syncAllSkills } from '../core/setup.js';
 
 export const genCommand = new Command('gen')
   .description(
@@ -56,6 +57,9 @@ const executeGen = async (
 ): Promise<void> => {
   try {
     logger.info(`ℹ️  ${getTestTypeLabel(testType)} 테스트 프롬프트 생성 중...`);
+
+    // SKILL 파일 동기화 (manifest 기반)
+    await syncAllSkills(testType);
 
     // Core 로직 호출
     const { prompt, hasPlan } = await generateGenPrompt(sourcePath, testType);

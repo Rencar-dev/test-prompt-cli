@@ -13,6 +13,7 @@
 
 - 📋 **Auto Copy**: 생성된 프롬프트를 시스템 클립보드에 즉시 복사합니다.
 - 🧠 **Context Aware**: `project-manifest.yaml` 설정을 자동으로 읽어 프로젝트 컨벤션을 준수합니다.
+- 🎯 **SKILL Integration**: Claude Code의 SKILL 시스템과 연동하여 규칙을 자동 참조합니다.
 - 🚀 **Zero Config**: `npx`로 즉시 실행 가능합니다.
 
 ## 🚀 Quick Start
@@ -66,11 +67,13 @@ npx @hsna/prompt atdd
 npx @hsna/prompt init
 ```
 - **Output**: `project-convention-scanner.md` 내용 복사
-- **Action**: 
+- **Action**:
   1. AI에게 붙여넣고, 결과물인 `project-manifest.yaml`을 루트에 저장하세요.
   2. 자동으로 생성된 `project-test-lessons.md` 파일을 확인하세요.
      - **Section 0**: 프로젝트 맥락 및 팀 규칙 (직접 작성)
      - **Section 1~3**: AI가 학습한 오답노트 (`learn` 명령어로 갱신)
+  3. `.claude/skills/test-verify/SKILL.md`가 자동 생성됩니다.
+     - Claude Code가 테스트 코드 검증 시 자동으로 참조하는 규칙 파일
 
 ### 2. `atdd`
 구현된 소스 코드를 분석하여 **수용 테스트(Acceptance Test) 시나리오** 설계를 요청합니다.
@@ -127,6 +130,13 @@ npx @hsna/prompt gen [source_path] [options]
 | `--type ui` | 필수 | ATDD → Plan 워크플로우 필요 |
 | `--type unit` | 선택적 | Plan 없이 소스 코드만으로 테스트 생성 가능 |
 
+**SKILL 파일 자동 생성:**
+실행 시 `.claude/skills/` 디렉토리에 SKILL 파일들이 자동 생성/갱신됩니다.
+| SKILL | 용도 |
+|-------|------|
+| `test-implement/SKILL.md` | 테스트 코드 작성 규칙 (waitFor, Selector 등) |
+| `test-mock/SKILL.md` | Mock 패턴 (vi.mock, MSW, 상태관리 등) |
+
 ```bash
 # Interactive 모드 (테스트 타입 자동 추론)
 npx @hsna/prompt gen
@@ -181,6 +191,41 @@ npx @hsna/prompt learn [source_path]
 1.  **Code**: 유틸 함수를 구현합니다. (예: `formatDate.ts`)
 2.  **Test**: `npx @hsna/prompt gen formatDate.ts --type unit` ➡️ AI에게 붙여넣기 ➡️ `formatDate.test.ts` 저장 & 실행
 3.  **Learn (If Failed)**: `npx @hsna/prompt learn formatDate.ts` ➡️ **Retry Step 2**
+
+---
+
+## 🎯 SKILL Integration
+
+이 CLI는 [Claude Code](https://claude.com/claude-code)의 SKILL 시스템과 연동됩니다.
+
+### SKILL 파일이란?
+
+SKILL은 Claude Code가 특정 작업 수행 시 **자동으로 참조하는 규칙 파일**입니다.
+프롬프트에 모든 규칙을 포함하지 않아도, Claude Code가 필요한 시점에 SKILL을 호출하여 규칙을 적용합니다.
+
+### 생성되는 SKILL 파일
+
+| 명령어 | SKILL | 설명 |
+|--------|-------|------|
+| `init` | `test-verify` | 테스트 코드 검증 체크리스트 (P0/P1/P2) |
+| `gen` | `test-implement` | 테스트 작성 규칙 (waitFor, Selector, G/W/T) |
+| `gen` | `test-mock` | Mock 패턴 (vi.mock, MSW, 상태관리) |
+
+### 디렉토리 구조
+
+```
+your-project/
+├── .claude/
+│   └── skills/
+│       ├── test-verify/SKILL.md      # init 시 생성
+│       ├── test-implement/SKILL.md   # gen 시 생성 (testType 기반)
+│       └── test-mock/SKILL.md        # gen 시 생성 (manifest 기반)
+├── project-manifest.yaml
+└── project-test-lessons.md
+```
+
+> **💡 Tip**: SKILL 파일은 `project-manifest.yaml` 설정에 따라 동적으로 생성됩니다.
+> 예를 들어, `mockStrategy: msw`로 설정되어 있으면 MSW 관련 규칙이 포함됩니다.
 
 ---
 

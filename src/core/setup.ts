@@ -1,5 +1,9 @@
 import fs from 'fs-extra';
+import path from 'path';
 import { logger } from '../utils/logger.js';
+import { readPromptTemplate } from '../utils/file.js';
+import { getManifestConfig } from '../utils/manifest.js';
+import { TestType } from './test-type.js';
 
 /**
  * project-test-lessons.md 파일이 없으면 기본 템플릿으로 생성합니다.
@@ -65,4 +69,198 @@ export const ensureLessonsFile = async (): Promise<void> => {
     await fs.writeFile(lessonsPath, defaultLessons, 'utf-8');
     logger.success('✅ project-test-lessons.md 파일이 생성되었습니다.');
   }
+};
+
+/**
+ * .claude/skills/test-verify/SKILL.md 파일을 생성하거나 갱신합니다.
+ * CLI가 제공하는 규칙이므로 항상 최신 버전으로 유지합니다.
+ */
+export const createTestVerifySkill = async (): Promise<void> => {
+  const skillDir = path.resolve(process.cwd(), '.claude/skills/test-verify');
+  const skillPath = path.join(skillDir, 'SKILL.md');
+
+  // 디렉토리 생성
+  await fs.ensureDir(skillDir);
+
+  // 스킬 템플릿 읽기
+  const skillContent = await readPromptTemplate('skills/test-verify.md');
+
+  const isUpdate = await fs.pathExists(skillPath);
+
+  // 파일 생성 또는 갱신
+  await fs.writeFile(skillPath, skillContent, 'utf-8');
+
+  if (isUpdate) {
+    logger.success('✅ .claude/skills/test-verify/SKILL.md 파일이 갱신되었습니다.');
+  } else {
+    logger.success('✅ .claude/skills/test-verify/SKILL.md 파일이 생성되었습니다.');
+  }
+};
+
+/**
+ * 규칙 모듈 매핑 (rules-loader.ts와 동기화)
+ */
+const RULE_MODULES: Record<string, Record<string, string>> = {
+  testRunner: {
+    vitest: 'rules/runner/vitest.md',
+    jest: 'rules/runner/jest.md',
+  },
+  stateManagement: {
+    zustand: 'rules/state/zustand.md',
+    redux: 'rules/state/redux.md',
+    'redux-toolkit': 'rules/state/redux.md',
+  },
+  queryLibrary: {
+    'tanstack-query': 'rules/query/tanstack-query.md',
+    swr: 'rules/query/swr.md',
+  },
+  mockStrategy: {
+    msw: 'rules/mock/msw.md',
+    'module-mock': 'rules/mock/module-mock.md',
+  },
+  router: {
+    'next-app': 'rules/router/next-router.md',
+    'next-pages': 'rules/router/next-router.md',
+    'react-router': 'rules/router/react-router.md',
+  },
+};
+
+/**
+ * manifest 설정에서 규칙 내용을 읽어 반환합니다.
+ */
+const loadRuleContent = async (
+  field: keyof typeof RULE_MODULES,
+  value: string
+): Promise<string> => {
+  const modulePath = RULE_MODULES[field]?.[value];
+  if (!modulePath) {
+    return '';
+  }
+
+  try {
+    return await readPromptTemplate(modulePath);
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * test-implement SKILL을 생성합니다.
+ * UI/Unit 테스트 타입에 따라 다른 규칙을 포함합니다.
+ */
+export const createTestImplementSkill = async (
+  testType: TestType
+): Promise<void> => {
+  const skillDir = path.resolve(process.cwd(), '.claude/skills/test-implement');
+  const skillPath = path.join(skillDir, 'SKILL.md');
+
+  await fs.ensureDir(skillDir);
+
+  // 기본 템플릿 읽기
+  let skillContent = await readPromptTemplate('skills/test-implement.md');
+
+  // 테스트 타입별 규칙 로드
+  const typeRulePath = testType === 'ui' ? 'rules/type/ui.md' : 'rules/type/unit.md';
+  let typeRules = '';
+
+  try {
+    typeRules = await readPromptTemplate(typeRulePath);
+  } catch {
+    typeRules = '';
+  }
+
+  // 플레이스홀더 치환
+  skillContent = skillContent.replace(
+    '{{TYPE_SPECIFIC_RULES}}',
+    typeRules
+      ? `## 테스트 타입별 규칙 (${testType.toUpperCase()})\n\n${typeRules}`
+      : ''
+  );
+
+  const isUpdate = await fs.pathExists(skillPath);
+  await fs.writeFile(skillPath, skillContent, 'utf-8');
+
+  if (isUpdate) {
+    logger.success(`✅ .claude/skills/test-implement/SKILL.md 파일이 갱신되었습니다. (${testType})`);
+  } else {
+    logger.success(`✅ .claude/skills/test-implement/SKILL.md 파일이 생성되었습니다. (${testType})`);
+  }
+};
+
+/**
+ * test-mock SKILL을 생성합니다.
+ * manifest 설정에 따라 필요한 규칙만 포함합니다.
+ */
+export const createTestMockSkill = async (): Promise<void> => {
+  const skillDir = path.resolve(process.cwd(), '.claude/skills/test-mock');
+  const skillPath = path.join(skillDir, 'SKILL.md');
+
+  await fs.ensureDir(skillDir);
+
+  // 기본 템플릿 읽기
+  let skillContent = await readPromptTemplate('skills/test-mock.md');
+
+  // manifest 설정 읽기
+  const manifest = await getManifestConfig();
+
+  // 각 규칙 로드
+  const runnerRules = await loadRuleContent('testRunner', manifest.testRunner);
+  const stateRules = await loadRuleContent('stateManagement', manifest.stateManagement);
+  const queryRules = await loadRuleContent('queryLibrary', manifest.queryLibrary);
+  const mockRules = await loadRuleContent('mockStrategy', manifest.mockStrategy);
+  const routerRules = await loadRuleContent('router', manifest.router);
+
+  // 플레이스홀더 치환
+  skillContent = skillContent
+    .replace(
+      '{{RUNNER_RULES}}',
+      runnerRules ? `## Test Runner 규칙 (${manifest.testRunner})\n\n${runnerRules}` : ''
+    )
+    .replace(
+      '{{STATE_RULES}}',
+      stateRules ? `## State Management 규칙 (${manifest.stateManagement})\n\n${stateRules}` : ''
+    )
+    .replace(
+      '{{QUERY_RULES}}',
+      queryRules ? `## Query Library 규칙 (${manifest.queryLibrary})\n\n${queryRules}` : ''
+    )
+    .replace(
+      '{{MOCK_STRATEGY_RULES}}',
+      mockRules ? `## Mock Strategy 규칙 (${manifest.mockStrategy})\n\n${mockRules}` : ''
+    )
+    .replace(
+      '{{ROUTER_RULES}}',
+      routerRules ? `## Router 규칙 (${manifest.router})\n\n${routerRules}` : ''
+    );
+
+  const isUpdate = await fs.pathExists(skillPath);
+  await fs.writeFile(skillPath, skillContent, 'utf-8');
+
+  const configSummary = [
+    manifest.testRunner,
+    manifest.stateManagement !== 'none' ? manifest.stateManagement : null,
+    manifest.queryLibrary !== 'none' ? manifest.queryLibrary : null,
+    manifest.mockStrategy,
+    manifest.router !== 'none' ? manifest.router : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  if (isUpdate) {
+    logger.success(`✅ .claude/skills/test-mock/SKILL.md 파일이 갱신되었습니다. (${configSummary})`);
+  } else {
+    logger.success(`✅ .claude/skills/test-mock/SKILL.md 파일이 생성되었습니다. (${configSummary})`);
+  }
+};
+
+/**
+ * 동적 SKILL 파일을 생성/갱신합니다.
+ * gen 명령에서 호출됩니다.
+ *
+ * - test-verify: init 시점에 생성 (정적)
+ * - test-implement, test-mock: gen 시점에 생성 (동적, manifest/testType 필요)
+ */
+export const syncAllSkills = async (testType: TestType): Promise<void> => {
+  await createTestImplementSkill(testType);
+  await createTestMockSkill();
 };
