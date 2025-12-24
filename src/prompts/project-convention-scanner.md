@@ -58,6 +58,34 @@
 5. **스타일/컨벤션**: tailwind, styled-components 등 셀렉터 전략에 영향을 주는 요소를 적는다.
 6. **테스트 파일 배치 규칙**: 현재 또는 권장 위치/확장자를 한 줄로 요약한다.
 7. **환경변수 및 API 설정**: `.env.development` 등에서 `BACKEND_URL`, `API_URL` 등 API 베이스 URL과 주요 외부 서비스 엔드포인트를 확인한다.
+8. **코드 품질 명령어**: 아래 규칙에 따라 `packageManager`, `typeCheckCommand`, `lintCommand`, `formatCommand`를 추출한다.
+
+### 5.1 코드 품질 명령어 추출 규칙
+
+#### packageManager 감지
+1. `package.json.packageManager` 필드 파싱 (예: `"yarn@4.3.0"` → `yarn`)
+2. 필드 없으면 lock 파일로 감지:
+   - `yarn.lock` → `yarn`
+   - `package-lock.json` → `npm`
+   - `pnpm-lock.yaml` → `pnpm`
+
+#### typeCheckCommand
+- `devDependencies.typescript` 있음 → `{packageManager} tsc --noEmit --skipLibCheck`
+- 없음 → `null`
+
+#### lintCommand (파일 대상)
+> ⚠️ `scripts.lint`는 사용하지 않음 (`next lint` 등 래퍼는 파일 대상 지정 불가)
+
+우선순위:
+1. `lint-staged`에 `eslint` 포함 → `{packageManager} eslint --fix`
+2. `devDependencies.eslint` 있고 설정 파일(`.eslintrc.*` 또는 `eslint.config.*`) 존재 → `{packageManager} eslint --fix`
+3. 해당 없음 → `null`
+
+#### formatCommand (파일 대상)
+우선순위:
+1. `lint-staged`에 `prettier` 포함 → `{packageManager} prettier --write`
+2. `devDependencies.prettier` 있고 설정 파일(`.prettierrc*` 또는 `prettier.config.*`) 존재 → `{packageManager} prettier --write`
+3. 해당 없음 → `null`
 
 ---
 
@@ -111,12 +139,17 @@ testPaths:
   testSuffix: .test       # .test | .spec
 
 # ============================================
-# 명령어 (scripts에서 추출)
+# 명령어
 # ============================================
+packageManager: yarn      # yarn | npm | pnpm (감지 규칙 참조)
 devServerCommand: next dev -p 3000
 testCommand: vitest --run --config vitest.config.ts
-lintCommand: eslint src --ext .ts,.tsx
 baseUrl: http://localhost:3000
+
+# 코드 품질 (파일 대상) - null이면 해당 단계 생략
+typeCheckCommand: yarn tsc --noEmit --skipLibCheck
+lintCommand: yarn eslint --fix
+formatCommand: yarn prettier --write
 
 # ============================================
 # API 설정 (.env에서 추출)
@@ -139,13 +172,23 @@ quotes: single            # single | double
 
 | 필드 | 허용값 | 감지 기준 |
 |-----|-------|----------|
+| `packageManager` | `yarn`, `npm`, `pnpm` | packageManager 필드 또는 lock 파일 |
 | `testRunner` | `vitest`, `jest` | devDependencies에서 감지 |
 | `stateManagement` | `zustand`, `redux`, `redux-toolkit`, `recoil`, `jotai`, `mobx`, `none` | dependencies에서 감지 |
 | `queryLibrary` | `tanstack-query`, `swr`, `rtk-query`, `apollo`, `none` | dependencies에서 감지 |
 | `mockStrategy` | `msw`, `nock`, `fetch-mock`, `module-mock` | devDependencies에서 감지, 없으면 `module-mock` |
 | `router` | `next-app`, `next-pages`, `react-router`, `none` | framework + dependencies에서 추론 |
 
+### 코드 품질 명령어 참조표
+
+| 필드 | 값 예시 | null 조건 |
+|-----|--------|----------|
+| `typeCheckCommand` | `yarn tsc --noEmit --skipLibCheck` | typescript 미설치 |
+| `lintCommand` | `yarn eslint --fix` | eslint 미설치 또는 설정 파일 없음 |
+| `formatCommand` | `yarn prettier --write` | prettier 미설치 또는 설정 파일 없음 |
+
 값을 모를 경우 `none` 또는 권장값을 입력하고 요약 섹션에 근거를 남긴다.
+코드 품질 명령어는 해당 도구가 없으면 `null`로 설정한다.
 
 완성된 YAML은 **프로젝트 루트의 `project-manifest.yaml`** 파일에 저장한다. 파일이 이미 존재하면 최신 내용으로 덮어쓴다. 응답 본문에는 YAML 전체를 출력하지 말고, 파일 저장 경로와 핵심 변경사항만 간단히 보고한다.
 
@@ -155,6 +198,7 @@ quotes: single            # single | double
 다음처럼 짧은 불릿을 추가한다.
 ```
 - Framework: Next.js 14 (from package.json)
+- Package Manager: yarn (from packageManager field)
 - Test Runner: testRunner=vitest, environment=jsdom
 - State: stateManagement=zustand, queryLibrary=tanstack-query
 - Mock: mockStrategy=msw (msw detected in devDependencies)
@@ -162,6 +206,7 @@ quotes: single            # single | double
 - Alias: "@/" → app/ root mapping
 - Styling: tailwind → prefer role-based selectors
 - API: BACKEND_URL=https://api-dev.example.com (from .env.development)
+- Code Quality: typeCheck=yarn tsc, lint=yarn eslint (from lint-staged), format=yarn prettier
 ```
 
 요약 불릿은 에이전트 응답에 포함하며, 앞서 저장한 `project-manifest.yaml`의 내용을 참고한 사실만을 기재한다.

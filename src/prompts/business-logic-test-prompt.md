@@ -166,23 +166,32 @@ it.each([
 - Store를 Hook으로 테스트했는가?
 
 ### Step 5: TypeScript 타입 체크 (TS 프로젝트 필수)
-- 테스트 코드 작성 후 타입 에러 해결
-- `npx tsc --noEmit` 또는 IDE 에러 확인
+`project-manifest.yaml`의 `typeCheckCommand` 사용:
+
+```bash
+{typeCheckCommand} <생성/수정된_파일들>
+# 예: yarn tsc --noEmit --skipLibCheck
+```
+
+- `typeCheckCommand`가 `null`이면 이 단계 생략
 
 ### Step 6: Lint/Format 후처리 (Agentic Mode)
-프로젝트에 설정 파일이 있는 도구만 선택적으로 실행:
+`project-manifest.yaml`의 명령어로 **생성/수정된 파일만** 대상 실행:
 
-1. **ESLint** (`.eslintrc.*` 또는 `eslint.config.*` 존재 시):
+1. **ESLint** (`lintCommand` 존재 시):
    ```bash
-   npx eslint --fix <테스트_파일_경로>
+   {lintCommand} <생성된_테스트_파일>
+   # 예: yarn eslint --fix utils/_tests/format.test.ts
    ```
 
-2. **Prettier** (`.prettierrc*` 또는 `prettier.config.*` 존재 시):
+2. **Prettier** (`formatCommand` 존재 시):
    ```bash
-   npx prettier --write <테스트_파일_경로>
+   {formatCommand} <생성된_테스트_파일>
+   # 예: yarn prettier --write utils/_tests/format.test.ts
    ```
 
-- 둘 다 없으면 이 단계 생략
+- 명령어가 `null`이면 해당 도구 생략
+- 둘 다 `null`이면 Step 6 전체 생략
 
 ### Step 7: Verification (Agentic Mode)
 - `project-manifest.yaml`의 `testCommand` 참고하여 테스트 실행
