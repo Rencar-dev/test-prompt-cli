@@ -74,6 +74,7 @@ expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument();
 |------|-------|------|
 | Mock 작성 전 | `/test-mock` | vi.hoisted 패턴, MSW 핸들러, 상태관리/Query Mock **(필수)** |
 | 코드 작성 전 | `/test-implement` | waitFor 패턴, Selector 전략, E2E→Integration 변환 **(필수)** |
+| /test-verify 전 | `/self-learn` | 교훈 기록 및 lessons 파일 갱신 **(필수)** |
 | 구현 완료 후 | `/test-verify` | P0/P1/P2 검증 체크리스트 **(필수)** |
 
 ---
@@ -205,7 +206,12 @@ UI 테스트는 아래 범위를 포함합니다:
 - 예: `npm test [파일경로]`, `yarn vitest [파일경로]`
 - 에러 시 최대 3회 수정 후 중단
 
-### Step 8: `/test-verify` 실행 (필수)
+### Step 8: `/self-learn` 실행 (필수)
+- **반드시 `/self-learn` SKILL을 실행하세요** (조건 판단은 skill 내부에서 수행)
+- skill이 Step 5~7에서 발생한 수정 사항을 분석하여 기록 여부를 결정합니다
+- 수정이 없었다면 skill이 "기록 불필요"로 판단합니다
+
+### Step 9: `/test-verify` 실행 (필수)
 - **구현 완료 후 반드시 `/test-verify` SKILL을 실행하세요**
 - P0/P1/P2 체크리스트로 규칙 준수 여부 검증
 

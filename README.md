@@ -136,6 +136,7 @@ npx @hsna/prompt gen [source_path] [options]
 |-------|------|
 | `test-implement/SKILL.md` | 테스트 코드 작성 규칙 (waitFor, Selector 등) |
 | `test-mock/SKILL.md` | Mock 패턴 (vi.mock, MSW, 상태관리 등) |
+| `self-learn/SKILL.md` | 테스트 수정 사항 분석 및 교훈 자동 기록 |
 
 ```bash
 # Interactive 모드 (테스트 타입 자동 추론)
@@ -210,6 +211,7 @@ SKILL은 Claude Code가 특정 작업 수행 시 **자동으로 참조하는 규
 | `init` | `test-verify` | 테스트 코드 검증 체크리스트 (P0/P1/P2) |
 | `gen` | `test-implement` | 테스트 작성 규칙 (waitFor, Selector, G/W/T) |
 | `gen` | `test-mock` | Mock 패턴 (vi.mock, MSW, 상태관리) |
+| `gen` | `self-learn` | 테스트 수정 사항 분석 및 교훈 자동 기록 |
 
 ### 디렉토리 구조
 
@@ -219,7 +221,8 @@ your-project/
 │   └── skills/
 │       ├── test-verify/SKILL.md      # init 시 생성
 │       ├── test-implement/SKILL.md   # gen 시 생성 (testType 기반)
-│       └── test-mock/SKILL.md        # gen 시 생성 (manifest 기반)
+│       ├── test-mock/SKILL.md        # gen 시 생성 (manifest 기반)
+│       └── self-learn/SKILL.md       # gen 시 생성
 ├── project-manifest.yaml
 └── project-test-lessons.md
 ```

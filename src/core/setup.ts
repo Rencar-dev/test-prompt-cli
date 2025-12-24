@@ -98,6 +98,29 @@ export const createTestVerifySkill = async (): Promise<void> => {
 };
 
 /**
+ * .claude/skills/self-learn/SKILL.md 파일을 생성하거나 갱신합니다.
+ * Verification 단계에서 수정 발생 시 교훈을 기록하는 규칙입니다.
+ */
+export const createSelfLearnSkill = async (): Promise<void> => {
+  const skillDir = path.resolve(process.cwd(), '.claude/skills/self-learn');
+  const skillPath = path.join(skillDir, 'SKILL.md');
+
+  await fs.ensureDir(skillDir);
+
+  const skillContent = await readPromptTemplate('skills/self-learn.md');
+
+  const isUpdate = await fs.pathExists(skillPath);
+
+  await fs.writeFile(skillPath, skillContent, 'utf-8');
+
+  if (isUpdate) {
+    logger.success('✅ .claude/skills/self-learn/SKILL.md 파일이 갱신되었습니다.');
+  } else {
+    logger.success('✅ .claude/skills/self-learn/SKILL.md 파일이 생성되었습니다.');
+  }
+};
+
+/**
  * 규칙 모듈 매핑 (rules-loader.ts와 동기화)
  */
 const RULE_MODULES: Record<string, Record<string, string>> = {
@@ -258,9 +281,10 @@ export const createTestMockSkill = async (): Promise<void> => {
  * gen 명령에서 호출됩니다.
  *
  * - test-verify: init 시점에 생성 (정적)
- * - test-implement, test-mock: gen 시점에 생성 (동적, manifest/testType 필요)
+ * - test-implement, test-mock, self-learn: gen 시점에 생성 (동적)
  */
 export const syncAllSkills = async (testType: TestType): Promise<void> => {
   await createTestImplementSkill(testType);
   await createTestMockSkill();
+  await createSelfLearnSkill();
 };
