@@ -67,7 +67,6 @@ it('음수 입력 시 에러를 던진다', () => {
 | 시점 | SKILL | 용도 |
 |------|-------|------|
 | Mock 작성 전 | `/test-mock` | vi.hoisted 패턴, 상태관리 Mock **(필수)** |
-| 코드 작성 전 | `/test-implement` | test.each 패턴, 경곗값 분석, Custom Hook 테스트 **(필수)** |
 | /test-verify 전 | `/self-learn` | 교훈 기록 및 lessons 파일 갱신 **(필수)** |
 | 구현 완료 후 | `/test-verify` | P0/P1/P2 검증 체크리스트 **(필수)** |
 
@@ -145,67 +144,69 @@ it.each([
 
 ---
 
-## 4. Execution Steps
+## 4. Execution Steps (Agentic Mode)
 
-### Step 1: Drafting
-- 입력 파라미터/반환 타입 확인
-- 조건 분기(if/switch) 식별
-- 테스트 케이스 매트릭스 작성
+### Phase 1: Scaffold 생성 (Main Agent)
 
-### Step 2: `/test-mock` 실행 (필수)
-- **Mock 코드 작성 전에 반드시 `/test-mock` SKILL을 실행하세요**
-- vi.hoisted 패턴, 상태관리 Mock 확인
+1. `/test-mock` SKILL 참조하여 Mock 구조 작성
+   - vi.hoisted 패턴 적용
+   - 외부 IO Mock 설정
 
-### Step 3: `/test-implement` 실행 (필수)
-- **코드 작성 전에 반드시 `/test-implement` SKILL을 실행하세요**
-- test.each 패턴, 경곗값 분석, G/W/T 주석 규칙 확인
+2. 테스트 파일 Scaffold 생성 (G/W/T 힌트 포함):
+   ```typescript
+   // [FileName].test.ts
+   import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+   // ... 필요한 imports ...
 
-### Step 4: Auditing
-- UI 렌더링 코드 있는가?
-- 비즈니스 로직 Mock 했는가?
-- Store를 Hook으로 테스트했는가?
+   // Mock 설정
+   vi.mock('@/api/client', () => ({ fetchData: vi.fn() }));
 
-### Step 5: TypeScript 타입 체크 (TS 프로젝트 필수)
-`project-manifest.yaml`의 `typeCheckCommand` 사용:
+   describe('함수/훅/스토어 이름', () => {
+     beforeEach(() => {
+       vi.clearAllMocks();
+     });
 
-```bash
-{typeCheckCommand} <생성/수정된_파일들>
-# 예: yarn tsc --noEmit --skipLibCheck
+     it('케이스 1: 정상 입력 시 기대값 반환', () => {
+       // Given: 입력값 준비 (어떤 값, 어떤 상태)
+       // When: 함수/훅 호출
+       // Then: 기대 결과 (반환값, 상태 변화)
+       // TODO: implement
+     });
+
+     it('케이스 2: 경계값 테스트', () => {
+       // Given: 경계값 입력 (min, max, null, undefined 등)
+       // When: ...
+       // Then: ...
+       // TODO: implement
+     });
+
+     // ... 모든 케이스에 G/W/T 힌트 포함 ...
+   });
+   ```
+
+   > **중요**: Plan의 테스트 케이스 분류(Happy Path, Edge Cases, Error Cases)와 입출력 예시를 G/W/T 힌트로 포함하세요.
+   > Sub-agent가 Plan 파일을 읽지 않아도 구현할 수 있도록 충분한 힌트를 제공합니다.
+
+3. 파일 저장 후 Phase 2로 진행
+
+### Phase 2: 구현 위임
+
+Task tool을 사용하여 Sub-agent에게 구현을 위임하세요:
+
+```
+subagent_type: "general-purpose"
+model: "sonnet"
+prompt: |
+  .claude/agents/test-implementer.md 파일의 규칙을 따라
+  [테스트 파일 경로]의 모든 TODO 블록을 구현하세요.
+
+  소스 파일: [관련 소스 파일 경로들]
 ```
 
-- `typeCheckCommand`가 `null`이면 이 단계 생략
+### Phase 3: 마무리 (Main Agent)
 
-### Step 6: Lint/Format 후처리 (Agentic Mode)
-`project-manifest.yaml`의 명령어로 **생성/수정된 파일만** 대상 실행:
-
-1. **ESLint** (`lintCommand` 존재 시):
-   ```bash
-   {lintCommand} <생성된_테스트_파일>
-   # 예: yarn eslint --fix utils/_tests/format.test.ts
-   ```
-
-2. **Prettier** (`formatCommand` 존재 시):
-   ```bash
-   {formatCommand} <생성된_테스트_파일>
-   # 예: yarn prettier --write utils/_tests/format.test.ts
-   ```
-
-- 명령어가 `null`이면 해당 도구 생략
-- 둘 다 `null`이면 Step 6 전체 생략
-
-### Step 7: Verification (Agentic Mode)
-- `project-manifest.yaml`의 `testCommand` 참고하여 테스트 실행
-- 예: `npm test [파일경로]`, `yarn vitest [파일경로]`
-- 에러 시 최대 3회 수정 후 중단
-
-### Step 8: `/self-learn` 실행 (필수)
-- **반드시 `/self-learn` SKILL을 실행하세요** (조건 판단은 skill 내부에서 수행)
-- skill이 Step 5~7에서 발생한 수정 사항을 분석하여 기록 여부를 결정합니다
-- 수정이 없었다면 skill이 "기록 불필요"로 판단합니다
-
-### Step 9: `/test-verify` 실행 (필수)
-- **구현 완료 후 반드시 `/test-verify` SKILL을 실행하세요**
-- P0/P1/P2 체크리스트로 규칙 준수 여부 검증
+1. `/self-learn` 실행: Sub-agent 수정 이력을 기반으로 교훈 기록
+2. `/test-verify` 실행: P0/P1/P2 체크리스트 검증
 
 ---
 

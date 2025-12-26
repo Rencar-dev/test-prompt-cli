@@ -73,7 +73,6 @@ expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument();
 | 시점 | SKILL | 용도 |
 |------|-------|------|
 | Mock 작성 전 | `/test-mock` | vi.hoisted 패턴, MSW 핸들러, 상태관리/Query Mock **(필수)** |
-| 코드 작성 전 | `/test-implement` | waitFor 패턴, Selector 전략, E2E→Integration 변환 **(필수)** |
 | /test-verify 전 | `/self-learn` | 교훈 기록 및 lessons 파일 갱신 **(필수)** |
 | 구현 완료 후 | `/test-verify` | P0/P1/P2 검증 체크리스트 **(필수)** |
 
@@ -162,67 +161,74 @@ UI 테스트는 아래 범위를 포함합니다:
 
 ---
 
-## 4. Execution Steps
+## 4. Execution Steps (Agentic Mode)
 
-### Step 1: Drafting (초안)
-- 컴포넌트 구조 분석 (조건부 렌더링, 상호작용 포인트)
-- 시나리오별 검증 포인트 정리
+### Phase 1: Scaffold 생성 (Main Agent)
 
-### Step 2: `/test-mock` 실행 (필수)
-- **Mock 코드 작성 전에 반드시 `/test-mock` SKILL을 실행하세요**
-- vi.hoisted 패턴, MSW 핸들러 작성법 확인
-- Hook 내부 구현 확인 절차 숙지
+1. `/test-mock` SKILL 참조하여 Mock 구조 작성
+   - vi.hoisted 패턴 적용
+   - import 상단 배치
+   - MSW 핸들러 생성
 
-### Step 3: `/test-implement` 실행 (필수)
-- **코드 작성 전에 반드시 `/test-implement` SKILL을 실행하세요**
-- waitFor 패턴, Selector 전략, G/W/T 주석 규칙 확인
+2. 테스트 파일 Scaffold 생성 (G/W/T 힌트 포함):
+   ```typescript
+   // [FeatureName].test.tsx
+   import { render, screen, waitFor } from '@testing-library/react';
+   import userEvent from '@testing-library/user-event';
+   // ... 필요한 imports ...
 
-### Step 4: Auditing (자기 비판)
-- waitFor + Mock 검증 있는가?
-- Mutation Hook 직접 Mock 했는가?
-- Import Hallucination 없는가?
+   // Mock 설정
+   const mockRouter = vi.hoisted(() => ({ push: vi.fn(), reset: vi.fn() }));
+   vi.mock('@/hooks/useCustomRouter', () => ({ useCustomRouter: () => mockRouter }));
 
-### Step 5: TypeScript 타입 체크 (TS 프로젝트 필수)
-`project-manifest.yaml`의 `typeCheckCommand` 사용:
+   describe('FeatureName', () => {
+     beforeEach(() => {
+       vi.clearAllMocks();
+       server.resetHandlers();
+     });
 
-```bash
-{typeCheckCommand} <생성/수정된_파일들>
-# 예: yarn tsc --noEmit --skipLibCheck
+     it('[S1-1] 시나리오 제목 (Plan 원문 그대로)', async () => {
+       // Given: MSW 핸들러 설정 (어떤 API 응답이 필요한지)
+       // Given: 초기 상태 설정 (storage, store 등)
+       // When: 사용자 동작 (입력, 클릭 등)
+       // Then: 기대 결과 (UI 변화, router 호출 등)
+       // TODO: implement
+     });
+
+     it('[S1-2] 시나리오 제목', async () => {
+       // Given: ...
+       // When: ...
+       // Then: ...
+       // TODO: implement
+     });
+
+     // ... 모든 시나리오에 G/W/T 힌트 포함 ...
+   });
+   ```
+
+   > **중요**: Plan의 Mock Requirement, Flow, Data Persona 정보를 G/W/T 힌트로 변환하여 포함하세요.
+   > Sub-agent가 Plan 파일을 읽지 않아도 구현할 수 있도록 충분한 힌트를 제공합니다.
+
+3. 파일 저장 후 Phase 2로 진행
+
+### Phase 2: 구현 위임
+
+Task tool을 사용하여 Sub-agent에게 구현을 위임하세요:
+
+```
+subagent_type: "general-purpose"
+model: "sonnet"
+prompt: |
+  .claude/agents/test-implementer.md 파일의 규칙을 따라
+  [테스트 파일 경로]의 모든 TODO 블록을 구현하세요.
+
+  소스 파일: [관련 소스 파일 경로들]
 ```
 
-- `typeCheckCommand`가 `null`이면 이 단계 생략
+### Phase 3: 마무리 (Main Agent)
 
-### Step 6: Lint/Format 후처리 (Agentic Mode)
-`project-manifest.yaml`의 명령어로 **생성/수정된 파일만** 대상 실행:
-
-1. **ESLint** (`lintCommand` 존재 시):
-   ```bash
-   {lintCommand} <생성된_테스트_파일> <생성된_mock_파일들>
-   # 예: yarn eslint --fix app/(public)/user/login/_tests/login.test.tsx mocks/auth/handler.ts
-   ```
-
-2. **Prettier** (`formatCommand` 존재 시):
-   ```bash
-   {formatCommand} <생성된_테스트_파일> <생성된_mock_파일들>
-   # 예: yarn prettier --write app/(public)/user/login/_tests/login.test.tsx
-   ```
-
-- 명령어가 `null`이면 해당 도구 생략
-- 둘 다 `null`이면 Step 6 전체 생략
-
-### Step 7: Verification (Agentic Mode)
-- `project-manifest.yaml`의 `testCommand` 참고하여 테스트 실행
-- 예: `npm test [파일경로]`, `yarn vitest [파일경로]`
-- 에러 시 최대 3회 수정 후 중단
-
-### Step 8: `/self-learn` 실행 (필수)
-- **반드시 `/self-learn` SKILL을 실행하세요** (조건 판단은 skill 내부에서 수행)
-- skill이 Step 5~7에서 발생한 수정 사항을 분석하여 기록 여부를 결정합니다
-- 수정이 없었다면 skill이 "기록 불필요"로 판단합니다
-
-### Step 9: `/test-verify` 실행 (필수)
-- **구현 완료 후 반드시 `/test-verify` SKILL을 실행하세요**
-- P0/P1/P2 체크리스트로 규칙 준수 여부 검증
+1. `/self-learn` 실행: Sub-agent 수정 이력을 기반으로 교훈 기록
+2. `/test-verify` 실행: P0/P1/P2 체크리스트 검증
 
 ---
 

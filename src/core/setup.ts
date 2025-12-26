@@ -288,3 +288,34 @@ export const syncAllSkills = async (testType: TestType): Promise<void> => {
   await createTestMockSkill();
   await createSelfLearnSkill();
 };
+
+/**
+ * .claude/agents/test-implementer.md 파일을 생성하거나 갱신합니다.
+ * Sub-agent 패턴 사용 시 테스트 구현을 위임받는 agent입니다.
+ */
+export const createTestImplementerAgent = async (): Promise<void> => {
+  const agentDir = path.resolve(process.cwd(), '.claude/agents');
+  const agentPath = path.join(agentDir, 'test-implementer.md');
+
+  await fs.ensureDir(agentDir);
+
+  const agentContent = await readPromptTemplate('agents/test-implementer.md');
+
+  const isUpdate = await fs.pathExists(agentPath);
+
+  await fs.writeFile(agentPath, agentContent, 'utf-8');
+
+  if (isUpdate) {
+    logger.success('✅ .claude/agents/test-implementer.md 파일이 갱신되었습니다.');
+  } else {
+    logger.success('✅ .claude/agents/test-implementer.md 파일이 생성되었습니다.');
+  }
+};
+
+/**
+ * 동적 Agent 파일을 생성/갱신합니다.
+ * gen 명령에서 호출됩니다.
+ */
+export const syncAllAgents = async (): Promise<void> => {
+  await createTestImplementerAgent();
+};

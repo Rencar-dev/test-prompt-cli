@@ -12,7 +12,7 @@ import {
   getTestTypeLabel,
 } from '../core/test-type.js';
 import { selectFileInteractively } from '../utils/interactive.js';
-import { syncAllSkills } from '../core/setup.js';
+import { syncAllSkills, syncAllAgents } from '../core/setup.js';
 
 export const genCommand = new Command('gen')
   .description(
@@ -60,6 +60,9 @@ const executeGen = async (
 
     // SKILL 파일 동기화 (manifest 기반)
     await syncAllSkills(testType);
+
+    // Agent 파일 동기화 (Sub-agent 패턴용)
+    await syncAllAgents();
 
     // Core 로직 호출
     const { prompt, hasPlan } = await generateGenPrompt(sourcePath, testType);

@@ -138,6 +138,14 @@ npx @hsna/prompt gen [source_path] [options]
 | `test-mock/SKILL.md` | Mock 패턴 (vi.mock, MSW, 상태관리 등) |
 | `self-learn/SKILL.md` | 테스트 수정 사항 분석 및 교훈 자동 기록 |
 
+**Agent 파일 자동 생성:**
+실행 시 `.claude/agents/` 디렉토리에 Sub-agent 정의 파일이 자동 생성/갱신됩니다.
+| Agent | 용도 |
+|-------|------|
+| `test-implementer.md` | 테스트 구현 전문가 (Scaffold의 TODO 블록 구현 담당) |
+
+> **💡 Sub-agent 패턴**: Main Agent가 테스트 Scaffold를 생성하면, `test-implementer` Sub-agent가 실제 구현을 담당합니다. 이를 통해 비용 절감(Sonnet 모델 사용)과 Main Context 절약 효과를 얻습니다.
+
 ```bash
 # Interactive 모드 (테스트 타입 자동 추론)
 npx @hsna/prompt gen
@@ -218,6 +226,8 @@ SKILL은 Claude Code가 특정 작업 수행 시 **자동으로 참조하는 규
 ```
 your-project/
 ├── .claude/
+│   ├── agents/
+│   │   └── test-implementer.md       # gen 시 생성 (Sub-agent 정의)
 │   └── skills/
 │       ├── test-verify/SKILL.md      # init 시 생성
 │       ├── test-implement/SKILL.md   # gen 시 생성 (testType 기반)
