@@ -72,18 +72,26 @@ renderWithProviders(<LoginPage />);
 expect(screen.getByPlaceholderText('아이디')).toBeInTheDocument();
 ```
 
+### 6. 미사용 import/변수 없음
+```bash
+# 확인 명령어 (프로젝트 설정과 무관하게 강제)
+yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 경로]
+```
+- 사용하지 않는 import **제거**
+- 사용하지 않는 변수 (vi.hoisted 결과 포함) **제거**
+
 ---
 
 ## P1 - 권장 (누락 시 경고)
 
-### 6. Promise pending 테스트 패턴
+### 7. Promise pending 테스트 패턴
 응답이 오지 않는 시나리오에 `new Promise(() => {})` 사용 여부:
 ```typescript
 // ✅ Good
 mockPayment.mockReturnValue(new Promise(() => {}));
 ```
 
-### 7. Toast/Alert 메시지 내용 검증
+### 8. Toast/Alert 메시지 내용 검증
 ```typescript
 // ❌ Bad: 존재 여부만 확인
 expect(toasts.length).toBeGreaterThan(0);
@@ -92,17 +100,17 @@ expect(toasts.length).toBeGreaterThan(0);
 expect(toasts.some(t => t.message === '반납이 완료되었습니다.')).toBe(true);
 ```
 
-### 8. POM 패턴 추출 대상
+### 9. POM 패턴 추출 대상
 3개 이상의 `it` 블록에서 동일한 selector/action 사용 시 추출 권장.
 
 ---
 
 ## P2 - 선택 (참고용)
 
-### 9. prettyDOM 설정
+### 10. prettyDOM 설정
 `tests/setup.ts`에 에러 메시지 개선 설정 여부.
 
-### 10. Fake timers 정리
+### 11. Fake timers 정리
 ```typescript
 // ✅ Good: 사용 후 반드시 해제
 vi.useFakeTimers();
@@ -110,7 +118,7 @@ vi.useFakeTimers();
 vi.useRealTimers();
 ```
 
-### 11. Module Path Mock
+### 12. Module Path Mock
 barrel export와 직접 import 경로 둘 다 mock 여부:
 ```typescript
 vi.mock('@/hooks', () => ({ useCustomRouter: () => ({ push: mockPush }) }));

@@ -187,19 +187,33 @@ it.each([
    > **중요**: Plan의 테스트 케이스 분류(Happy Path, Edge Cases, Error Cases)와 입출력 예시를 G/W/T 힌트로 포함하세요.
    > Sub-agent가 Plan 파일을 읽지 않아도 구현할 수 있도록 충분한 힌트를 제공합니다.
 
-3. 파일 저장 후 Phase 2로 진행
+3. 파일 저장
+
+4. **생성 파일 검증**
+   - `project-manifest.yaml`의 명령어 사용:
+     - TypeScript: `typeCheckCommand` (예: `yarn tsc --noEmit --skipLibCheck`)
+     - Lint: `lintCommand [생성된 파일들]` (예: `yarn eslint --fix *.test.ts`)
+     - 미사용 확인: `yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [생성된 파일들]`
+   - 에러 발생 시 **즉시 수정 후 재검사**
+   - 특히 확인할 항목:
+     - 사용하지 않는 import/변수 제거 (프로젝트 설정이 warning이어도 **반드시 제거**)
+     - 설치되지 않은 라이브러리 import 제거
+     - ESLint 규칙 준수 (padding, spacing 등)
+     - Import Hallucination 금지 (소스 코드에 없는 상수/함수 import 금지)
+
+5. 검증 통과 후 Phase 2로 진행
 
 ### Phase 2: 구현 위임
+
+> ⚠️ **사전 확인**: `test-implementer` agent가 등록되어 있어야 합니다.
+> `prompt init` 실행 후 새 세션을 시작해야 agent가 등록됩니다.
 
 Task tool을 사용하여 Sub-agent에게 구현을 위임하세요:
 
 ```
-subagent_type: "general-purpose"
-model: "sonnet"
+subagent_type: "test-implementer"
 prompt: |
-  .claude/agents/test-implementer.md 파일의 규칙을 따라
   [테스트 파일 경로]의 모든 TODO 블록을 구현하세요.
-
   소스 파일: [관련 소스 파일 경로들]
 ```
 

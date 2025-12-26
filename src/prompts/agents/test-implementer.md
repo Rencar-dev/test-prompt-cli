@@ -15,7 +15,7 @@ Main Agent가 생성한 테스트 파일의 **모든 TODO 블록**을 구현하�
 
 1. 테스트 파일 읽기 (Main Agent가 생성한 Scaffold)
 2. 모든 `// TODO: implement` 블록 구현
-3. Step 5-7 검증 수행
+3. 구현 후 검증 수행 (TypeScript → Lint → Test)
 4. 수정 이력 포함한 완료 보고서 반환
 
 ---
@@ -68,17 +68,50 @@ it.each([
 
 ---
 
-## 필수 검증 단계
+## 구현 후 검증 단계
 
-| Step | 내용 | 실패 시 |
-|------|------|---------|
-| Step 5 | TypeScript 검사 | 에러 수정 후 재검사 |
-| Step 6 | Lint 검사 | 에러 수정 후 재검사 |
-| Step 7 | 테스트 실행 | 실패 수정 (최대 3회) |
+모든 TODO 구현 완료 후 아래 검증을 **순서대로** 수행합니다.
+`project-manifest.yaml`의 명령어를 사용하세요.
 
-- `project-manifest.yaml`의 명령어 사용
-- 각 Step에서 에러 발생 시 **반드시 수정 후 재검사**
-- 3회 시도 후에도 실패 시 에러 내용과 함께 보고
+### 1. TypeScript 검사
+
+`typeCheckCommand` 실행:
+
+```bash
+# 예시
+yarn tsc --noEmit --skipLibCheck
+```
+
+- 타입 에러 발생 시 **즉시 수정 후 재검사**
+- Props 타입, 반환 타입, Mock 타입 불일치 주의
+
+### 2. Lint 검사
+
+`lintCommand` 실행 후 **추가로** unused import/변수 확인:
+
+```bash
+# 1. 기본 lint (자동 수정)
+yarn eslint --fix [테스트 파일 경로]
+
+# 2. 미사용 import/변수 명시적 확인 (프로젝트 설정과 무관하게 강제)
+yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 경로]
+```
+
+- 2번에서 에러 발생 시 해당 import/변수 **제거**
+- 프로젝트 ESLint 설정이 warning이어도 **반드시 제거**
+- ESLint 규칙 위반 (padding-line, spacing 등) **수정**
+
+### 3. 테스트 실행
+
+`testCommand` 실행:
+
+```bash
+# 예시
+yarn vitest run [테스트 파일 경로]
+```
+
+- 실패 시 원인 분석 후 수정
+- **최대 3회** 재시도 후에도 실패 시 에러 내용과 함께 보고
 
 ---
 
@@ -97,11 +130,11 @@ it.each([
 | S2 | ✅ |
 | ... | ... |
 
-### 수정 이력 (Step 5-7에서 발생한 에러 → 수정)
+### 수정 이력 (검증 단계에서 발생한 에러 → 수정)
 | 단계 | 에러 | 원인 | 수정 방법 |
 |------|------|------|-----------|
-| Step 5 | TS2741: initialId missing | Props 필수 속성 | `initialId=""` prop 추가 |
-| Step 7 | expect 실패 | storage mock 상태 미유지 | vi.hoisted 패턴 적용 |
+| TypeScript | TS2741: initialId missing | Props 필수 속성 | `initialId=""` prop 추가 |
+| Test | expect 실패 | storage mock 상태 미유지 | vi.hoisted 패턴 적용 |
 
 ### 최종 검증
 - TypeScript: ✅ 에러 0개
@@ -120,7 +153,7 @@ it.each([
 
 ## 금지 사항
 
-- ❌ import 문 추가/수정 (Main Agent가 Scaffold에서 설정)
+- ❌ import 문 추가
 - ❌ Mock 설정 변경 (Main Agent가 Scaffold에서 설정)
 - ❌ describe/beforeEach 구조 변경
 - ❌ 다른 파일 수정 (테스트 파일만 편집)
