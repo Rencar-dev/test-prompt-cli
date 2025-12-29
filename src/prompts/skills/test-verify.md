@@ -294,16 +294,29 @@ await waitFor(() => expect(...)); // 기본 1000ms
 
 ## 출력 형식
 
-> **중요**: 실행 검증 결과에 **사용한 명령어**를 반드시 포함하세요.
-> 이를 통해 Main Agent가 올바른 명령어 사용 여부를 확인할 수 있습니다.
+> ⚠️ **필수**: 아래 형식을 **정확히** 따르세요.
+> 명령어가 누락되면 검증 결과가 무효 처리됩니다.
+
+### 실행 검증 출력 규칙
+
+각 검증 항목에 **실제 실행한 명령어**를 괄호 안에 표기:
+
+```
+### 1. 실행 검증
+- ✅ TypeScript (`[실제 실행한 명령어]`): 에러 0개
+- ✅ Lint (`[실제 실행한 명령어]`): 에러 0개
+- ✅ 테스트 (`[실제 실행한 명령어]`): N/N 통과 (X.Xs)
+```
+
+### 출력 예시
 
 ```
 ## test-verify 검증 결과
 
 ### 1. 실행 검증
-- ✅ TypeScript (`yarn tsc --noEmit --skipLibCheck`): 컴파일 통과
-- ✅ Lint (`yarn eslint --fix [경로]`): 에러 없음
-- ✅ 테스트 (`yarn vitest run [경로]`): 15/15 통과 (0.8초)
+- ✅ TypeScript (`yarn tsc --noEmit --skipLibCheck`): 에러 0개
+- ✅ Lint (`yarn eslint --fix "app/(public)/user/login/_tests/login.test.tsx"`): 에러 없음
+- ✅ 테스트 (`yarn vitest run "app/(public)/user/login/_tests/login.test.tsx"`): 15/15 통과 (0.8초)
 
 ### 2. 코드 패턴 검증
 

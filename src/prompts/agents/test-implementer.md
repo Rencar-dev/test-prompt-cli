@@ -160,10 +160,10 @@ it.each([
 | Test | expect 실패 | storage mock 상태 미유지 | vi.hoisted 패턴 적용 |
 
 ### /test-verify 결과
-#### 실행 검증
-- TypeScript: ✅ 에러 0개
-- Lint: ✅ 경고 0개
-- Test: ✅ 17/17 통과
+#### 실행 검증 (명령어 필수 표기)
+- TypeScript (`yarn tsc --noEmit --skipLibCheck`): ✅ 에러 0개
+- Lint (`yarn eslint --fix "[테스트 파일 경로]"`): ✅ 경고 0개
+- Test (`yarn vitest run "[테스트 파일 경로]"`): ✅ 17/17 통과 (1.2s)
 
 #### 패턴 검증
 - P0 위반: 0개
