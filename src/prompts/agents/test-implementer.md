@@ -26,6 +26,46 @@ Main Agent가 생성한 테스트 파일의 **모든 TODO 블록**을 구현하�
 
 ---
 
+## 구현 전 확인 사항
+
+### Store 구조 확인 (Zustand)
+
+> ⚠️ **필수**: Store를 사용하기 전에 반드시 Store 파일을 읽어 필드명과 타입을 확인하세요.
+
+```typescript
+// ❌ Bad: Store 구조 확인 없이 추측으로 작성
+alertStore.setState({ alert: null });  // TS2353: 'alert' does not exist
+
+// ✅ Good: Store 파일 확인 후 정확한 필드명 사용
+// stores/alert/index.ts 확인: interface AlertStore { alerts: Alert[]; ... }
+alertStore.setState({ alerts: [] });
+```
+
+**확인 절차**:
+1. `stores/` 디렉토리에서 해당 Store 파일 찾기
+2. interface 또는 type 정의 확인 (필드명, 타입)
+3. `setState` 호출 시 정확한 필드명 사용
+
+### 자식 컴포넌트 의존성 확인
+
+Mock 설정 시 테스트 대상 컴포넌트뿐만 아니라 **자식 컴포넌트가 사용하는 함수**도 포함해야 합니다.
+
+```typescript
+// ❌ Bad: 테스트 대상만 고려
+vi.mock('@/utils', () => ({
+  storage: { getItem: vi.fn() },
+}));
+// → 자식 컴포넌트에서 "isHiddenBottomNavRoute is not a function" 에러
+
+// ✅ Good: 자식 컴포넌트 의존성도 포함
+vi.mock('@/utils', () => ({
+  storage: { getItem: vi.fn() },
+  isHiddenBottomNavRoute: vi.fn().mockReturnValue(false),  // 자식 컴포넌트용
+}));
+```
+
+---
+
 ## 코드 작성 규칙
 
 ### G/W/T 주석 필수

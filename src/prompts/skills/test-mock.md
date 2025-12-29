@@ -149,6 +149,53 @@ server.use(
 
 ---
 
+## MSW 데이터 파일 작성 규칙
+
+> ⚠️ **필수**: MSW data.ts 파일은 JSDOM 환경에서 실행됩니다.
+> Node.js 전용 패키지를 사용하면 테스트가 실패합니다.
+
+### 금지 사항
+
+```typescript
+// ❌ Bad: Node.js 전용 패키지 import
+import { sign } from 'jsonwebtoken';  // Node.js 전용
+import crypto from 'crypto';           // Node.js 전용
+
+const createToken = () => sign(payload, secret);  // 실행 시 에러
+```
+
+### JWT 토큰 Mock 방법
+
+```typescript
+// ✅ Good: 하드코딩된 토큰 사용
+// jwt.io에서 생성하거나, 실제 개발 서버에서 복사한 토큰
+
+// Header: {"alg":"HS256","typ":"JWT"}
+// Payload: {"useForm":true,"usePartner":false}
+export const MOCK_JWT_FORM_USER = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VGb3JtIjp0cnVlLCJ1c2VQYXJ0bmVyIjpmYWxzZX0.xxxxx';
+
+export const MOCK_JWT_PARTNER_USER = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VGb3JtIjpmYWxzZSwidXNlUGFydG5lciI6dHJ1ZX0.xxxxx';
+```
+
+### 허용되는 패턴
+
+| 패턴 | 예시 |
+|------|------|
+| 하드코딩된 문자열 | `const token = 'eyJ...'` |
+| 순수 JavaScript 함수 | `btoa()`, `JSON.stringify()` |
+| MSW 유틸리티 | `HttpResponse.json()` |
+
+### 금지되는 패턴
+
+| 패턴 | 이유 |
+|------|------|
+| `jsonwebtoken` | Node.js 전용 (crypto 의존) |
+| `crypto` | Node.js 전용 |
+| `fs`, `path` | Node.js 전용 |
+| 외부 패키지 import | 호환성 문제 가능 |
+
+---
+
 ## 브라우저 API Mock
 
 ```typescript
