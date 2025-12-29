@@ -103,14 +103,74 @@ expect(toasts.some(t => t.message === '반납이 완료되었습니다.')).toBe(
 ### 9. POM 패턴 추출 대상
 3개 이상의 `it` 블록에서 동일한 selector/action 사용 시 추출 권장.
 
+**중복 감지 시 추출 코드 제안**:
+```typescript
+// ❌ Bad: 동일 selector 반복 (17회)
+screen.getByPlaceholderText('아이디');
+screen.getByPlaceholderText('비밀번호');
+screen.getByRole('button', { name: '로그인' });
+
+// ✅ Good: 헬퍼 객체로 추출
+const elements = {
+  idInput: () => screen.getByPlaceholderText('아이디'),
+  passwordInput: () => screen.getByPlaceholderText('비밀번호'),
+  loginButton: () => screen.getByRole('button', { name: '로그인' }),
+};
+
+// 사용
+await user.type(elements.idInput(), 'testuser');
+```
+
+### 10. Assertion 품질
+테스트의 신뢰성을 위해 Assertion이 충분히 구체적인지 확인:
+
+```typescript
+// ❌ Bad: 약한 assertion
+expect(mockReset).toHaveBeenCalled();
+expect(screen.getByText('완료')).toBeInTheDocument();
+
+// ✅ Good: 강한 assertion (인자, 상태까지 검증)
+expect(mockReset).toHaveBeenCalledWith(PRIVATE_ROUTES.HOME, {
+  webRouteType: 'replace',
+});
+expect(screen.getByText('로그인이 완료되었습니다.')).toBeVisible();
+```
+
+**체크 항목**:
+- [ ] Mock 함수 호출 검증에 **인자까지** 검증하는가?
+- [ ] `toBeInTheDocument()` 외에 `toBeVisible()`, `toHaveValue()` 등 구체적 matcher 사용하는가?
+- [ ] 단일 테스트에 assertion이 최소 1개 이상 있는가?
+
+### 11. 테스트 독립성
+테스트 간 순서 의존성은 flaky test의 주요 원인:
+
+```typescript
+// ❌ Bad: 전역 상태 오염
+let sharedState = {};
+it('테스트 1', () => { sharedState.value = 1; });
+it('테스트 2', () => { expect(sharedState.value).toBe(1); }); // 순서 의존
+
+// ✅ Good: 각 테스트에서 상태 초기화
+beforeEach(() => {
+  vi.clearAllMocks();
+  server.resetHandlers();
+  userStore.setState({ user: null });
+});
+```
+
+**체크 항목**:
+- [ ] `beforeEach`에서 Mock/Store 상태 초기화하는가?
+- [ ] `server.use()` override 후 `server.resetHandlers()` 호출하는가?
+- [ ] 테스트 간 공유 변수를 수정하지 않는가?
+
 ---
 
 ## P2 - 선택 (참고용)
 
-### 10. prettyDOM 설정
+### 12. prettyDOM 설정
 `tests/setup.ts`에 에러 메시지 개선 설정 여부.
 
-### 11. Fake timers 정리
+### 13. Fake timers 정리
 ```typescript
 // ✅ Good: 사용 후 반드시 해제
 vi.useFakeTimers();
@@ -118,11 +178,37 @@ vi.useFakeTimers();
 vi.useRealTimers();
 ```
 
-### 12. Module Path Mock
+### 14. Module Path Mock
 barrel export와 직접 import 경로 둘 다 mock 여부:
 ```typescript
 vi.mock('@/hooks', () => ({ useCustomRouter: () => ({ push: mockPush }) }));
 vi.mock('@/hooks/useCustomRouter', () => ({ useCustomRouter: () => ({ push: mockPush }) }));
+```
+
+### 15. 테스트 성능
+느린 테스트는 개발 생산성을 저하시킴.
+
+`project-manifest.yaml`의 `testCommand`에 verbose 옵션 추가하여 실행 시간 확인:
+
+```bash
+# 예시 (vitest)
+yarn vitest run --reporter=verbose [테스트 파일 경로]
+
+# 예시 (jest)
+yarn jest --verbose [테스트 파일 경로]
+```
+
+**체크 항목**:
+- [ ] 단일 테스트 실행 시간이 5초를 초과하지 않는가?
+- [ ] 불필요한 `waitFor` timeout이 없는가? (기본값 1000ms 권장)
+- [ ] `waitFor` 내부에서 불필요하게 긴 polling interval을 사용하지 않는가?
+
+```typescript
+// ❌ Bad: 불필요하게 긴 timeout
+await waitFor(() => expect(...), { timeout: 10000 });
+
+// ✅ Good: 적절한 timeout (기본값 사용 또는 명시)
+await waitFor(() => expect(...)); // 기본 1000ms
 ```
 
 ---
@@ -139,16 +225,22 @@ vi.mock('@/hooks/useCustomRouter', () => ({ useCustomRouter: () => ({ push: mock
 - ✅ waitFor 사용: expect만 포함
 - ✅ MSW URL: 절대 경로 사용
 - ✅ 렌더링 검증: 기본 UI 확인 있음
+- ✅ 미사용 import: 없음
 
 ### P1 (권장)
 - ⚠️ Toast 검증: line 78 - 메시지 내용 검증 누락
   → 권장: 메시지 내용까지 검증 추가
+- ⚠️ POM 패턴: screen.getByPlaceholderText('아이디') 17회 반복
+  → 권장: elements 객체로 추출
+- ✅ Assertion 품질: Mock 호출에 인자 검증 포함
+- ✅ 테스트 독립성: beforeEach에서 상태 초기화 있음
 
 ### P2 (선택)
 - ℹ️ Fake timers: 사용하지 않음
+- ℹ️ 테스트 성능: 평균 0.5초 (양호)
 
 ---
 위반 항목: 1개 (P0)
-경고 항목: 1개 (P1)
+경고 항목: 2개 (P1)
 → P0 항목 수정 후 다시 검증하세요.
 ```
