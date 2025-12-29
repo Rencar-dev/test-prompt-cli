@@ -104,7 +104,7 @@ Example) testRunner: vitest, stateManagement: zustand
 | Command | Generated Files |
 |---------|-----------------|
 | init | `project-test-lessons.md`, `.claude/skills/test-verify/SKILL.md`, `.claude/agents/test-implementer.md` |
-| gen | `.claude/skills/test-implement/SKILL.md`, `.claude/skills/test-mock/SKILL.md`, `.claude/skills/self-learn/SKILL.md` |
+| gen | `.claude/skills/test-implement/SKILL.md`, `.claude/skills/test-mock/SKILL.md`, `.claude/skills/self-learn/SKILL.md`, `.claude/skills/test-coverage/SKILL.md` |
 
 ## Key Patterns
 

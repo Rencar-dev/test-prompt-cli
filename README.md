@@ -137,6 +137,7 @@ npx @hsna/prompt gen [source_path] [options]
 | `test-implement/SKILL.md` | 테스트 코드 작성 규칙 (waitFor, Selector 등) |
 | `test-mock/SKILL.md` | Mock 패턴 (vi.mock, MSW, 상태관리 등) |
 | `self-learn/SKILL.md` | 테스트 수정 사항 분석 및 교훈 자동 기록 |
+| `test-coverage/SKILL.md` | ATDD 시나리오 커버리지 검증 |
 
 **Agent 파일 자동 생성:**
 실행 시 `.claude/agents/` 디렉토리에 Sub-agent 정의 파일이 자동 생성/갱신됩니다.
@@ -220,6 +221,7 @@ SKILL은 Claude Code가 특정 작업 수행 시 **자동으로 참조하는 규
 | `gen` | `test-implement` | 테스트 작성 규칙 (waitFor, Selector, G/W/T) |
 | `gen` | `test-mock` | Mock 패턴 (vi.mock, MSW, 상태관리) |
 | `gen` | `self-learn` | 테스트 수정 사항 분석 및 교훈 자동 기록 |
+| `gen` | `test-coverage` | ATDD 시나리오 커버리지 검증 |
 
 ### 디렉토리 구조
 
@@ -232,7 +234,8 @@ your-project/
 │       ├── test-verify/SKILL.md      # init 시 생성
 │       ├── test-implement/SKILL.md   # gen 시 생성 (testType 기반)
 │       ├── test-mock/SKILL.md        # gen 시 생성 (manifest 기반)
-│       └── self-learn/SKILL.md       # gen 시 생성
+│       ├── self-learn/SKILL.md       # gen 시 생성
+│       └── test-coverage/SKILL.md    # gen 시 생성
 ├── project-manifest.yaml
 └── project-test-lessons.md
 ```
