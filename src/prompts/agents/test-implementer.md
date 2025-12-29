@@ -70,8 +70,17 @@ it.each([
 
 ## 구현 후 검증 단계
 
-> ⚠️ **필수**: 모든 TODO 구현 완료 후 반드시 `/test-verify`를 실행하세요.
-> 이 단계를 건너뛰면 안 됩니다. Main Agent는 이 결과를 확인합니다.
+> ⚠️ **필수 1**: `/test-verify` 실행 전 `project-manifest.yaml` 파일을 **먼저** 읽으세요.
+> ⚠️ **필수 2**: manifest의 명령어를 **그대로** 사용하세요:
+>   - `typeCheckCommand`: TypeScript 검사 명령어
+>   - `lintCommand`: Lint 검사 명령어
+>   - `testCommand`: 테스트 실행 명령어
+>
+> ❌ **금지**: 기본값 추론, `next lint`, `npx tsc` 등 임의 명령어 사용
+
+### 검증 순서
+1. `project-manifest.yaml` 읽기 (명령어 확인)
+2. `/test-verify` 실행 (manifest 명령어 사용)
 
 `/test-verify` SKILL이 아래 검증을 수행합니다:
 

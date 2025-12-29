@@ -16,13 +16,18 @@ description: |
 
 테스트 코드가 실제로 실행 가능한지 확인합니다.
 
+> ⚠️ **필수**: 실행 검증 전에 반드시 `project-manifest.yaml` 파일을 읽고 명령어를 확인하세요.
+> ❌ **금지**: 예시 명령어나 추론된 명령어 사용 (예: `next lint`, `npx tsc` 등)
+
 ### 1.1 TypeScript 검사
 
-`project-manifest.yaml`의 `typeCheckCommand` 실행:
+1. `project-manifest.yaml` 파일 읽기
+2. `typeCheckCommand` 값 추출
+3. 해당 명령어 **그대로** 실행
 
 ```bash
-# 예시
-yarn tsc --noEmit --skipLibCheck
+# project-manifest.yaml 예시:
+# typeCheckCommand: yarn tsc --noEmit --skipLibCheck
 ```
 
 **실패 시 처리**:
@@ -32,14 +37,13 @@ yarn tsc --noEmit --skipLibCheck
 
 ### 1.2 Lint 검사
 
-`project-manifest.yaml`의 `lintCommand` 실행:
+1. `project-manifest.yaml` 파일에서 `lintCommand` 값 확인
+2. 해당 명령어에 테스트 파일 경로 추가하여 **그대로** 실행
 
 ```bash
-# 예시 (auto-fix 포함)
-yarn eslint --fix [테스트 파일 경로]
-
-# 미사용 변수 강제 검사 (프로젝트 설정 무관하게)
-yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 경로]
+# project-manifest.yaml 예시:
+# lintCommand: yarn eslint --fix
+# → 실행: yarn eslint --fix [테스트 파일 경로]
 ```
 
 **실패 시 처리**:
@@ -49,14 +53,13 @@ yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 
 
 ### 1.3 테스트 실행
 
-`project-manifest.yaml`의 `testCommand` 실행:
+1. `project-manifest.yaml` 파일에서 `testCommand` 값 확인
+2. 해당 명령어에 테스트 파일 경로 추가하여 **그대로** 실행
 
 ```bash
-# 예시 (vitest)
-yarn vitest run [테스트 파일 경로]
-
-# 예시 (jest)
-yarn jest [테스트 파일 경로]
+# project-manifest.yaml 예시:
+# testCommand: yarn vitest run
+# → 실행: yarn vitest run [테스트 파일 경로]
 ```
 
 **실패 시 처리**:
@@ -278,13 +281,16 @@ await waitFor(() => expect(...)); // 기본 1000ms
 
 ## 출력 형식
 
+> **중요**: 실행 검증 결과에 **사용한 명령어**를 반드시 포함하세요.
+> 이를 통해 Main Agent가 올바른 명령어 사용 여부를 확인할 수 있습니다.
+
 ```
 ## test-verify 검증 결과
 
 ### 1. 실행 검증
-- ✅ TypeScript: 컴파일 통과
-- ✅ Lint: 에러 없음
-- ✅ 테스트: 15/15 통과 (0.8초)
+- ✅ TypeScript (`yarn tsc --noEmit --skipLibCheck`): 컴파일 통과
+- ✅ Lint (`yarn eslint --fix [경로]`): 에러 없음
+- ✅ 테스트 (`yarn vitest run [경로]`): 15/15 통과 (0.8초)
 
 ### 2. 코드 패턴 검증
 

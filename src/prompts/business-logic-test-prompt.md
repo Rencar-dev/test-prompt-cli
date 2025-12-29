@@ -206,9 +206,13 @@ prompt: |
 
 ### Phase 3: 마무리 (Main Agent)
 
-1. **Sub-agent 보고서 확인**: `/test-verify` 결과가 모두 통과인지 확인
+> ⚠️ **중요**: Phase 3에서는 `/test-verify`를 직접 실행하지 마세요.
+> Sub-agent가 이미 실행했으므로 보고서만 확인합니다.
+
+1. **Sub-agent 보고서 확인** (실행 X, 결과 확인만):
    - 실행 검증: TypeScript, Lint, Test 통과 여부
    - 패턴 검증: P0 위반 0개 확인
+   - ❌ 통과 실패 시 → Sub-agent에게 재위임
 2. `/self-learn` 실행: Sub-agent 수정 이력을 기반으로 교훈 기록
 3. `/test-coverage` 실행: ATDD 시나리오 커버리지 검증 (누락 시 추가 구현)
 
