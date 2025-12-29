@@ -73,9 +73,9 @@ expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument();
 | 시점 | SKILL | 용도 |
 |------|-------|------|
 | Mock 작성 전 | `/test-mock` | vi.hoisted 패턴, MSW 핸들러, 상태관리/Query Mock **(필수)** |
-| 구현 완료 후 | `/self-learn` | 교훈 기록 및 lessons 파일 갱신 **(필수)** |
+| Sub-agent 구현 후 | `/test-verify` | 실행 검증 + P0/P1/P2 패턴 검증 **(Sub-agent 필수)** |
+| Phase 3 시작 | `/self-learn` | 교훈 기록 및 lessons 파일 갱신 **(필수)** |
 | /self-learn 후 | `/test-coverage` | ATDD 시나리오 커버리지 검증 **(필수)** |
-| /test-coverage 후 | `/test-verify` | P0/P1/P2 검증 체크리스트 **(필수)** |
 
 ---
 
@@ -210,21 +210,7 @@ UI 테스트는 아래 범위를 포함합니다:
    > **중요**: Plan의 Mock Requirement, Flow, Data Persona 정보를 G/W/T 힌트로 변환하여 포함하세요.
    > Sub-agent가 Plan 파일을 읽지 않아도 구현할 수 있도록 충분한 힌트를 제공합니다.
 
-3. 파일 저장
-
-4. **생성 파일 검증** (MSW 핸들러 + 테스트 Scaffold)
-   - `project-manifest.yaml`의 명령어 사용:
-     - TypeScript: `typeCheckCommand` (예: `yarn tsc --noEmit --skipLibCheck`)
-     - Lint: `lintCommand [생성된 파일들]` (예: `yarn eslint --fix mocks/**/*.ts *.test.tsx`)
-     - 미사용 확인: `yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [생성된 파일들]`
-   - 에러 발생 시 **즉시 수정 후 재검사**
-   - 특히 확인할 항목:
-     - 사용하지 않는 import/변수 제거 (프로젝트 설정이 warning이어도 **반드시 제거**)
-     - 설치되지 않은 라이브러리 import 제거
-     - ESLint 규칙 준수 (padding, spacing 등)
-     - Import Hallucination 금지 (소스 코드에 없는 상수/함수 import 금지)
-
-5. 검증 통과 후 Phase 2로 진행
+3. 파일 저장 후 Phase 2로 진행
 
 ### Phase 2: 구현 위임
 
@@ -242,9 +228,11 @@ prompt: |
 
 ### Phase 3: 마무리 (Main Agent)
 
-1. `/self-learn` 실행: Sub-agent 수정 이력을 기반으로 교훈 기록
-2. `/test-coverage` 실행: ATDD 시나리오 커버리지 검증 (누락 시 추가 구현)
-3. `/test-verify` 실행: P0/P1/P2 체크리스트 검증
+1. **Sub-agent 보고서 확인**: `/test-verify` 결과가 모두 통과인지 확인
+   - 실행 검증: TypeScript, Lint, Test 통과 여부
+   - 패턴 검증: P0 위반 0개 확인
+2. `/self-learn` 실행: Sub-agent 수정 이력을 기반으로 교훈 기록
+3. `/test-coverage` 실행: ATDD 시나리오 커버리지 검증 (누락 시 추가 구현)
 
 ---
 

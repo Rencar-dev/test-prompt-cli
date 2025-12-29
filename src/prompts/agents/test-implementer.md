@@ -70,48 +70,22 @@ it.each([
 
 ## 구현 후 검증 단계
 
-모든 TODO 구현 완료 후 아래 검증을 **순서대로** 수행합니다.
-`project-manifest.yaml`의 명령어를 사용하세요.
+> ⚠️ **필수**: 모든 TODO 구현 완료 후 반드시 `/test-verify`를 실행하세요.
+> 이 단계를 건너뛰면 안 됩니다. Main Agent는 이 결과를 확인합니다.
 
-### 1. TypeScript 검사
+`/test-verify` SKILL이 아래 검증을 수행합니다:
 
-`typeCheckCommand` 실행:
+### 1. 실행 검증
+- TypeScript 컴파일 검사
+- Lint 검사 (미사용 import/변수 제거)
+- 테스트 실행 (최대 3회 재시도)
 
-```bash
-# 예시
-yarn tsc --noEmit --skipLibCheck
-```
+### 2. 코드 패턴 검증
+- P0: vi.mock 호이스팅, waitFor 패턴, MSW URL 등
+- P1: Toast 검증, POM 패턴, Assertion 품질 등
+- P2: 테스트 성능, Fake timers 등
 
-- 타입 에러 발생 시 **즉시 수정 후 재검사**
-- Props 타입, 반환 타입, Mock 타입 불일치 주의
-
-### 2. Lint 검사
-
-`lintCommand` 실행 후 **추가로** unused import/변수 확인:
-
-```bash
-# 1. 기본 lint (자동 수정)
-yarn eslint --fix [테스트 파일 경로]
-
-# 2. 미사용 import/변수 명시적 확인 (프로젝트 설정과 무관하게 강제)
-yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 경로]
-```
-
-- 2번에서 에러 발생 시 해당 import/변수 **제거**
-- 프로젝트 ESLint 설정이 warning이어도 **반드시 제거**
-- ESLint 규칙 위반 (padding-line, spacing 등) **수정**
-
-### 3. 테스트 실행
-
-`testCommand` 실행:
-
-```bash
-# 예시
-yarn vitest run [테스트 파일 경로]
-```
-
-- 실패 시 원인 분석 후 수정
-- **최대 3회** 재시도 후에도 실패 시 에러 내용과 함께 보고
+**에러 발생 시**: 즉시 수정 후 `/test-verify` 재실행
 
 ---
 
@@ -136,10 +110,15 @@ yarn vitest run [테스트 파일 경로]
 | TypeScript | TS2741: initialId missing | Props 필수 속성 | `initialId=""` prop 추가 |
 | Test | expect 실패 | storage mock 상태 미유지 | vi.hoisted 패턴 적용 |
 
-### 최종 검증
+### /test-verify 결과
+#### 실행 검증
 - TypeScript: ✅ 에러 0개
 - Lint: ✅ 경고 0개
 - Test: ✅ 17/17 통과
+
+#### 패턴 검증
+- P0 위반: 0개
+- P1 경고: 0개
 
 ### 미해결 이슈 (있는 경우)
 - (없음) 또는 (이슈 설명)

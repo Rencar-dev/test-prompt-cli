@@ -243,7 +243,7 @@ SKILL은 Claude Code가 특정 작업 수행 시 **자동으로 참조하는 규
 
 | 명령어 | SKILL | 설명 |
 |--------|-------|------|
-| `init` | `test-verify` | 테스트 코드 검증 체크리스트 (P0/P1/P2) |
+| `init` | `test-verify` | 테스트 실행 검증 (TS/Lint/Test) + 코드 패턴 체크 (P0/P1/P2) |
 | `gen` | `test-implement` | 테스트 작성 규칙 (waitFor, Selector, G/W/T) |
 | `gen` | `test-mock` | Mock 패턴 (vi.mock, MSW, 상태관리) |
 | `gen` | `self-learn` | 테스트 수정 사항 분석 및 교훈 자동 기록 |

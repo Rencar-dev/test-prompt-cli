@@ -1,23 +1,86 @@
 ---
 name: test-verify
 description: |
-  테스트 코드 구현 완료 후 규칙 준수 여부를 검증할 때 호출합니다.
-  vi.mock 호이스팅, waitFor 패턴, MSW URL 등 P0/P1/P2 체크리스트를 점검합니다.
+  테스트 코드 구현 완료 후 검증할 때 호출합니다.
+  1) 실행 검증: TypeScript, Lint, 테스트 실행
+  2) 코드 패턴 검증: P0/P1/P2 체크리스트 점검
 ---
 
 # test-verify
 
-테스트 코드가 프로젝트 규칙을 준수하는지 검증합니다.
-
-## 검증 절차
-
-1. 생성된 테스트 파일을 읽습니다.
-2. 아래 체크리스트를 P0 → P1 → P2 순서로 검증합니다.
-3. 위반 항목을 리포트하고 수정 방법을 제안합니다.
+테스트 코드가 실행되고 프로젝트 규칙을 준수하는지 검증합니다.
 
 ---
 
-## P0 - 반드시 확인 (위반 시 즉시 수정)
+## 1. 실행 검증 (Execution Checks)
+
+테스트 코드가 실제로 실행 가능한지 확인합니다.
+
+### 1.1 TypeScript 검사
+
+`project-manifest.yaml`의 `typeCheckCommand` 실행:
+
+```bash
+# 예시
+yarn tsc --noEmit --skipLibCheck
+```
+
+**실패 시 처리**:
+1. 에러 메시지 분석
+2. 타입 오류 수정 (import 경로, 타입 불일치 등)
+3. 재검사하여 통과 확인
+
+### 1.2 Lint 검사
+
+`project-manifest.yaml`의 `lintCommand` 실행:
+
+```bash
+# 예시 (auto-fix 포함)
+yarn eslint --fix [테스트 파일 경로]
+
+# 미사용 변수 강제 검사 (프로젝트 설정 무관하게)
+yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 경로]
+```
+
+**실패 시 처리**:
+1. 미사용 import/변수 **즉시 제거**
+2. 포맷팅 오류 수정
+3. 재검사하여 통과 확인
+
+### 1.3 테스트 실행
+
+`project-manifest.yaml`의 `testCommand` 실행:
+
+```bash
+# 예시 (vitest)
+yarn vitest run [테스트 파일 경로]
+
+# 예시 (jest)
+yarn jest [테스트 파일 경로]
+```
+
+**실패 시 처리**:
+1. 에러 로그 분석 (assertion 실패, timeout, mock 오류 등)
+2. 원인에 따라 테스트 코드 수정
+3. 최대 **3회 재시도** 후에도 실패하면 원인 보고
+
+### 실행 검증 체크리스트
+
+```
+□ TypeScript 컴파일 통과
+□ Lint 에러 없음 (미사용 import/변수 포함)
+□ 테스트 실행 통과
+```
+
+> **중요**: 실행 검증을 모두 통과해야 코드 패턴 검증으로 진행합니다.
+
+---
+
+## 2. 코드 패턴 검증 (Code Pattern Checks)
+
+테스트 코드가 프로젝트의 Best Practice를 따르는지 검증합니다.
+
+### P0 - 반드시 확인 (위반 시 즉시 수정)
 
 ### 1. vi.mock 호이스팅 규칙
 ```typescript
@@ -218,7 +281,14 @@ await waitFor(() => expect(...)); // 기본 1000ms
 ```
 ## test-verify 검증 결과
 
-### P0 (필수)
+### 1. 실행 검증
+- ✅ TypeScript: 컴파일 통과
+- ✅ Lint: 에러 없음
+- ✅ 테스트: 15/15 통과 (0.8초)
+
+### 2. 코드 패턴 검증
+
+#### P0 (필수)
 - ✅ vi.mock 호이스팅: 외부 변수 참조 없음
 - ❌ vi.hoisted 패턴: line 45 - mockPush가 vi.hoisted 없이 사용됨
   → 수정: vi.hoisted로 감싸서 선언
@@ -227,7 +297,7 @@ await waitFor(() => expect(...)); // 기본 1000ms
 - ✅ 렌더링 검증: 기본 UI 확인 있음
 - ✅ 미사용 import: 없음
 
-### P1 (권장)
+#### P1 (권장)
 - ⚠️ Toast 검증: line 78 - 메시지 내용 검증 누락
   → 권장: 메시지 내용까지 검증 추가
 - ⚠️ POM 패턴: screen.getByPlaceholderText('아이디') 17회 반복
@@ -235,7 +305,7 @@ await waitFor(() => expect(...)); // 기본 1000ms
 - ✅ Assertion 품질: Mock 호출에 인자 검증 포함
 - ✅ 테스트 독립성: beforeEach에서 상태 초기화 있음
 
-### P2 (선택)
+#### P2 (선택)
 - ℹ️ Fake timers: 사용하지 않음
 - ℹ️ 테스트 성능: 평균 0.5초 (양호)
 
