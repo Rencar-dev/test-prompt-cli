@@ -10,15 +10,21 @@ import {
   scanForPlan,
   scanForGen,
   scanForLearn,
+  scanForSync,
   filterCandidates,
 } from './file-scanner.js';
 
-export type CommandType = 'atdd' | 'plan' | 'gen' | 'learn';
+export type CommandType = 'atdd' | 'plan' | 'gen' | 'learn' | 'sync';
+
+/** Sync 명령어의 동기화 수준 */
+export type SyncLevel = 'test-only' | 'full';
 
 interface InteractiveResult {
   filePath: string;
   /** gen 명령어에서 자동 추론된 테스트 타입 */
   testType?: 'ui' | 'unit';
+  /** sync 명령어에서 선택된 동기화 수준 */
+  syncLevel?: SyncLevel;
 }
 
 /** 검색 결과 최대 표시 개수 */
@@ -32,6 +38,7 @@ const scanners: Record<CommandType, () => Promise<FileCandidate[]>> = {
   plan: scanForPlan,
   gen: scanForGen,
   learn: scanForLearn,
+  sync: scanForSync,
 };
 
 /**
@@ -57,6 +64,11 @@ const messages: Record<CommandType, { prompt: string; placeholder: string; empty
     prompt: '학습할 테스트 파일을 선택하세요',
     placeholder: '테스트가 있는 파일을 검색하세요',
     empty: '테스트 파일이 존재하는 소스 파일이 없습니다.',
+  },
+  sync: {
+    prompt: '동기화할 파일을 검색하세요',
+    placeholder: '테스트가 있는 파일을 검색하세요 (예: login, user)',
+    empty: '테스트 파일이 존재하는 소스 파일이 없습니다. 먼저 `prompt gen`을 실행하세요.',
   },
 };
 
@@ -192,5 +204,61 @@ export const selectFileInteractively = async (
     logger.hint(`테스트 타입 자동 감지: --type ${result.testType}`);
   }
 
+  // Sync 명령어면 동기화 수준 선택
+  if (command === 'sync') {
+    const syncLevel = await selectSyncLevel();
+    if (!syncLevel) {
+      return null;
+    }
+    result.syncLevel = syncLevel;
+  }
+
   return result;
+};
+
+/**
+ * Sync 명령어에서 동기화 수준 선택
+ */
+export const selectSyncLevel = async (): Promise<SyncLevel | null> => {
+  const choices = [
+    {
+      title: '테스트만 수정 (권장)',
+      description: 'UI/Selector 변경, 내부 리팩토링 등 Minor Change',
+      value: 'test-only' as SyncLevel,
+    },
+    {
+      title: '전체 업데이트 (ATDD → Plan → Test)',
+      description: '기능 추가/삭제/변경 등 Major Change',
+      value: 'full' as SyncLevel,
+    },
+  ];
+
+  let isCancelled = false;
+
+  const response = await prompts(
+    {
+      type: 'select',
+      name: 'level',
+      message: '동기화 수준을 선택하세요',
+      choices,
+      onState: (state: { aborted?: boolean; exited?: boolean }) => {
+        if (state.aborted || state.exited) {
+          isCancelled = true;
+        }
+      },
+    },
+    {
+      onCancel: () => {
+        isCancelled = true;
+      },
+    },
+  );
+
+  if (isCancelled || !response.level) {
+    logger.info('취소되었습니다.');
+    return null;
+  }
+
+  logger.hint(`동기화 수준: ${response.level === 'test-only' ? '테스트만 수정' : '전체 업데이트'}`);
+  return response.level;
 };

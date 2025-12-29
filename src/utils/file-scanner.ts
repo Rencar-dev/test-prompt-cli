@@ -216,6 +216,50 @@ export const scanForLearn = async (): Promise<FileCandidate[]> => {
 };
 
 /**
+ * Sync 명령어용 파일 스캔
+ * - 테스트 파일이 존재하는 소스 파일만 반환 (동기화 대상)
+ * - Learn과 유사하지만 ATDD/Plan 존재 여부도 표시
+ */
+export const scanForSync = async (): Promise<FileCandidate[]> => {
+  // 테스트 파일 찾기
+  const testFiles = await fg(['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'], {
+    ignore: ['**/node_modules/**'],
+    cwd: process.cwd(),
+  });
+
+  const candidates: FileCandidate[] = [];
+
+  for (const testFile of testFiles) {
+    const dir = path.dirname(testFile);
+    const baseName = path.basename(testFile).replace(/\.(test|spec)\.(ts|tsx)$/, '');
+    const sourceFile = findSourceFile(dir, baseName);
+
+    if (sourceFile) {
+      const isPage = sourceFile.includes('/page.');
+      const title = isPage ? filePathToRoute(sourceFile) : path.basename(sourceFile);
+
+      // ATDD, Plan 파일 존재 여부 확인
+      const atddExists = fs.existsSync(path.join(process.cwd(), dir, `${baseName}.atdd.md`)) ||
+        fs.existsSync(path.join(process.cwd(), path.dirname(dir), `${baseName}.atdd.md`));
+      const planExists = fs.existsSync(path.join(process.cwd(), dir, `${baseName}.test-plan.md`)) ||
+        fs.existsSync(path.join(process.cwd(), path.dirname(dir), `${baseName}.test-plan.md`));
+
+      const status = atddExists && planExists ? 'ATDD+Plan+Test' :
+        atddExists ? 'ATDD+Test' :
+        planExists ? 'Plan+Test' : 'Test only';
+
+      candidates.push({
+        title: `${title}  (${status})`,
+        value: sourceFile,
+        group: '동기화 대상',
+      });
+    }
+  }
+
+  return candidates;
+};
+
+/**
  * 키워드로 파일 후보 필터링
  */
 export const filterCandidates = (candidates: FileCandidate[], keyword: string): FileCandidate[] => {

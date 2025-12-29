@@ -13,6 +13,8 @@ vi.mock('./file-scanner.js', () => ({
   scanForPlan: vi.fn(),
   scanForGen: vi.fn(),
   scanForLearn: vi.fn(),
+  scanForSync: vi.fn(),
+  filterCandidates: vi.fn(),
 }));
 
 vi.mock('./logger.js', () => ({

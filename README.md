@@ -42,6 +42,7 @@ npx @hsna/prompt
 ❯ atdd   - ATDD 시나리오 생성
   plan   - 테스트 계획 수립
   gen    - 테스트 코드 생성
+  sync   - 테스트 동기화
   learn  - 오답노트 갱신
 
 # 파일 선택 (실시간 검색)
@@ -162,7 +163,32 @@ npx @hsna/prompt gen src/hooks/useAuth.ts --type unit
 
 > **💡 순수 함수/유틸 테스트**: `--type unit`은 Plan 파일 없이도 소스 코드를 분석하여 테스트 케이스를 자동 도출합니다.
 
-### 5. `learn`
+### 5. `sync`
+코드 변경 후 테스트를 동기화합니다. 소스와 테스트 간 불일치를 분석하고 수정합니다.
+
+```bash
+npx @hsna/prompt sync [source_path] [options]
+```
+
+**Options**:
+- `--full`: 전체 업데이트 (ATDD → Plan → Test)
+
+**동기화 수준**:
+| 모드 | 설명 | 사용 시점 |
+|------|------|----------|
+| `test-only` (기본) | 테스트 코드만 수정 | Selector, 메시지 등 Minor 변경 |
+| `full` | ATDD → Plan → Test 전체 업데이트 | 기능 추가/삭제 등 Major 변경 |
+
+**Example**:
+```bash
+npx @hsna/prompt sync                              # Interactive 모드 (권장)
+npx @hsna/prompt sync app/login/page.tsx           # 테스트만 수정 (기본)
+npx @hsna/prompt sync app/login/page.tsx --full    # 전체 업데이트
+```
+
+- **Prerequisite**: 테스트 파일이 이미 존재해야 합니다. 없으면 `gen`을 먼저 실행하세요.
+
+### 6. `learn`
 테스트 실패 로그를 분석하여 **"오답노트(Lessons Learned)"**를 갱신합니다.
 AI가 스스로 실수를 교정하고, 다음 테스트 생성 시 더 높은 정확도를 갖게 합니다.
 

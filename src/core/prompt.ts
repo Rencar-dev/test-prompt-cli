@@ -147,3 +147,37 @@ export const generateLearnPrompt = async (
     .replace('{{EXISTING_LESSONS}}', existingLessons);
 };
 
+/**
+ * Sync 프롬프트 생성에 필요한 파일 경로 정보
+ */
+export interface SyncFilePaths {
+  sourcePath: string;
+  testPath: string | null;
+  atddPath: string | null;
+  planPath: string | null;
+}
+
+/**
+ * Sync 프롬프트 생성 로직
+ * - 파일 내용을 포함하지 않고 경로만 제공 (로컬 LLM이 직접 읽음)
+ * @param paths - 소스, 테스트, ATDD, Plan 파일 경로
+ * @param syncLevel - 동기화 수준 (test-only | full)
+ */
+export const generateSyncPrompt = async (
+  paths: SyncFilePaths,
+  syncLevel: 'test-only' | 'full'
+): Promise<string> => {
+  const template = await readPromptTemplate('test-sync-prompt.md');
+
+  const syncLevelLabel = syncLevel === 'test-only'
+    ? 'test-only (테스트 코드만 수정)'
+    : 'full (ATDD → Plan → Test 전체 업데이트)';
+
+  return template
+    .replace('{{SOURCE_PATH}}', paths.sourcePath)
+    .replace('{{TEST_PATH}}', paths.testPath || '(테스트 파일 없음)')
+    .replace('{{ATDD_PATH}}', paths.atddPath || '(ATDD 파일 없음)')
+    .replace('{{PLAN_PATH}}', paths.planPath || '(Plan 파일 없음)')
+    .replace('{{SYNC_LEVEL}}', syncLevelLabel);
+};
+

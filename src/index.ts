@@ -9,6 +9,7 @@ import { atddCommand } from './commands/atdd.js';
 import { planCommand } from './commands/plan.js';
 import { genCommand } from './commands/gen.js';
 import { learnCommand } from './commands/learn.js';
+import { syncCommand } from './commands/sync.js';
 import { logger } from './utils/logger.js';
 
 // package.json 읽어서 버전 표시 (ESM 환경)
@@ -31,6 +32,7 @@ program.addCommand(atddCommand);
 program.addCommand(planCommand);
 program.addCommand(genCommand);
 program.addCommand(learnCommand);
+program.addCommand(syncCommand);
 
 /**
  * 인자 없이 실행 시 명령어 선택 메뉴 표시
@@ -40,6 +42,7 @@ const showCommandMenu = async (): Promise<void> => {
     { title: 'atdd   - ATDD 시나리오 생성', value: 'atdd' },
     { title: 'plan   - 테스트 계획 수립', value: 'plan' },
     { title: 'gen    - 테스트 코드 생성', value: 'gen' },
+    { title: 'sync   - 테스트 동기화', value: 'sync' },
     { title: 'learn  - 오답노트 갱신', value: 'learn' },
   ];
 

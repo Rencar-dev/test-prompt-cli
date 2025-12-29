@@ -52,10 +52,11 @@ Each command corresponds to a step in the ATDD workflow:
 - `atdd` - Generates acceptance test scenario design prompt
 - `plan` - Generates test routing (unit vs UI vs E2E) plan prompt
 - `gen` - Generates test implementation prompt (--type ui|unit), syncs SKILL/Agent files
+- `sync` - Syncs tests after code changes (--full for ATDD/Plan/Test update)
 - `learn` - Runs tests and generates feedback analysis prompt for failures
 
 ### Core Logic (src/core/)
-- `prompt.ts` - Prompt generation functions (generateAtddPrompt, generatePlanPrompt, generateGenPrompt, generateLearnPrompt)
+- `prompt.ts` - Prompt generation functions (generateAtddPrompt, generatePlanPrompt, generateGenPrompt, generateSyncPrompt, generateLearnPrompt)
 - `locator.ts` - File discovery logic for ATDD/Plan/Test files based on `project-manifest.yaml` configuration
 - `runner.ts` - Test execution wrapper using child_process
 - `setup.ts` - **SKILL/Agent file generation** (syncAllSkills, createTestMockSkill, createTestImplementerAgent, etc.)
@@ -65,7 +66,7 @@ Each command corresponds to a step in the ATDD workflow:
 ### Utils (src/utils/)
 - `manifest.ts` - ManifestConfig type definition and YAML parsing
 - `interactive.ts` - Interactive mode file selector (prompts library)
-- `file-scanner.ts` - File scanning logic (scanForAtdd, scanForPlan, scanForGen, scanForLearn)
+- `file-scanner.ts` - File scanning logic (scanForAtdd, scanForPlan, scanForGen, scanForSync, scanForLearn)
 - `file.ts` - File reading utilities
 - `clipboard.ts` - Clipboard copy (clipboardy)
 - `logger.ts` - Logging utilities
