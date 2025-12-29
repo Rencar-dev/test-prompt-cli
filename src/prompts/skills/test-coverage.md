@@ -20,6 +20,22 @@ Plan에 정의된 모든 시나리오가 실제로 구현되었는지 확인하�
 
 ## 실행 절차
 
+### 0단계: Plan 파일 존재 확인
+
+Test Plan 파일(`.test-plan.md`)이 존재하는지 확인합니다.
+
+**Plan 파일이 없는 경우**:
+```
+## test-coverage 검증 결과
+
+ℹ️ Plan 파일이 없습니다. 시나리오 커버리지 검증을 건너뜁니다.
+→ /test-verify를 실행하세요.
+```
+
+Plan 파일이 없으면 이 SKILL을 **스킵**하고 `/test-verify`로 진행합니다.
+
+---
+
 ### 1단계: Plan 파일에서 시나리오 ID 추출
 
 Test Plan 파일(`.test-plan.md`)에서 시나리오 ID를 추출합니다:
