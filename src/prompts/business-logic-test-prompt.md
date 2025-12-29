@@ -67,8 +67,9 @@ it('음수 입력 시 에러를 던진다', () => {
 | 시점 | SKILL | 용도 |
 |------|-------|------|
 | Mock 작성 전 | `/test-mock` | vi.hoisted 패턴, 상태관리 Mock **(필수)** |
-| /test-verify 전 | `/self-learn` | 교훈 기록 및 lessons 파일 갱신 **(필수)** |
-| 구현 완료 후 | `/test-verify` | P0/P1/P2 검증 체크리스트 **(필수)** |
+| 구현 완료 후 | `/self-learn` | 교훈 기록 및 lessons 파일 갱신 **(필수)** |
+| /self-learn 후 | `/test-coverage` | ATDD 시나리오 커버리지 검증 **(필수)** |
+| /test-coverage 후 | `/test-verify` | P0/P1/P2 검증 체크리스트 **(필수)** |
 
 ---
 
@@ -220,7 +221,8 @@ prompt: |
 ### Phase 3: 마무리 (Main Agent)
 
 1. `/self-learn` 실행: Sub-agent 수정 이력을 기반으로 교훈 기록
-2. `/test-verify` 실행: P0/P1/P2 체크리스트 검증
+2. `/test-coverage` 실행: ATDD 시나리오 커버리지 검증 (누락 시 추가 구현)
+3. `/test-verify` 실행: P0/P1/P2 검증 체크리스트 검증
 
 ---
 

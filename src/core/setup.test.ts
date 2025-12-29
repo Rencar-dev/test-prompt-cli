@@ -243,8 +243,8 @@ describe('setup', () => {
 
       await syncAllSkills('ui');
 
-      // test-implement, test-mock, self-learn 세 파일이 생성되어야 함
-      expect(writeFileSpy).toHaveBeenCalledTimes(3);
+      // test-implement, test-mock, self-learn, test-coverage 네 파일이 생성되어야 함
+      expect(writeFileSpy).toHaveBeenCalledTimes(4);
       expect(writeFileSpy).toHaveBeenCalledWith(
         expect.stringContaining('test-implement/SKILL.md'),
         expect.any(String),
@@ -257,6 +257,11 @@ describe('setup', () => {
       );
       expect(writeFileSpy).toHaveBeenCalledWith(
         expect.stringContaining('self-learn/SKILL.md'),
+        expect.any(String),
+        'utf-8'
+      );
+      expect(writeFileSpy).toHaveBeenCalledWith(
+        expect.stringContaining('test-coverage/SKILL.md'),
         expect.any(String),
         'utf-8'
       );
