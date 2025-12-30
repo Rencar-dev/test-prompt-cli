@@ -207,13 +207,14 @@ prompt: |
 ### Phase 3: 마무리 (Main Agent)
 
 > ⚠️ **중요**: Phase 3에서는 `/test-verify`를 직접 실행하지 마세요.
-> Sub-agent가 이미 실행했으므로 보고서만 확인합니다.
+> Sub-agent가 이미 실행했으므로 로그 파일로 결과를 확인합니다.
 
-1. **Sub-agent 보고서 출력**:
-   - Sub-agent가 반환한 완료 보고서를 **그대로** 사용자에게 표시
-   - 수정 이력, /test-verify 결과 등 상세 내용 포함
-   - ❌ 요약하지 말고 전체 보고서 출력
-   - ❌ 통과 실패 시 → Sub-agent에게 재위임
+1. **검증 로그 확인** (필수):
+   - `.test-verify-log.md` 파일 읽기 (프로젝트 루트)
+   - 로그 내용을 사용자에게 출력
+   - 파일 삭제 (Bash: `rm .test-verify-log.md`)
+   - ❌ 로그 파일이 없으면 Sub-agent에게 재위임
+   - ❌ 검증 실패(FAIL) 시 → Sub-agent에게 재위임
 2. `/self-learn` 실행: Sub-agent 수정 이력을 기반으로 교훈 기록
 3. `/test-coverage` 실행: ATDD 시나리오 커버리지 검증 (누락 시 추가 구현)
 

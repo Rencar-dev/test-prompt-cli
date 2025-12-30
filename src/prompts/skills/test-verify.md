@@ -292,6 +292,60 @@ await waitFor(() => expect(...)); // 기본 1000ms
 
 ---
 
+## 로그 파일 생성 (필수)
+
+> ⚠️ **필수**: 검증 완료 후 반드시 로그 파일을 생성하세요.
+> Main Agent가 이 파일을 읽어 사용자에게 검증 결과를 보여줍니다.
+
+### 파일 위치
+
+프로젝트 루트에 `.test-verify-log.md` 파일 생성:
+
+```bash
+# 예시 경로
+/Users/.../project-root/.test-verify-log.md
+```
+
+### 파일 내용 형식
+
+```markdown
+# test-verify 실행 로그
+
+## 실행 정보
+- 테스트 파일: [테스트 파일 경로]
+- 실행 시간: [YYYY-MM-DD HH:mm:ss]
+
+## 실행 검증
+- TypeScript: `[실제 실행한 명령어]` → [PASS/FAIL]
+- Lint: `[실제 실행한 명령어]` → [PASS/FAIL]
+- Test: `[실제 실행한 명령어]` → [N/N 통과 (X.Xs)]
+
+## 패턴 검증
+- P0 위반: [N개]
+- P1 경고: [N개]
+```
+
+### 로그 파일 예시
+
+```markdown
+# test-verify 실행 로그
+
+## 실행 정보
+- 테스트 파일: app/(public)/user/login/_tests/login.test.tsx
+- 실행 시간: 2024-12-30 15:30:00
+
+## 실행 검증
+- TypeScript: `yarn tsc --noEmit --skipLibCheck` → PASS
+- Lint: `yarn eslint --fix "app/(public)/user/login/_tests/login.test.tsx"` → PASS
+- Test: `yarn vitest run "app/(public)/user/login/_tests/login.test.tsx"` → 17/17 통과 (1.2s)
+
+## 패턴 검증
+- P0 위반: 0개
+- P1 경고: 1개 (POM 패턴 권장)
+```
+
+---
+
 ## 출력 형식
 
 > ⚠️ **필수**: 아래 형식을 **정확히** 따르세요.
