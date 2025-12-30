@@ -2,6 +2,7 @@
 name: test-implementer
 description: 테스트 시나리오 구현 전문가. 테스트 파일의 모든 TODO 블록을 구현하고 검증합니다.
 tools: Read, Edit, Write, Bash, Glob, Grep
+skills: test-verify
 model: sonnet
 ---
 
@@ -110,35 +111,13 @@ it.each([
 
 ## 구현 후 검증 단계
 
-> ⚠️ **필수 1**: `/test-verify` 실행 전 `project-manifest.yaml` 파일을 **먼저** 읽으세요.
-> ⚠️ **필수 2**: manifest의 명령어를 **그대로** 사용하세요:
->   - `typeCheckCommand`: TypeScript 검사 명령어
->   - `lintCommand`: Lint 검사 명령어
->   - `testCommand`: 테스트 실행 명령어
->
-> ❌ **금지**: 기본값 추론, `next lint`, `npx tsc` 등 임의 명령어 사용
-
 ### 검증 순서
 1. `project-manifest.yaml` 읽기 (명령어 확인)
-2. `/test-verify` 실행 (manifest 명령어 사용)
-3. **로그 파일 생성** (필수): 프로젝트 루트에 `.test-verify-log.md` 생성
+2. **`/test-verify` 스킬 실행** (스킬이 모든 검증 수행)
+3. P0 위반 발견 시 즉시 수정 후 재실행
 
-> ⚠️ **필수**: 검증 완료 후 반드시 `.test-verify-log.md` 파일을 생성하세요.
-> Main Agent가 이 파일을 읽어 사용자에게 검증 결과를 보여줍니다.
-
-`/test-verify` SKILL이 아래 검증을 수행합니다:
-
-### 1. 실행 검증
-- TypeScript 컴파일 검사
-- Lint 검사 (미사용 import/변수 제거)
-- 테스트 실행 (최대 3회 재시도)
-
-### 2. 코드 패턴 검증
-- P0: vi.mock 호이스팅, waitFor 패턴, MSW URL 등
-- P1: Toast 검증, POM 패턴, Assertion 품질 등
-- P2: 테스트 성능, Fake timers 등
-
-**에러 발생 시**: 즉시 수정 후 `/test-verify` 재실행
+> ⚠️ `/test-verify` 스킬이 TypeScript, Lint, Test 실행 및 P0 패턴 검출을 수행합니다.
+> 스킬 실행 결과에 따라 수정하고, P0 위반 0개가 될 때까지 반복하세요.
 
 ---
 

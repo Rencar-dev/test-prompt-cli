@@ -119,7 +119,7 @@ const { mockPush } = vi.hoisted(() => ({
 }));
 ```
 
-### 3. waitFor 내부 expect만 사용
+### 3. waitFor 내부 DOM 검증만 사용 (액션/Mock 검증 금지)
 ```typescript
 // ❌ Bad: waitFor 내부에서 액션 수행
 await waitFor(async () => {
@@ -127,12 +127,64 @@ await waitFor(async () => {
   expect(result).toBe(true);
 });
 
-// ✅ Good: waitFor는 expect만
+// ❌ Bad: waitFor 내부에서 Mock 호출 검증
+await waitFor(() => {
+  expect(mockRouter.push).toHaveBeenCalledWith('/home');
+});
+
+// ✅ Good: UI 상태 변화 대기 → Mock은 동기 검증
 await user.click(button);
 await waitFor(() => {
-  expect(result).toBe(true);
+  expect(screen.queryByText('로딩중')).not.toBeInTheDocument();
 });
+expect(mockRouter.push).toHaveBeenCalledWith('/home');  // 동기 검증
 ```
+
+**자동 검출** (필수 실행):
+
+> ⚠️ 아래 명령어를 실행하여 P0 위반을 검출하세요.
+
+```bash
+# 멀티라인 검출 (waitFor 블록 내 Mock 검증)
+awk '/waitFor\s*\(/{p=1} p && /toHaveBeenCalled/{print FILENAME":"NR": "$0} /\)\s*;/{p=0}' [테스트 파일 경로]
+```
+
+**결과 해석**:
+- 출력 있음 → ❌ P0 위반, 즉시 수정 필요 (예외 조건 확인)
+- 출력 없음 → ✅ 통과
+
+**수정 방법**:
+```typescript
+// ❌ 위반
+await waitFor(() => {
+  expect(mockReset).toHaveBeenCalledWith(...);
+});
+
+// ✅ 수정
+await waitFor(() => expect(screen.queryByText('로딩중')).not.toBeInTheDocument());
+expect(mockReset).toHaveBeenCalledWith(...);
+```
+
+---
+
+**예외 조건**: UI 앵커가 없는 경우
+
+Mock이 UI 상태를 대체하여 **로딩 스피너 등 UI 앵커가 없는 경우**에 한해 예외 허용:
+
+```typescript
+// ⚠️ 예외적 허용: 비동기 완료 신호로만 사용
+// Note: UI 앵커 없음 - mockHideLoading을 비동기 완료 신호로 사용
+await waitFor(() => {
+  expect(mockHideLoading).toHaveBeenCalled();
+});
+// 핵심 검증은 반드시 waitFor 밖에서
+expect(mockRouter.reset).toHaveBeenCalledWith(...);
+```
+
+**예외 필수 조건**:
+1. `// Note: UI 앵커 없음` 주석 필수
+2. 핵심 검증(router, API 호출 등)은 waitFor 밖에서 수행
+3. waitFor 내부는 "비동기 완료 신호" 용도로만 사용
 
 ### 4. MSW URL 절대 경로
 ```typescript

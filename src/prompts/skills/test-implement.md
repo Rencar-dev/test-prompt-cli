@@ -30,6 +30,24 @@ await waitFor(() =>
 expect(mockFn).toHaveBeenCalledWith({ id: 'user' });
 ```
 
+**예외**: UI 앵커가 없는 경우
+
+Mock이 UI 상태를 대체하여 로딩 스피너 등 **UI 앵커가 없는 경우**에 한해 예외 허용:
+
+```typescript
+// ⚠️ 예외적 허용: 비동기 완료 신호로만 사용
+// Note: UI 앵커 없음 - mockHideLoading을 비동기 완료 신호로 사용
+await waitFor(() => {
+  expect(mockHideLoading).toHaveBeenCalled();
+});
+// 핵심 검증은 반드시 waitFor 밖에서
+expect(mockRouter.reset).toHaveBeenCalledWith(...);
+```
+
+**예외 필수 조건**:
+1. `// Note: UI 앵커 없음` 주석 필수
+2. 핵심 검증(router, API 호출 등)은 waitFor 밖에서 수행
+
 ### 1.2 비즈니스 로직 Mock 금지
 
 ```typescript
@@ -147,9 +165,11 @@ ATDD에 `[E2E]` 태그가 붙은 시나리오는:
 
 ```typescript
 // (Note): E2E 시나리오이지만 실제 화면 DOM 렌더링 검증은 하지 않고 router 호출만 검증
-await waitFor(() => {
-  expect(routerMocks.replace).toHaveBeenCalledWith('/dashboard');
-});
+// ⚠️ Mock 검증은 waitFor 밖에서 동기 처리 (P0 규칙)
+await waitFor(() =>
+  expect(screen.queryByText('로딩중')).not.toBeInTheDocument()
+);
+expect(routerMocks.replace).toHaveBeenCalledWith('/dashboard');
 ```
 
 ---
