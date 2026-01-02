@@ -56,6 +56,35 @@ const BASE_RULES: Record<TestType, string[]> = {
 };
 
 /**
+ * 공통 규칙(_common.md)을 로드합니다.
+ * @returns 공통 규칙 내용 (없으면 빈 문자열)
+ */
+export const loadCommonRules = async (): Promise<string> => {
+  try {
+    return await readPromptTemplate('rules/_common.md');
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * 테스트 타입별 규칙을 로드합니다.
+ * @param testType - 테스트 타입 (ui | unit)
+ * @returns 타입별 규칙 내용 (없으면 빈 문자열)
+ */
+export const loadTestTypeRules = async (testType: TestType): Promise<string> => {
+  const paths = BASE_RULES[testType];
+  if (!paths || paths.length < 2) return '';
+
+  // BASE_RULES[testType][0]은 _common.md, [1]은 test-type/{ui,unit}.md
+  try {
+    return await readPromptTemplate(paths[1]);
+  } catch {
+    return '';
+  }
+};
+
+/**
  * 개별 규칙 내용을 읽어 반환합니다.
  * @param field - manifest 필드명 (testRunner, stateManagement 등)
  * @param value - 필드 값 (vitest, zustand 등)

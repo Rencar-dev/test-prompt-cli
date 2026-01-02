@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getRuleModulePaths, loadRules } from './rules-loader.js';
+import {
+  getRuleModulePaths,
+  loadRules,
+  loadCommonRules,
+  loadTestTypeRules,
+  loadRuleContent,
+} from './rules-loader.js';
 import * as fileUtils from '../utils/file.js';
 import * as loggerUtils from '../utils/logger.js';
 import * as manifestUtils from '../utils/manifest.js';
@@ -216,6 +222,81 @@ describe('rules-loader', () => {
 
       // _common.md만 포함
       expect(paths).toEqual(['rules/_common.md']);
+    });
+  });
+
+  describe('loadCommonRules', () => {
+    it('_common.md 내용을 반환한다', async () => {
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue('# Common Rules');
+
+      const result = await loadCommonRules();
+
+      expect(result).toBe('# Common Rules');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/_common.md');
+    });
+
+    it('파일이 없으면 빈 문자열을 반환한다', async () => {
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockRejectedValue(new Error('Not found'));
+
+      const result = await loadCommonRules();
+
+      expect(result).toBe('');
+    });
+  });
+
+  describe('loadTestTypeRules', () => {
+    it('ui 타입일 때 test-type/ui.md 내용을 반환한다', async () => {
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue('# UI Rules');
+
+      const result = await loadTestTypeRules('ui');
+
+      expect(result).toBe('# UI Rules');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/test-type/ui.md');
+    });
+
+    it('unit 타입일 때 test-type/unit.md 내용을 반환한다', async () => {
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue('# Unit Rules');
+
+      const result = await loadTestTypeRules('unit');
+
+      expect(result).toBe('# Unit Rules');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/test-type/unit.md');
+    });
+
+    it('파일이 없으면 빈 문자열을 반환한다', async () => {
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockRejectedValue(new Error('Not found'));
+
+      const result = await loadTestTypeRules('ui');
+
+      expect(result).toBe('');
+    });
+  });
+
+  describe('loadRuleContent', () => {
+    it('유효한 필드와 값으로 규칙 내용을 반환한다', async () => {
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue('# Vitest Rules');
+
+      const result = await loadRuleContent('testRunner', 'vitest');
+
+      expect(result).toBe('# Vitest Rules');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/runner/vitest.md');
+    });
+
+    it('지원하지 않는 값이면 빈 문자열을 반환한다', async () => {
+      const result = await loadRuleContent('testRunner', 'unknown');
+
+      expect(result).toBe('');
+    });
+
+    it('파일이 없으면 경고 후 빈 문자열을 반환한다', async () => {
+      const warnSpy = vi.spyOn(loggerUtils.logger, 'warn').mockImplementation(() => {});
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockRejectedValue(new Error('Not found'));
+
+      const result = await loadRuleContent('testRunner', 'vitest');
+
+      expect(result).toBe('');
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
     });
   });
 

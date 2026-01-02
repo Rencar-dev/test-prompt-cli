@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js';
 import { readPromptTemplate } from '../utils/file.js';
 import { getManifestConfig } from '../utils/manifest.js';
 import { TestType } from './test-type.js';
-import { loadRuleContent } from './rules-loader.js';
+import { loadRuleContent, loadCommonRules, loadTestTypeRules } from './rules-loader.js';
 
 /**
  * project-test-lessons.md 파일이 없으면 기본 템플릿으로 생성합니다.
@@ -147,6 +147,7 @@ export const createTestCoverageSkill = async (): Promise<void> => {
 /**
  * test-implement SKILL을 생성합니다.
  * UI/Unit 테스트 타입에 따라 다른 규칙을 포함합니다.
+ * _common.md와 test-type/{ui,unit}.md 규칙을 주입합니다.
  */
 export const createTestImplementSkill = async (
   testType: TestType
@@ -159,23 +160,22 @@ export const createTestImplementSkill = async (
   // 기본 템플릿 읽기
   let skillContent = await readPromptTemplate('skills/test-implement.md');
 
-  // 테스트 타입별 규칙 로드
-  const typeRulePath = testType === 'ui' ? 'rules/test-type/ui.md' : 'rules/test-type/unit.md';
-  let typeRules = '';
-
-  try {
-    typeRules = await readPromptTemplate(typeRulePath);
-  } catch {
-    typeRules = '';
-  }
+  // 공통 규칙 및 테스트 타입별 규칙 로드 (rules-loader.ts 사용)
+  const commonRules = await loadCommonRules();
+  const typeRules = await loadTestTypeRules(testType);
 
   // 플레이스홀더 치환
-  skillContent = skillContent.replace(
-    '{{TYPE_SPECIFIC_RULES}}',
-    typeRules
-      ? `## 테스트 타입별 규칙 (${testType.toUpperCase()})\n\n${typeRules}`
-      : ''
-  );
+  skillContent = skillContent
+    .replace(
+      '{{COMMON_RULES}}',
+      commonRules ? `## 공통 테스트 규칙\n\n${commonRules}` : ''
+    )
+    .replace(
+      '{{TYPE_SPECIFIC_RULES}}',
+      typeRules
+        ? `## 테스트 타입별 규칙 (${testType.toUpperCase()})\n\n${typeRules}`
+        : ''
+    );
 
   const isUpdate = await fs.pathExists(skillPath);
   await fs.writeFile(skillPath, skillContent, 'utf-8');
@@ -190,6 +190,7 @@ export const createTestImplementSkill = async (
 /**
  * test-mock SKILL을 생성합니다.
  * manifest 설정에 따라 필요한 규칙만 포함합니다.
+ * _common.md의 Mock 원칙도 주입합니다.
  */
 export const createTestMockSkill = async (): Promise<void> => {
   const skillDir = path.resolve(process.cwd(), '.claude/skills/test-mock');
@@ -199,6 +200,9 @@ export const createTestMockSkill = async (): Promise<void> => {
 
   // 기본 템플릿 읽기
   let skillContent = await readPromptTemplate('skills/test-mock.md');
+
+  // 공통 규칙 로드 (rules-loader.ts 사용)
+  const commonRules = await loadCommonRules();
 
   // manifest 설정 읽기
   const manifest = await getManifestConfig();
@@ -212,6 +216,10 @@ export const createTestMockSkill = async (): Promise<void> => {
 
   // 플레이스홀더 치환
   skillContent = skillContent
+    .replace(
+      '{{COMMON_RULES}}',
+      commonRules ? `## 테스트 공통 규칙\n\n${commonRules}` : ''
+    )
     .replace(
       '{{RUNNER_RULES}}',
       runnerRules ? `## Test Runner 규칙 (${manifest.testRunner})\n\n${runnerRules}` : ''

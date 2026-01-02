@@ -60,7 +60,7 @@ Each command corresponds to a step in the ATDD workflow:
 - `locator.ts` - File discovery logic for ATDD/Plan/Test files based on `project-manifest.yaml` configuration
 - `runner.ts` - Test execution wrapper using child_process
 - `setup.ts` - **SKILL/Agent file generation** (syncAllSkills, createTestMockSkill, createTestImplementerAgent, etc.)
-- `rules-loader.ts` - **Manifest-based rule assembly** (loadRules, getRuleModulePaths)
+- `rules-loader.ts` - **Manifest-based rule assembly** (loadRules, loadCommonRules, loadTestTypeRules, loadRuleContent)
 - `test-type.ts` - Test type enum (ui | unit) and template mapping
 
 ### Utils (src/utils/)

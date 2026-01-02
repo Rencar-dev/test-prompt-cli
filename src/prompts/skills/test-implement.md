@@ -2,122 +2,26 @@
 name: test-implement
 description: |
   테스트 코드 작성 시 호출합니다.
-  waitFor 패턴, Selector 전략, G/W/T 주석, Red Team 테스트 등 핵심 규칙을 안내합니다.
+  공통 규칙, 테스트 타입별 규칙, ATDD 시나리오 구현 규칙을 안내합니다.
 ---
 
 # test-implement
 
-테스트 코드 작성 시 필요한 핵심 규칙을 제공합니다.
+테스트 코드 작성 시 필요한 규칙을 제공합니다.
 
 ---
 
-## 1. 절대 금지 (Critical Anti-Patterns)
-
-### 1.1 waitFor + Mock 호출 검증 금지
-
-**waitFor는 비동기 UI 변화를 기다리는 도구입니다. Mock 호출은 동기적으로 발생합니다.**
-
-```typescript
-// ❌ 절대 금지
-await waitFor(() => expect(mockFn).toHaveBeenCalled());
-
-// ✅ 올바른 방법
-// 1) UI 변화 대기
-await waitFor(() =>
-  expect(screen.queryByText('로딩중...')).not.toBeInTheDocument()
-);
-// 2) Mock 호출은 동기적으로 검증
-expect(mockFn).toHaveBeenCalledWith({ id: 'user' });
-```
-
-**예외**: UI 앵커가 없는 경우
-
-Mock이 UI 상태를 대체하여 로딩 스피너 등 **UI 앵커가 없는 경우**에 한해 예외 허용:
-
-```typescript
-// ⚠️ 예외적 허용: 비동기 완료 신호로만 사용
-// Note: UI 앵커 없음 - mockHideLoading을 비동기 완료 신호로 사용
-await waitFor(() => {
-  expect(mockHideLoading).toHaveBeenCalled();
-});
-// 핵심 검증은 반드시 waitFor 밖에서
-expect(mockRouter.reset).toHaveBeenCalledWith(...);
-```
-
-**예외 필수 조건**:
-1. `// Note: UI 앵커 없음` 주석 필수
-2. 핵심 검증(router, API 호출 등)은 waitFor 밖에서 수행
-
-### 1.2 비즈니스 로직 Mock 금지
-
-```typescript
-// ❌ 절대 금지: 순수 함수/유틸 Mock
-vi.spyOn(utils, 'calculateTotal').mockReturnValue(100);
-
-// ✅ 올바른 방법: 실제 로직 사용, 외부 IO만 Mock
-vi.spyOn(api, 'fetchUser').mockResolvedValue({ id: 1 });
-```
-
-### 1.3 Weak Assertion 금지
-
-```typescript
-// ❌ 금지: 호출 여부만 검증
-expect(saveFn).toHaveBeenCalled();
-
-// ✅ 올바른 방법: 인자까지 검증
-expect(saveFn).toHaveBeenCalledWith({ id: 1, name: 'test' });
-```
+{{COMMON_RULES}}
 
 ---
 
-## 2. Element Selector 우선순위
-
-```
-1순위: getByRole ⭐⭐⭐⭐⭐ (최우선)
-2순위: getByLabelText ⭐⭐⭐⭐
-3순위: getByPlaceholderText ⭐⭐⭐
-4순위: getByText ⭐⭐
-5순위: getByTestId (최후의 수단)
-❌ 금지: querySelector, xpath, getByClassName
-```
-
-```typescript
-// ✅ Good
-screen.getByRole('button', { name: /제출/ });
-screen.getByRole('textbox', { name: /아이디/ });
-
-// ❌ Bad
-screen.getByTestId('submit-button');
-container.querySelector('.submit-btn');
-```
+{{TYPE_SPECIFIC_RULES}}
 
 ---
 
-## 3. G/W/T 주석 필수 (Zero Tolerance)
+## ATDD 시나리오 구현 규칙
 
-**모든 `it` 블록에 반드시 Given/When/Then 주석을 포함합니다.**
-
-```typescript
-it('[S1] 잘못된 패스워드 입력 시 오류 메시지가 렌더링된다', async () => {
-  // Given: 로그인 페이지에 진입하여 초기 상태가 로드됨
-  render(<LoginView />, { wrapper: AppProviders });
-
-  // When: 사용자가 잘못된 비밀번호를 입력하고 로그인 버튼을 클릭함
-  await userEvent.type(screen.getByLabelText(/비밀번호/i), 'wrong');
-  await userEvent.click(screen.getByRole('button', { name: /로그인/i }));
-
-  // Then: 화면에 에러 메시지가 노출됨
-  await waitFor(() => expect(screen.getByText(/오류/)).toBeVisible());
-});
-```
-
-**규칙:**
-- 각 주석은 **최소 1줄 이상의 한글 설명** 포함
-- 단순히 "입력", "클릭"만 적지 말고 **상태/조건/의도**를 명확히 기술
-
----
-
-## 4. 시나리오 ID/제목 원문 유지
+### 1. 시나리오 ID/제목 원문 유지
 
 - `it` 제목은 ATDD/Plan의 **원문 그대로** 사용
 - 임의로 요약하거나 의역 금지
@@ -125,38 +29,7 @@ it('[S1] 잘못된 패스워드 입력 시 오류 메시지가 렌더링된다',
 
 ---
 
-## 5. 렌더링 직후 기본 UI 검증
-
-```typescript
-it('[S1] 로그인 성공', async () => {
-  const user = userEvent.setup();
-  renderWithProviders(<LoginPage />);
-
-  // ✅ 렌더링 검증 (필수)
-  expect(screen.getByPlaceholderText('아이디')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument();
-
-  // 이후 상호작용...
-});
-```
-
----
-
-## 6. Safe Wait Strategy
-
-```typescript
-// ❌ Bad: 임의의 시간 대기
-await new Promise(resolve => setTimeout(resolve, 1000));
-
-// ✅ Good: UI 앵커 기반 대기
-await waitFor(() =>
-  expect(screen.queryByText('로딩중...')).not.toBeInTheDocument()
-);
-```
-
----
-
-## 7. E2E→Integration 변환 규칙
+### 2. E2E→Integration 변환 규칙
 
 ATDD에 `[E2E]` 태그가 붙은 시나리오는:
 - 실제 화면 DOM 렌더링 검증을 하지 않음
@@ -165,7 +38,7 @@ ATDD에 `[E2E]` 태그가 붙은 시나리오는:
 
 ```typescript
 // (Note): E2E 시나리오이지만 실제 화면 DOM 렌더링 검증은 하지 않고 router 호출만 검증
-// ⚠️ Mock 검증은 waitFor 밖에서 동기 처리 (P0 규칙)
+// P0 규칙: Mock 검증은 waitFor 밖에서 동기 처리
 await waitFor(() =>
   expect(screen.queryByText('로딩중')).not.toBeInTheDocument()
 );
@@ -174,7 +47,7 @@ expect(routerMocks.replace).toHaveBeenCalledWith('/dashboard');
 
 ---
 
-## 8. 시나리오 분기 처리
+### 3. 시나리오 분기 처리
 
 **조건부 분기가 있는 시나리오는 각 분기를 별도 테스트로 분리:**
 
@@ -195,7 +68,7 @@ it('[S1-2] 연동 차량인 경우 주행 평가 페이지로 이동한다', asy
 
 ---
 
-## 9. 초기값 검증 주의사항
+### 4. 초기값 검증 주의사항
 
 - 실제 소스 코드(useState, useEffect)를 확인
 - 변환 로직(trim, toLowerCase 등) 적용 여부 확인
@@ -209,19 +82,15 @@ expect(screen.getByPlaceholderText('아이디')).toHaveValue('  prefillUser  ');
 
 ---
 
-## 10. Import 경로 규칙
+### 5. Import 경로 규칙
 
 - **Alias Import (`@/...`)**: 소스 코드 경로를 100% 그대로 복사
 - **Relative Import (`./`, `../`)**: 테스트 파일 위치에 맞춰 깊이 조정
-- ❌ 상대 경로를 임의로 Alias로 바꾸지 말 것
+- 상대 경로를 임의로 Alias로 바꾸지 말 것
 
 ---
 
-{{TYPE_SPECIFIC_RULES}}
-
----
-
-## 11. Red Team / Negative Testing
+## Red Team / Negative Testing
 
 **당신은 Red Team QA 엔지니어입니다.** 기능이 "작동하는지"보다 **"어떻게 하면 망가뜨릴 수 있을지"**를 고민하세요.
 
@@ -254,7 +123,7 @@ it('제출 버튼을 연타해도 API가 1회만 호출된다', async () => {
 
 ---
 
-## 12. Data Fixture Strategy
+## Data Fixture Strategy
 
 테스트 코드 작성 전 **3가지 데이터 페르소나**를 정의하세요:
 
@@ -275,22 +144,10 @@ const user1 = { name: 'foo', email: 'bar' };
 
 ---
 
-## 13. 간접 의존성 체크리스트
+## 간접 의존성 체크리스트
 
 자식 컴포넌트의 의존성도 반드시 확인:
 
 - [ ] 테스트 대상 컴포넌트가 사용하는 모든 store/hook 확인
 - [ ] 자식 컴포넌트가 사용하는 store/hook 확인
 - [ ] 각 의존성을 Mock에 포함
-
----
-
-## Self-Check
-
-- [ ] waitFor는 DOM 변화에만 사용했는가?
-- [ ] API mock 검증은 동기 처리했는가?
-- [ ] getByRole을 최우선으로 사용했는가?
-- [ ] 렌더링 직후 기본 UI를 검증했는가?
-- [ ] 모든 it 블록에 G/W/T 주석이 있는가?
-- [ ] 시나리오 ID/제목이 원문 그대로인가?
-- [ ] E2E 시나리오에 변환 주석이 있는가?
