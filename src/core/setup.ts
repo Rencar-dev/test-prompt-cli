@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import { readPromptTemplate } from '../utils/file.js';
 import { getManifestConfig } from '../utils/manifest.js';
 import { TestType } from './test-type.js';
+import { loadRuleContent } from './rules-loader.js';
 
 /**
  * project-test-lessons.md 파일이 없으면 기본 템플릿으로 생성합니다.
@@ -144,53 +145,6 @@ export const createTestCoverageSkill = async (): Promise<void> => {
 };
 
 /**
- * 규칙 모듈 매핑 (rules-loader.ts와 동기화)
- */
-const RULE_MODULES: Record<string, Record<string, string>> = {
-  testRunner: {
-    vitest: 'rules/runner/vitest.md',
-    jest: 'rules/runner/jest.md',
-  },
-  stateManagement: {
-    zustand: 'rules/state/zustand.md',
-    redux: 'rules/state/redux.md',
-    'redux-toolkit': 'rules/state/redux.md',
-  },
-  queryLibrary: {
-    'tanstack-query': 'rules/query/tanstack-query.md',
-    swr: 'rules/query/swr.md',
-  },
-  mockStrategy: {
-    msw: 'rules/mock/msw.md',
-    'module-mock': 'rules/mock/module-mock.md',
-  },
-  router: {
-    'next-app': 'rules/router/next-router.md',
-    'next-pages': 'rules/router/next-router.md',
-    'react-router': 'rules/router/react-router.md',
-  },
-};
-
-/**
- * manifest 설정에서 규칙 내용을 읽어 반환합니다.
- */
-const loadRuleContent = async (
-  field: keyof typeof RULE_MODULES,
-  value: string
-): Promise<string> => {
-  const modulePath = RULE_MODULES[field]?.[value];
-  if (!modulePath) {
-    return '';
-  }
-
-  try {
-    return await readPromptTemplate(modulePath);
-  } catch {
-    return '';
-  }
-};
-
-/**
  * test-implement SKILL을 생성합니다.
  * UI/Unit 테스트 타입에 따라 다른 규칙을 포함합니다.
  */
@@ -206,7 +160,7 @@ export const createTestImplementSkill = async (
   let skillContent = await readPromptTemplate('skills/test-implement.md');
 
   // 테스트 타입별 규칙 로드
-  const typeRulePath = testType === 'ui' ? 'rules/type/ui.md' : 'rules/type/unit.md';
+  const typeRulePath = testType === 'ui' ? 'rules/test-type/ui.md' : 'rules/test-type/unit.md';
   let typeRules = '';
 
   try {

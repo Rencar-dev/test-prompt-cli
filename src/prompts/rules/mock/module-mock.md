@@ -1,201 +1,87 @@
-# Module Mock Rules
+# 모듈 Mock 테스트 규칙
 
-> **MSW 미사용 시 vi.mock/jest.mock으로 API 함수를 직접 Mock하는 규칙입니다.**
+## Meta
 
----
-
-## 1. API 함수 Mock 패턴
-
-```typescript
-// API 모듈 mock
-vi.mock('@/api/user', () => ({
-  fetchUser: vi.fn(),
-  updateUser: vi.fn(),
-}));
-
-// 테스트에서 반환값 설정
-import { fetchUser, updateUser } from '@/api/user';
-
-beforeEach(() => {
-  vi.mocked(fetchUser).mockResolvedValue({ id: 1, name: '홍길동' });
-});
+```yaml
+scope: mockStrategy=module-mock
+inherits: _common.md
+priority: 2
 ```
 
 ---
 
-## 2. Mock 대상 결정
+## 1. 적용 조건
 
-**외부 IO만 Mock. 비즈니스 로직은 Mock 금지.**
+> 다음 조건을 만족할 때 본 문서 적용:
+> - project-manifest.yaml의 mockStrategy가 module-mock
+> - 또는 MSW 없이 모듈 레벨 모킹이 필요한 경우
 
-```typescript
-// ✅ Mock 허용: 외부 API 함수
-vi.mock('@/api/user', () => ({
-  fetchUser: vi.fn(),
-}));
+---
 
-// ✅ Mock 허용: HTTP 클라이언트
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-  },
-}));
+## 2. 공통 규칙 관계
 
-// ❌ Mock 금지: 비즈니스 로직 함수
-vi.mock('@/utils/calculate', () => ({
-  calculateTotal: vi.fn(), // ❌ 로직 검증 불가
-}));
+### Override
+
+| Rule ID | 공통 규칙 | 본 문서 규칙 | 사유 |
+|---------|----------|-------------|------|
+| - | - | - | - |
+
+### Add
+
+- [MOD-001] vi.mock/jest.mock 위치 규칙
+- [MOD-002] 부분 모킹 규칙
+- [MOD-003] 모킹 해제 규칙
+- [MOD-004] 타입 안전 모킹 규칙
+- [MOD-005] 동적 모킹 규칙
+
+---
+
+## 3. 주제 특화 규칙
+
+### 3.1 mock 위치 [MOD-001]
+
+<!-- TODO: 파일 최상단, 호이스팅 동작 -->
+
+### 3.2 부분 모킹 [MOD-002]
+
+<!-- TODO: importOriginal, 특정 함수만 모킹 -->
+
+### 3.3 모킹 해제 [MOD-003]
+
+<!-- TODO: mockRestore, mockReset, mockClear 차이 -->
+
+### 3.4 타입 안전 모킹 [MOD-004]
+
+<!-- TODO: vi.mocked, MockedFunction 타입 -->
+
+### 3.5 동적 모킹 [MOD-005]
+
+<!-- TODO: mockImplementation, mockReturnValue -->
+
+---
+
+## 4. Anti-patterns
+
+| 패턴 | 문제점 | 대안 |
+|------|--------|------|
+| 테스트 내부에서 mock 선언 | 호이스팅 안 됨 | 파일 최상단에 선언 |
+| 과도한 모듈 모킹 | 실제 동작 검증 불가 | 경계만 모킹 |
+
+---
+
+## 5. Self-Check
+
+```
+□ [MOD-001] vi.mock/jest.mock이 파일 최상단에 있는가?
+□ [MOD-002] 필요한 함수만 부분 모킹하는가?
+□ [MOD-003] afterEach에서 mock을 정리하는가?
+□ [MOD-004] 타입 안전하게 모킹하는가?
 ```
 
 ---
 
-## 3. 호이스팅 주의
-
-**vi.mock은 파일 최상단으로 호이스팅됩니다.**
+## 6. Quick Reference
 
 ```typescript
-// ❌ Bad: 외부 변수 참조
-const mockFetchUser = vi.fn();
-vi.mock('@/api/user', () => ({
-  fetchUser: mockFetchUser, // ReferenceError
-}));
-
-// ✅ Good: factory 내부에서 생성
-vi.mock('@/api/user', () => ({
-  fetchUser: vi.fn(),
-}));
-
-// 테스트에서 설정
-import { fetchUser } from '@/api/user';
-beforeEach(() => {
-  vi.mocked(fetchUser).mockResolvedValue({ id: 1 });
-});
+// TODO: 모듈 Mock 자주 쓰는 패턴
 ```
-
----
-
-## 4. vi.mocked 사용
-
-**타입 안전한 Mock 설정:**
-
-```typescript
-import { fetchUser } from '@/api/user';
-
-// vi.mocked로 타입 추론
-vi.mocked(fetchUser).mockResolvedValue({ id: 1, name: '홍길동' });
-vi.mocked(fetchUser).mockRejectedValue(new Error('Network Error'));
-```
-
----
-
-## 5. 부분 Mock (importActual)
-
-```typescript
-vi.mock('@/api/user', async () => {
-  const actual = await vi.importActual('@/api/user');
-  return {
-    ...actual,
-    fetchUser: vi.fn(), // 이것만 mock
-  };
-});
-```
-
----
-
-## 6. axios/fetch Mock 패턴
-
-### axios Mock
-
-```typescript
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    create: vi.fn(() => ({
-      get: vi.fn(),
-      post: vi.fn(),
-      interceptors: {
-        request: { use: vi.fn() },
-        response: { use: vi.fn() },
-      },
-    })),
-  },
-}));
-
-// 테스트에서 설정
-import axios from 'axios';
-vi.mocked(axios.get).mockResolvedValue({ data: { id: 1 } });
-```
-
-### fetch Mock
-
-```typescript
-beforeEach(() => {
-  global.fetch = vi.fn();
-});
-
-it('데이터를 가져온다', async () => {
-  vi.mocked(global.fetch).mockResolvedValue({
-    ok: true,
-    json: async () => ({ id: 1, name: '홍길동' }),
-  } as Response);
-
-  // ... 테스트
-});
-```
-
----
-
-## 7. 에러 응답 Mock
-
-```typescript
-// 네트워크 에러
-vi.mocked(fetchUser).mockRejectedValue(new Error('Network Error'));
-
-// API 에러 응답
-vi.mocked(fetchUser).mockRejectedValue({
-  response: {
-    status: 401,
-    data: { message: '인증 실패' },
-  },
-});
-```
-
----
-
-## 8. Mock 초기화
-
-```typescript
-beforeEach(() => {
-  vi.clearAllMocks(); // 호출 기록 초기화
-});
-
-afterEach(() => {
-  vi.restoreAllMocks(); // 원래 구현 복원
-});
-```
-
----
-
-## 9. 호출 검증
-
-```typescript
-it('올바른 파라미터로 API를 호출한다', async () => {
-  vi.mocked(fetchUser).mockResolvedValue({ id: 1 });
-
-  // ... 테스트 실행
-
-  expect(fetchUser).toHaveBeenCalledWith({ id: 'user123' });
-  expect(fetchUser).toHaveBeenCalledTimes(1);
-});
-```
-
----
-
-## 10. Self-Check
-
-- [ ] 외부 IO/API 함수만 mock했는가?
-- [ ] 비즈니스 로직 함수는 mock하지 않았는가?
-- [ ] 호이스팅을 고려하여 factory를 작성했는가?
-- [ ] `beforeEach`에서 mock을 초기화했는가?
-- [ ] `vi.mocked()`로 타입 안전하게 설정했는가?

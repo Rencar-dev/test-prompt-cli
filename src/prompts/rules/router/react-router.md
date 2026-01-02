@@ -1,156 +1,86 @@
-# React Router Rules
+# React Router 테스트 규칙
 
-> **React Router 사용 시 적용되는 규칙입니다.**
+## Meta
 
----
-
-## 1. MemoryRouter 래핑
-
-**테스트에서는 BrowserRouter 대신 MemoryRouter를 사용합니다.**
-
-```typescript
-import { MemoryRouter } from 'react-router-dom';
-
-const renderWithRouter = (ui: React.ReactElement, initialEntries = ['/']) => {
-  return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      {ui}
-    </MemoryRouter>
-  );
-};
+```yaml
+scope: router=react-router
+inherits: _common.md
+priority: 2
 ```
 
 ---
 
-## 2. useNavigate Mock
+## 1. 적용 조건
 
-```typescript
-const mockNavigate = vi.fn();
+> 다음 조건을 만족할 때 본 문서 적용:
+> - project-manifest.yaml의 router가 react-router
+> - React Router v6+ 사용
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
+---
 
-beforeEach(() => {
-  mockNavigate.mockClear();
-});
+## 2. 공통 규칙 관계
+
+### Override
+
+| Rule ID | 공통 규칙 | 본 문서 규칙 | 사유 |
+|---------|----------|-------------|------|
+| - | - | - | - |
+
+### Add
+
+- [RR-001] MemoryRouter 래핑 규칙
+- [RR-002] 라우트 파라미터 테스트 규칙
+- [RR-003] 네비게이션 테스트 규칙
+- [RR-004] Loader/Action 테스트 규칙
+- [RR-005] 보호된 라우트 테스트 규칙
+
+---
+
+## 3. 주제 특화 규칙
+
+### 3.1 MemoryRouter 래핑 [RR-001]
+
+<!-- TODO: MemoryRouter, initialEntries 설정 -->
+
+### 3.2 라우트 파라미터 테스트 [RR-002]
+
+<!-- TODO: useParams, 동적 라우트 테스트 -->
+
+### 3.3 네비게이션 테스트 [RR-003]
+
+<!-- TODO: useNavigate, Link 클릭 후 URL 변경 확인 -->
+
+### 3.4 Loader/Action 테스트 [RR-004]
+
+<!-- TODO: createMemoryRouter, loader/action 함수 테스트 -->
+
+### 3.5 보호된 라우트 테스트 [RR-005]
+
+<!-- TODO: 인증 상태에 따른 리다이렉트 -->
+
+---
+
+## 4. Anti-patterns
+
+| 패턴 | 문제점 | 대안 |
+|------|--------|------|
+| BrowserRouter 사용 | 테스트에서 history 제어 불가 | MemoryRouter 사용 |
+
+---
+
+## 5. Self-Check
+
+```
+□ [RR-001] MemoryRouter로 컴포넌트를 래핑하는가?
+□ [RR-002] initialEntries로 초기 경로를 설정하는가?
+□ [RR-003] 네비게이션 후 URL 변경을 검증하는가?
+□ [RR-004] Loader/Action을 독립적으로 테스트하는가?
 ```
 
 ---
 
-## 3. useLocation / useParams Mock
+## 6. Quick Reference
 
 ```typescript
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useLocation: () => ({
-      pathname: '/users/123',
-      search: '?tab=profile',
-      hash: '',
-      state: null,
-    }),
-    useParams: () => ({
-      id: '123',
-    }),
-  };
-});
+// TODO: React Router 테스트 자주 쓰는 패턴
 ```
-
----
-
-## 4. 동적 라우트 파라미터
-
-```typescript
-const { setParams, getParams } = vi.hoisted(() => {
-  let params: Record<string, string> = {};
-  return {
-    setParams: (p: Record<string, string>) => { params = p; },
-    getParams: () => params,
-  };
-});
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useParams: () => getParams(),
-  };
-});
-
-// 테스트에서 사용
-it('사용자 ID에 해당하는 정보를 표시한다', () => {
-  setParams({ id: '456' });
-  renderWithRouter(<UserProfile />);
-  // ...
-});
-```
-
----
-
-## 5. 네비게이션 검증
-
-```typescript
-it('로그인 성공 시 대시보드로 이동한다', async () => {
-  renderWithRouter(<LoginPage />);
-
-  await userEvent.type(screen.getByPlaceholderText('아이디'), 'testuser');
-  await userEvent.click(screen.getByRole('button', { name: '로그인' }));
-
-  await waitFor(() => {
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
-  });
-});
-```
-
----
-
-## 6. Link 컴포넌트 테스트
-
-```typescript
-it('링크가 올바른 경로를 가리킨다', () => {
-  renderWithRouter(<Navigation />);
-
-  const link = screen.getByRole('link', { name: '홈' });
-  expect(link).toHaveAttribute('href', '/');
-});
-```
-
----
-
-## 7. 전체 라우트 테스트
-
-```typescript
-import { Routes, Route } from 'react-router-dom';
-
-const renderWithRoutes = (initialEntries = ['/']) => {
-  return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </MemoryRouter>
-  );
-};
-
-it('/dashboard 접근 시 Dashboard 페이지가 렌더링된다', () => {
-  renderWithRoutes(['/dashboard']);
-  expect(screen.getByText('대시보드')).toBeInTheDocument();
-});
-```
-
----
-
-## 8. Self-Check
-
-- [ ] `MemoryRouter`로 컴포넌트를 감쌌는가?
-- [ ] `useNavigate` mock을 `beforeEach`에서 초기화했는가?
-- [ ] `importActual`로 실제 구현을 유지했는가?
-- [ ] 네비게이션 검증 시 `toHaveBeenCalledWith()`로 경로를 확인했는가?

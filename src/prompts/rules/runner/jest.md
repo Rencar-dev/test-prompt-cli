@@ -1,131 +1,85 @@
-# Jest Rules
+# Jest 테스트 규칙
 
-> **Jest 테스트 러너 사용 시 적용되는 규칙입니다.**
+## Meta
 
----
-
-## 1. 기본 Import
-
-```typescript
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
-// Jest globals는 자동 제공 (describe, it, expect, jest)
+```yaml
+scope: testRunner=jest
+inherits: _common.md
+priority: 2
 ```
 
 ---
 
-## 2. jest.mock 호이스팅
+## 1. 적용 조건
 
-**`jest.mock`은 파일 최상단으로 호이스팅됩니다.**
+> 다음 조건을 만족할 때 본 문서 적용:
+> - project-manifest.yaml의 testRunner가 jest
 
-```typescript
-// ❌ Bad: 외부 변수 참조
-const mockFn = jest.fn();
-jest.mock('@/utils', () => ({ myFn: mockFn }));
+---
 
-// ✅ Good: factory 내부에서 생성
-jest.mock('@/utils', () => ({
-  myFn: jest.fn(),
-}));
+## 2. 공통 규칙 관계
 
-// ✅ Good: jest.requireActual 사용
-jest.mock('@/utils', () => ({
-  ...jest.requireActual('@/utils'),
-  myFn: jest.fn(),
-}));
+### Override
+
+| Rule ID | 공통 규칙 | 본 문서 규칙 | 사유 |
+|---------|----------|-------------|------|
+| - | - | - | - |
+
+### Add
+
+- [JEST-001] Jest 설정 규칙
+- [JEST-002] jest.mock 사용 규칙
+- [JEST-003] jest.spyOn 사용 규칙
+- [JEST-004] jest.fn 사용 규칙
+- [JEST-005] 타이머 Mock 규칙
+
+---
+
+## 3. 주제 특화 규칙
+
+### 3.1 Jest 설정 [JEST-001]
+
+<!-- TODO: jest.config.js 설정, testEnvironment, setupFilesAfterEnv -->
+
+### 3.2 jest.mock 사용 [JEST-002]
+
+<!-- TODO: 모듈 모킹, 호이스팅, __mocks__ 폴더 -->
+
+### 3.3 jest.spyOn 사용 [JEST-003]
+
+<!-- TODO: 메서드 스파이, mockImplementation, mockRestore -->
+
+### 3.4 jest.fn 사용 [JEST-004]
+
+<!-- TODO: mock 함수 생성, mockReturnValue, mockResolvedValue -->
+
+### 3.5 타이머 Mock [JEST-005]
+
+<!-- TODO: useFakeTimers, advanceTimersByTime, useRealTimers -->
+
+---
+
+## 4. Anti-patterns
+
+| 패턴 | 문제점 | 대안 |
+|------|--------|------|
+| - | - | - |
+
+---
+
+## 5. Self-Check
+
+```
+□ [JEST-001] jest.mock이 파일 최상단에 위치하는가?
+□ [JEST-002] afterEach에서 jest.clearAllMocks()를 호출하는가?
+□ [JEST-003] 타이머 Mock 후 useRealTimers로 복원하는가?
+□ [JEST-004] spyOn 후 mockRestore로 복원하는가?
 ```
 
 ---
 
-## 3. jest.spyOn 패턴
+## 6. Quick Reference
 
 ```typescript
-// 기본 사용
-const fetchSpy = jest.spyOn(api, 'fetchUser').mockResolvedValue({ id: 1 });
-
-// 테스트 후 복원
-afterEach(() => {
-  fetchSpy.mockRestore();
-});
-
-// 또는 전역 복원
-afterEach(() => {
-  jest.restoreAllMocks();
-});
+// TODO: Jest 자주 쓰는 패턴
 ```
-
----
-
-## 4. Module Path Mock
-
-```typescript
-// barrel export와 직접 import 경로 둘 다 mock
-jest.mock('@/hooks', () => ({
-  useCustomRouter: () => ({ push: jest.fn() }),
-}));
-jest.mock('@/hooks/useCustomRouter', () => ({
-  useCustomRouter: () => ({ push: jest.fn() }),
-}));
-```
-
----
-
-## 5. jest.requireActual 패턴
-
-**일부만 mock하고 나머지는 실제 구현 사용:**
-
-```typescript
-jest.mock('@/constants', () => ({
-  ...jest.requireActual('@/constants'),
-  ERROR_CODE: {
-    ...jest.requireActual('@/constants').ERROR_CODE,
-    INVALID: 101,
-  },
-}));
-```
-
----
-
-## 6. Fake Timers
-
-```typescript
-beforeEach(() => {
-  jest.useFakeTimers();
-  jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
-});
-
-afterEach(() => {
-  jest.useRealTimers();
-});
-
-it('타이머 테스트', () => {
-  // 타이머 진행
-  jest.advanceTimersByTime(1000);
-
-  // 또는 모든 타이머 즉시 실행
-  jest.runAllTimers();
-});
-```
-
----
-
-## 7. Mock 초기화
-
-```typescript
-beforeEach(() => {
-  jest.clearAllMocks(); // 호출 기록만 초기화
-});
-
-afterEach(() => {
-  jest.restoreAllMocks(); // 원래 구현으로 복원
-});
-```
-
----
-
-## 8. Self-Check
-
-- [ ] `jest.mock` factory에서 외부 변수를 참조하지 않았는가?
-- [ ] barrel export와 직접 import 경로 둘 다 mock했는가?
-- [ ] `afterEach`에서 mock을 정리했는가?

@@ -93,12 +93,12 @@ describe('setup', () => {
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       vi.spyOn(fileUtils, 'readPromptTemplate')
         .mockResolvedValueOnce(mockTemplate) // skills/test-implement.md
-        .mockResolvedValueOnce(mockTypeRules); // rules/type/ui.md
+        .mockResolvedValueOnce(mockTypeRules); // rules/test-type/ui.md
 
       await createTestImplementSkill('ui');
 
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('skills/test-implement.md');
-      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/type/ui.md');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/test-type/ui.md');
       expect(writeFileSpy).toHaveBeenCalledWith(
         expect.stringContaining('.claude/skills/test-implement/SKILL.md'),
         expect.stringContaining('UI'),
@@ -115,12 +115,12 @@ describe('setup', () => {
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       vi.spyOn(fileUtils, 'readPromptTemplate')
         .mockResolvedValueOnce(mockTemplate) // skills/test-implement.md
-        .mockResolvedValueOnce(mockTypeRules); // rules/type/unit.md
+        .mockResolvedValueOnce(mockTypeRules); // rules/test-type/unit.md
 
       await createTestImplementSkill('unit');
 
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('skills/test-implement.md');
-      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/type/unit.md');
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('rules/test-type/unit.md');
       expect(writeFileSpy).toHaveBeenCalledWith(
         expect.stringContaining('SKILL.md'),
         expect.stringContaining('Unit'),

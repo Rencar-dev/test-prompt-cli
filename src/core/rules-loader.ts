@@ -14,15 +14,14 @@ import { TestType } from './test-type.js';
  * 규칙 모듈 매핑
  * manifest 필드값 → 규칙 파일 경로
  */
-const RULE_MODULES: Record<string, Record<string, string>> = {
+export const RULE_MODULES: Record<string, Record<string, string>> = {
   testRunner: {
     vitest: 'rules/runner/vitest.md',
     jest: 'rules/runner/jest.md',
   },
   stateManagement: {
     zustand: 'rules/state/zustand.md',
-    redux: 'rules/state/redux.md',
-    'redux-toolkit': 'rules/state/redux.md', // redux와 동일한 규칙 사용
+    'redux-toolkit': 'rules/state/redux-toolkit.md',
     recoil: 'rules/state/recoil.md',
     jotai: 'rules/state/jotai.md',
   },
@@ -39,28 +38,51 @@ const RULE_MODULES: Record<string, Record<string, string>> = {
     'module-mock': 'rules/mock/module-mock.md',
   },
   router: {
-    'next-app': 'rules/router/next-router.md',
-    'next-pages': 'rules/router/next-router.md',
+    'next-app': 'rules/router/next-app.md',
+    'next-pages': 'rules/router/next-pages.md',
     'react-router': 'rules/router/react-router.md',
   },
 };
 
 /**
  * 테스트 타입별 기본 규칙
- * - core.md: 모든 테스트에 공통 적용
- * - type/ui.md: UI 통합 테스트 전용 (RTL 패턴, POM, Toast/Alert 등)
- * - type/unit.md: Unit 테스트 전용 (경곗값 분석, renderHook, Store 테스트 등)
+ * - _common.md: 모든 테스트에 공통 적용 (Level 0)
+ * - test-type/ui.md: UI 통합 테스트 전용 (Level 1)
+ * - test-type/unit.md: Unit 테스트 전용 (Level 1)
  */
 const BASE_RULES: Record<TestType, string[]> = {
-  ui: ['rules/core.md', 'rules/type/ui.md'],
-  unit: ['rules/core.md', 'rules/type/unit.md'],
+  ui: ['rules/_common.md', 'rules/test-type/ui.md'],
+  unit: ['rules/_common.md', 'rules/test-type/unit.md'],
+};
+
+/**
+ * 개별 규칙 내용을 읽어 반환합니다.
+ * @param field - manifest 필드명 (testRunner, stateManagement 등)
+ * @param value - 필드 값 (vitest, zustand 등)
+ * @returns 규칙 내용 문자열 (없으면 빈 문자열)
+ */
+export const loadRuleContent = async (
+  field: keyof typeof RULE_MODULES,
+  value: string
+): Promise<string> => {
+  const modulePath = RULE_MODULES[field]?.[value];
+  if (!modulePath) {
+    return '';
+  }
+
+  try {
+    return await readPromptTemplate(modulePath);
+  } catch {
+    logger.warn(`규칙 모듈을 찾을 수 없습니다: ${modulePath}`);
+    return '';
+  }
 };
 
 /**
  * manifest 설정 기반으로 필요한 규칙 모듈 파일 목록을 반환합니다.
  */
 export const getRuleModulePaths = (manifest: ManifestConfig): string[] => {
-  const modules: string[] = ['rules/core.md']; // 항상 포함
+  const modules: string[] = ['rules/_common.md']; // 항상 포함 (Level 0)
 
   // 각 필드에 대해 해당하는 모듈 추가
   const fields: (keyof ManifestConfig)[] = [

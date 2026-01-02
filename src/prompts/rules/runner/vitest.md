@@ -1,22 +1,55 @@
-# Vitest Rules
+# Vitest 테스트 규칙
 
-> **Vitest 테스트 러너 사용 시 적용되는 규칙입니다.**
+## Meta
 
----
-
-## 1. 기본 Import
-
-```typescript
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+```yaml
+scope: testRunner=vitest
+inherits: _common.md
+priority: 2
 ```
 
 ---
 
-## 2. vi.mock 호이스팅 주의
+## 1. 적용 조건
+
+> 다음 조건을 만족할 때 본 문서 적용:
+> - project-manifest.yaml의 testRunner가 vitest
+
+---
+
+## 2. 공통 규칙 관계
+
+### Override
+
+| Rule ID | 공통 규칙 | 본 문서 규칙 | 사유 |
+|---------|----------|-------------|------|
+| - | - | - | - |
+
+### Add
+
+- [VIT-001] vi.mock 호이스팅 규칙
+- [VIT-002] vi.hoisted 패턴
+- [VIT-003] Module Path Mock 규칙
+- [VIT-004] vi.importActual 패턴
+- [VIT-005] Fake Timers 규칙
+- [VIT-006] Import 순서 규칙
+
+---
+
+## 3. 주제 특화 규칙
+
+### 3.1 vi.mock 호이스팅 [VIT-001] ⚠️ Critical
 
 **`vi.mock`은 파일 최상단으로 호이스팅됩니다. factory 내부에서 외부 변수를 참조하면 TDZ 에러가 발생합니다.**
+
+#### DO / DON'T
+
+```
+MUST: vi.mock factory 내부에서 mock 객체 직접 생성
+MUST: vi.mock을 파일 최상단에 배치
+
+MUST NOT: factory 외부에서 정의한 변수를 factory 내부에서 참조
+```
 
 ```typescript
 // ❌ Bad: 외부 변수 참조 → ReferenceError
@@ -35,9 +68,19 @@ vi.mock('@/utils', () => ({
 
 ---
 
-## 3. vi.hoisted 패턴
+### 3.2 vi.hoisted 패턴 [VIT-002]
 
-**테스트별로 Mock 상태를 동적으로 변경해야 할 때 사용:**
+**테스트별로 Mock 상태를 동적으로 변경해야 할 때 사용합니다.**
+
+#### Decision Tree
+
+```
+Q1: 테스트별로 Mock 반환값이 달라야 하는가?
+├─ YES → vi.hoisted 사용
+└─ NO → 일반 vi.mock 사용
+```
+
+#### 기본 패턴
 
 ```typescript
 // ✅ Good: vi.hoisted로 상태 관리
@@ -49,7 +92,6 @@ vi.mock('@/hooks/useCustomRouter', () => ({
   useCustomRouter: () => ({ push: mockPush }),
 }));
 
-// 테스트에서 사용
 beforeEach(() => {
   mockPush.mockClear();
 });
@@ -60,7 +102,7 @@ it('로그인 성공 시 대시보드로 이동', async () => {
 });
 ```
 
-### 고급 패턴: 클로저 기반 동적 상태
+#### 고급 패턴: 클로저 기반 동적 상태
 
 ```typescript
 const { setSearchParams, getSearchParams } = vi.hoisted(() => {
@@ -89,31 +131,21 @@ it('초기 아이디가 미리 채워진다', () => {
 
 ---
 
-## 4. vi.spyOn 패턴
-
-```typescript
-// 기본 사용
-const fetchSpy = vi.spyOn(api, 'fetchUser').mockResolvedValue({ id: 1 });
-
-// 테스트 후 복원
-afterEach(() => {
-  fetchSpy.mockRestore();
-});
-
-// 또는 전역 복원
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-```
-
----
-
-## 5. Module Path Mock 주의
+### 3.3 Module Path Mock [VIT-003]
 
 **동일 모듈이라도 import 경로가 다르면 각각 mock해야 합니다.**
 
+#### DO / DON'T
+
+```
+MUST: barrel export와 직접 import 경로 모두 mock
+MUST: 모듈이 여러 경로로 import되는지 확인
+
+MUST NOT: 한 경로만 mock하고 테스트 실패 시 당황
+```
+
 ```typescript
-// 문제: barrel export와 직접 import 경로가 다름
+// 문제 상황:
 // LoginForm.tsx → import { useCustomRouter } from '@/hooks';
 // useAuth.ts → import { useCustomRouter } from '../useCustomRouter';
 
@@ -133,9 +165,9 @@ vi.mock('@/hooks/useCustomRouter', () => ({
 
 ---
 
-## 6. vi.importActual 패턴
+### 3.4 vi.importActual 패턴 [VIT-004]
 
-**일부만 mock하고 나머지는 실제 구현 사용:**
+**일부만 mock하고 나머지는 실제 구현을 사용합니다.**
 
 ```typescript
 import type * as ConstantsModule from '@/constants';
@@ -154,7 +186,9 @@ vi.mock('@/constants', async () => {
 
 ---
 
-## 7. Fake Timers
+### 3.5 Fake Timers [VIT-005] ⚠️ Critical
+
+#### 기본 사용법
 
 ```typescript
 beforeEach(() => {
@@ -167,17 +201,13 @@ afterEach(() => {
 });
 
 it('타이머 테스트', async () => {
-  // 타이머 진행
   vi.advanceTimersByTime(1000);
-
   // 또는 모든 타이머 즉시 실행
   vi.runAllTimers();
 });
 ```
 
-### 7.1 setInterval 테스트 패턴
-
-> **목적**: `setInterval` 기반의 주기적 API 호출, 폴링 등을 테스트
+#### setInterval 테스트 패턴
 
 **핵심 옵션**: `shouldAdvanceTime: true`
 
@@ -204,27 +234,17 @@ it('10초에 한번씩 서버에 주문 상태를 조회합니다.', async () =>
 });
 ```
 
-**`shouldAdvanceTime` 옵션 설명**:
-- `true`: 타이머가 진행될 때 `Date.now()`도 함께 증가
-- `false` (기본값): 타이머만 진행, `Date.now()`는 고정
+#### MSW/Promise와의 충돌 ⚠️ 절대 금지
 
-### 7.2 MSW/Promise와의 충돌
-
-> **절대 금지**: 서버 응답(MSW)이나 Promise 기반 비동기 작업이 포함된 경우 fake timers를 사용하면 안 된다.
+```
+MUST NOT: vi.useFakeTimers() 상태에서 MSW 응답이나 Promise 기반 비동기 작업 대기
+MUST: fake timers 사용 후 waitFor 전에 반드시 vi.useRealTimers()로 복귀
+MUST: 포커스 이동과 서버 응답 테스트를 분리
+```
 
 **문제 상황:**
-- `vi.useFakeTimers()` 상태에서는 Promise의 `.then()`, `.catch()`, `async/await`가 제대로 진행되지 않음
-- MSW의 네트워크 응답도 멈춤 → `waitFor`가 무한 대기 → 타임아웃 발생 (`Test timed out in 5000ms`)
-
-**규칙:**
-
-1. **포커스 이동만 테스트하는 경우**: fake timers 사용 가능
-   - `vi.useFakeTimers()` → `runAllTimersAsync()` → `vi.useRealTimers()` → `waitFor`로 포커스 검증
-
-2. **서버 응답이 필요한 경우(로그인 제출 등)**: fake timers **절대 사용하지 않는다**
-   - 실시간 타이머로 테스트하거나, 포커스 이동과 로그인 제출을 **별도 테스트로 분리**
-
-3. **fake timers 사용 후 `waitFor` 전에 반드시 `vi.useRealTimers()`로 복귀**
+- `vi.useFakeTimers()` 상태에서는 Promise의 `.then()`, `.catch()`, `async/await`가 진행되지 않음
+- MSW의 네트워크 응답도 멈춤 → `waitFor`가 무한 대기 → `Test timed out in 5000ms`
 
 ```typescript
 // ❌ Bad: fake timers + MSW 응답 대기 → 타임아웃
@@ -253,16 +273,117 @@ it('포커스 이동 테스트 (서버 응답 없음)', async () => {
 });
 ```
 
-**Self-Check:**
-- [ ] `vi.useFakeTimers()` 사용 후 MSW 응답이나 API 호출이 필요한가?
-- [ ] fake timers 사용 후 `waitFor` 전에 `vi.useRealTimers()`를 호출했는가?
-- [ ] 포커스 이동과 서버 응답 테스트를 분리했는가?
+---
+
+### 3.6 Import 순서 규칙 [VIT-006]
+
+**vi.mock은 파일 최상단으로 호이스팅됩니다.** 따라서 import 순서와 관계없이 mock이 먼저 적용됩니다.
+
+#### DO / DON'T
+
+```
+MUST: 모든 import를 파일 상단에 모아서 작성
+MUST: vi.mock은 import 블록 이후에 작성 (가독성)
+
+MUST NOT: vi.mock 사이에 import를 끼워넣기
+MUST NOT: "mock이 먼저 적용되려면 import가 뒤에 있어야 한다"는 잘못된 이해
+```
+
+#### 잘못된 이해 (import를 vi.mock 이후에 배치)
+
+```typescript
+// ❌ Bad: 잘못된 이해에서 비롯된 패턴
+vi.mock('@/utils', () => ({...}));
+
+// "mock이 적용되려면 import가 vi.mock 이후에 있어야 한다"
+import { userStore } from '@/stores/user';  // ← 불필요한 패턴
+```
+
+#### 올바른 구조 (모든 import를 상단에)
+
+```typescript
+// ✅ Good: 모든 import를 파일 상단에 모음
+import { screen, waitFor } from '@testing-library/react';
+import { userStore } from '@/stores/user';
+import { alertStore } from '@/stores/alert';
+import LoginPage from '../page';
+
+// vi.mock은 import 이후에 작성해도 호이스팅됨
+vi.mock('@/utils', () => ({...}));
+vi.mock('next/navigation', () => ({...}));
+```
+
+#### 실제 동작 순서
+
+```typescript
+// 1. 작성한 코드
+import { foo } from './moduleA';
+vi.mock('./moduleB', () => ({ bar: vi.fn() }));
+
+// 2. 실제 실행 순서 (호이스팅 적용)
+vi.mock('./moduleB', () => ({ bar: vi.fn() }));  // ← 먼저 실행
+import { foo } from './moduleA';                  // ← 그 다음 실행
+```
 
 ---
 
-## 8. Self-Check
+## 4. Anti-patterns
 
-- [ ] `vi.mock` factory에서 외부 변수를 참조하지 않았는가?
-- [ ] 동적 상태가 필요하면 `vi.hoisted`를 사용했는가?
-- [ ] barrel export와 직접 import 경로 둘 다 mock했는가?
-- [ ] `afterEach`에서 mock을 정리했는가?
+| 패턴 | 문제점 | 대안 |
+|------|--------|------|
+| vi.mock factory에서 외부 변수 참조 | TDZ ReferenceError | factory 내부에서 생성 또는 vi.hoisted |
+| barrel export만 mock | 다른 경로 import는 mock 안 됨 | 모든 가능한 경로 mock |
+| fake timers + MSW 동시 사용 | Promise 멈춤, 타임아웃 | 분리하거나 useRealTimers 후 waitFor |
+| mock 정리 누락 | 테스트 간 오염 | afterEach에서 vi.restoreAllMocks() |
+| vi.mock 사이에 import 끼워넣기 | 가독성 저하, 잘못된 이해 유발 | 모든 import를 상단에 모음 |
+
+---
+
+## 5. Self-Check
+
+```
+□ [VIT-001] vi.mock factory에서 외부 변수를 참조하지 않았는가?
+□ [VIT-002] 동적 상태가 필요하면 vi.hoisted를 사용했는가?
+□ [VIT-003] barrel export와 직접 import 경로 둘 다 mock했는가?
+□ [VIT-005] fake timers 사용 후 waitFor 전에 vi.useRealTimers()를 호출했는가?
+□ [VIT-005] fake timers 사용 시 MSW 응답이 필요한 테스트를 분리했는가?
+□ [VIT-006] 모든 import가 파일 상단에 모여있는가? (vi.mock 사이에 끼워넣지 않음)
+□ afterEach에서 mock을 정리(vi.restoreAllMocks)했는가?
+```
+
+---
+
+## 6. Quick Reference
+
+```typescript
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+// vi.hoisted 패턴
+const { mockFn } = vi.hoisted(() => ({ mockFn: vi.fn() }));
+
+vi.mock('@/module', () => ({
+  someFunction: mockFn,
+}));
+
+// 정리
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers(); // 타이머 복원
+});
+
+// vi.spyOn 패턴
+const fetchSpy = vi.spyOn(api, 'fetchUser').mockResolvedValue({ id: 1 });
+
+// fake timers 패턴
+vi.useFakeTimers({ shouldAdvanceTime: true });
+vi.setSystemTime(new Date('2024-01-01'));
+vi.advanceTimersByTime(1000);
+vi.runAllTimersAsync();
+vi.useRealTimers();
+```

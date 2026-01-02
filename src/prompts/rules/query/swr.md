@@ -1,106 +1,86 @@
-# SWR Rules
+# SWR 테스트 규칙
 
-> **SWR 데이터 페칭 라이브러리 사용 시 적용되는 규칙입니다.**
+## Meta
 
----
-
-## 1. SWR Hook Mocking 금지
-
-**useSWR을 직접 Mock하면 실제 데이터 페칭 로직이 검증되지 않습니다.**
-
-```typescript
-// ❌ Bad: Hook 직접 mock
-vi.mock('swr', () => ({
-  default: () => ({ data: mockData, error: null }),
-}));
-
-// ✅ Good: API 응답 제어 (MSW 또는 fetch mock)
-server.use(
-  http.get(`${API_BASE_URL}/user`, () =>
-    HttpResponse.json({ id: 1, name: '홍길동' })
-  )
-);
+```yaml
+scope: queryLibrary=swr
+inherits: _common.md
+priority: 2
 ```
 
 ---
 
-## 2. SWRConfig 설정
+## 1. 적용 조건
 
-```typescript
-import { SWRConfig } from 'swr';
+> 다음 조건을 만족할 때 본 문서 적용:
+> - project-manifest.yaml의 queryLibrary가 swr
+> - 테스트 대상이 useSWR을 사용
 
-const renderWithSWR = (ui: React.ReactElement) => {
-  return render(
-    <SWRConfig
-      value={{
-        dedupingInterval: 0, // 테스트에서 중복 제거 비활성화
-        provider: () => new Map(), // 각 테스트마다 새 캐시
-      }}
-    >
-      {ui}
-    </SWRConfig>
-  );
-};
+---
+
+## 2. 공통 규칙 관계
+
+### Override
+
+| Rule ID | 공통 규칙 | 본 문서 규칙 | 사유 |
+|---------|----------|-------------|------|
+| - | - | - | - |
+
+### Add
+
+- [SWR-001] SWRConfig 설정 규칙
+- [SWR-002] useSWR 테스트 규칙
+- [SWR-003] useSWRMutation 테스트 규칙
+- [SWR-004] 캐시 테스트 규칙
+- [SWR-005] 에러/로딩 상태 규칙
+
+---
+
+## 3. 주제 특화 규칙
+
+### 3.1 SWRConfig 설정 [SWR-001]
+
+<!-- TODO: provider 옵션, dedupingInterval: 0 -->
+
+### 3.2 useSWR 테스트 [SWR-002]
+
+<!-- TODO: 로딩→성공 흐름, 에러 케이스, revalidate -->
+
+### 3.3 useSWRMutation 테스트 [SWR-003]
+
+<!-- TODO: trigger 호출, 낙관적 업데이트 -->
+
+### 3.4 캐시 테스트 [SWR-004]
+
+<!-- TODO: mutate, cache.clear -->
+
+### 3.5 에러/로딩 상태 [SWR-005]
+
+<!-- TODO: isLoading, isValidating, error -->
+
+---
+
+## 4. Anti-patterns
+
+| 패턴 | 문제점 | 대안 |
+|------|--------|------|
+| - | - | - |
+
+---
+
+## 5. Self-Check
+
+```
+□ [SWR-001] SWRConfig로 테스트 환경을 설정하는가?
+□ [SWR-002] dedupingInterval: 0으로 캐시 중복을 방지하는가?
+□ [SWR-003] 로딩/성공/에러 상태를 모두 테스트하는가?
+□ [SWR-004] MSW로 API 응답을 모킹하는가?
 ```
 
 ---
 
-## 3. 캐시 초기화
+## 6. Quick Reference
 
 ```typescript
-import { cache } from 'swr';
-
-afterEach(() => {
-  cache.clear(); // SWR 캐시 초기화
-});
+// TODO: SWR 테스트 자주 쓰는 패턴
 ```
-
----
-
-## 4. useSWR 테스트
-
-```typescript
-it('사용자 정보를 로드한다', async () => {
-  server.use(
-    http.get(`${API_BASE_URL}/user`, () =>
-      HttpResponse.json({ id: 1, name: '홍길동' })
-    )
-  );
-
-  renderWithSWR(<UserProfile />);
-
-  await waitFor(() => {
-    expect(screen.getByText('홍길동')).toBeInTheDocument();
-  });
-});
-```
-
----
-
-## 5. useSWRMutation 테스트
-
-```typescript
-it('데이터 저장 시 성공 메시지를 표시한다', async () => {
-  server.use(
-    http.post(`${API_BASE_URL}/user`, () =>
-      HttpResponse.json({ success: true })
-    )
-  );
-
-  renderWithSWR(<UserForm />);
-
-  await userEvent.click(screen.getByRole('button', { name: '저장' }));
-
-  await waitFor(() => {
-    expect(screen.getByText('저장 완료')).toBeInTheDocument();
-  });
-});
-```
-
----
-
-## 6. Self-Check
-
-- [ ] `useSWR`을 직접 mock하지 않았는가?
-- [ ] `SWRConfig`로 컴포넌트를 감쌌는가?
-- [ ] 각 테스트 후 캐시를 초기화했는가?
