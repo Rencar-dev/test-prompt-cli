@@ -52,11 +52,15 @@ description: |
 
 1. `project-manifest.yaml` 파일에서 `lintCommand` 값 확인
 2. 해당 명령어에 테스트 파일 경로 추가하여 **그대로** 실행
+3. **미사용 변수 강제 검사** 추가 실행 (프로젝트 설정과 무관)
 
 ```bash
 # project-manifest.yaml 예시:
 # lintCommand: yarn eslint --fix
 # → 실행: yarn eslint --fix [테스트 파일 경로]
+
+# 미사용 변수 강제 검사 (프로젝트 설정 무관하게 필수)
+yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 경로]
 ```
 
 **실패 시 처리**:
