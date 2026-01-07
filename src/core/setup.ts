@@ -2,9 +2,50 @@ import fs from 'fs-extra';
 import path from 'path';
 import { logger } from '../utils/logger.js';
 import { readPromptTemplate } from '../utils/file.js';
-import { getManifestConfig } from '../utils/manifest.js';
+import { getPromptsPath } from '../utils/path.js';
+import { getManifestConfig, ManifestConfig } from '../utils/manifest.js';
 import { TestType } from './test-type.js';
-import { loadRuleContent, loadCommonRules, loadTestTypeRules, ADDITIONAL_RULES } from './rules-loader.js';
+import { RULE_MODULES, CONTEXT_BASED_RULES } from './rules-loader.js';
+
+/**
+ * manifest 설정에 따라 적용할 규칙 파일 경로 목록을 생성합니다.
+ */
+export const getRuleFilePaths = (
+  manifest: ManifestConfig,
+  testType: TestType
+): string[] => {
+  const paths: string[] = [];
+
+  // 1. 필수 규칙 (항상 포함)
+  paths.push('_common.md');
+  paths.push(`test-type/${testType}.md`);
+
+  // 2. Manifest 기반 규칙
+  const fields: Array<keyof typeof RULE_MODULES> = [
+    'testRunner',
+    'stateManagement',
+    'queryLibrary',
+    'mockStrategy',
+    'router',
+  ];
+
+  for (const field of fields) {
+    const value = manifest[field as keyof ManifestConfig];
+    if (value && value !== 'none') {
+      const modulePath = RULE_MODULES[field]?.[value];
+      if (modulePath) {
+        if (Array.isArray(modulePath)) {
+          // 배열인 경우 (예: vitest → [_shared.md, vitest.md])
+          paths.push(...modulePath.map((p) => p.replace('rules/', '')));
+        } else {
+          paths.push(modulePath.replace('rules/', ''));
+        }
+      }
+    }
+  }
+
+  return [...new Set(paths)]; // 중복 제거
+};
 
 /**
  * project-test-lessons.md 파일이 없으면 기본 템플릿으로 생성합니다.
@@ -145,9 +186,29 @@ export const createTestCoverageSkill = async (): Promise<void> => {
 };
 
 /**
+ * 규칙 파일들을 .claude/rules/ 디렉토리로 복사합니다.
+ * SKILL 파일에서 참조하는 규칙 파일들을 대상 프로젝트에 배치합니다.
+ */
+export const syncRuleFiles = async (): Promise<void> => {
+  const sourceDir = path.join(getPromptsPath(), 'rules');
+  const targetDir = path.resolve(process.cwd(), '.claude/rules');
+
+  // 기존 규칙 디렉토리 삭제 후 새로 복사 (항상 최신 유지)
+  await fs.remove(targetDir);
+  await fs.copy(sourceDir, targetDir, {
+    filter: (src) => {
+      // README.md와 _meta.md는 제외 (개발용 문서)
+      const basename = path.basename(src);
+      return basename !== 'README.md' && basename !== '_meta.md';
+    },
+  });
+
+  logger.success('✅ .claude/rules/ 규칙 파일이 동기화되었습니다.');
+};
+
+/**
  * test-implement SKILL을 생성합니다.
- * UI/Unit 테스트 타입에 따라 다른 규칙을 포함합니다.
- * _common.md와 test-type/{ui,unit}.md 규칙을 주입합니다.
+ * manifest 설정에 따라 필요한 규칙 파일 경로를 주입합니다.
  */
 export const createTestImplementSkill = async (
   testType: TestType
@@ -157,25 +218,26 @@ export const createTestImplementSkill = async (
 
   await fs.ensureDir(skillDir);
 
-  // 기본 템플릿 읽기
+  // manifest 읽기
+  const manifest = await getManifestConfig();
+
+  // 규칙 파일 경로 생성
+  const rulePaths = getRuleFilePaths(manifest, testType);
+  const ruleFilesList = rulePaths
+    .map((p) => `- \`.claude/rules/${p}\``)
+    .join('\n');
+
+  // 컨텍스트 기반 규칙 목록 생성
+  const contextRulesList = CONTEXT_BASED_RULES.map(
+    (r) => `- ${r.pattern} → \`.claude/rules/${r.path}\``
+  ).join('\n');
+
+  // 템플릿 읽기 및 플레이스홀더 치환
   let skillContent = await readPromptTemplate('skills/test-implement.md');
-
-  // 공통 규칙 및 테스트 타입별 규칙 로드 (rules-loader.ts 사용)
-  const commonRules = await loadCommonRules();
-  const typeRules = await loadTestTypeRules(testType);
-
-  // 플레이스홀더 치환
   skillContent = skillContent
-    .replace(
-      '{{COMMON_RULES}}',
-      commonRules ? `## 공통 테스트 규칙\n\n${commonRules}` : ''
-    )
-    .replace(
-      '{{TYPE_SPECIFIC_RULES}}',
-      typeRules
-        ? `## 테스트 타입별 규칙 (${testType.toUpperCase()})\n\n${typeRules}`
-        : ''
-    );
+    .replace(/\{\{TEST_TYPE\}\}/g, testType)
+    .replace('{{RULE_FILES}}', ruleFilesList)
+    .replace('{{CONTEXT_RULES}}', contextRulesList);
 
   const isUpdate = await fs.pathExists(skillPath);
   await fs.writeFile(skillPath, skillContent, 'utf-8');
@@ -189,8 +251,7 @@ export const createTestImplementSkill = async (
 
 /**
  * test-mock SKILL을 생성합니다.
- * manifest 설정에 따라 필요한 규칙만 포함합니다.
- * _common.md의 Mock 원칙도 주입합니다.
+ * manifest 설정에 따라 필요한 규칙 파일 경로를 주입합니다.
  */
 export const createTestMockSkill = async (): Promise<void> => {
   const skillDir = path.resolve(process.cwd(), '.claude/skills/test-mock');
@@ -198,94 +259,49 @@ export const createTestMockSkill = async (): Promise<void> => {
 
   await fs.ensureDir(skillDir);
 
-  // 기본 템플릿 읽기
-  let skillContent = await readPromptTemplate('skills/test-mock.md');
-
-  // 공통 규칙 로드 (rules-loader.ts 사용)
-  const commonRules = await loadCommonRules();
-
-  // manifest 설정 읽기
+  // manifest 읽기
   const manifest = await getManifestConfig();
 
-  // 각 규칙 로드
-  const runnerRules = await loadRuleContent('testRunner', manifest.testRunner);
-  const stateRules = await loadRuleContent('stateManagement', manifest.stateManagement);
-  const queryRules = await loadRuleContent('queryLibrary', manifest.queryLibrary);
-  const mockRules = await loadRuleContent('mockStrategy', manifest.mockStrategy);
-  const routerRules = await loadRuleContent('router', manifest.router);
+  // Mock 관련 규칙 파일 경로 생성 (test-type은 제외, _common은 포함)
+  const rulePaths = getRuleFilePaths(manifest, 'ui').filter(
+    (p) => !p.startsWith('test-type/')
+  );
+  const ruleFilesList = rulePaths
+    .map((p) => `- \`.claude/rules/${p}\``)
+    .join('\n');
 
-  // ADDITIONAL_RULES 로드 (항상 포함되는 규칙)
-  const additionalRulesContents: string[] = [];
-  for (const rulePath of ADDITIONAL_RULES) {
-    try {
-      const content = await readPromptTemplate(rulePath);
-      additionalRulesContents.push(content);
-    } catch {
-      // 파일이 없으면 건너뜀
-      logger.warn(`추가 규칙 파일을 찾을 수 없습니다: ${rulePath}`);
-    }
-  }
-  const additionalRules = additionalRulesContents.join('\n\n---\n\n');
+  // 컨텍스트 기반 규칙 목록 생성
+  const contextRulesList = CONTEXT_BASED_RULES.map(
+    (r) => `- ${r.pattern} → \`.claude/rules/${r.path}\``
+  ).join('\n');
 
-  // 플레이스홀더 치환
+  // 템플릿 읽기 및 플레이스홀더 치환
+  let skillContent = await readPromptTemplate('skills/test-mock.md');
   skillContent = skillContent
-    .replace(
-      '{{COMMON_RULES}}',
-      commonRules ? `## 테스트 공통 규칙\n\n${commonRules}` : ''
-    )
-    .replace(
-      '{{RUNNER_RULES}}',
-      runnerRules ? `## Test Runner 규칙 (${manifest.testRunner})\n\n${runnerRules}` : ''
-    )
-    .replace(
-      '{{STATE_RULES}}',
-      stateRules ? `## State Management 규칙 (${manifest.stateManagement})\n\n${stateRules}` : ''
-    )
-    .replace(
-      '{{QUERY_RULES}}',
-      queryRules ? `## Query Library 규칙 (${manifest.queryLibrary})\n\n${queryRules}` : ''
-    )
-    .replace(
-      '{{MOCK_STRATEGY_RULES}}',
-      mockRules ? `## Mock Strategy 규칙 (${manifest.mockStrategy})\n\n${mockRules}` : ''
-    )
-    .replace(
-      '{{ROUTER_RULES}}',
-      routerRules ? `## Router 규칙 (${manifest.router})\n\n${routerRules}` : ''
-    )
-    .replace(
-      '{{ADDITIONAL_RULES}}',
-      additionalRules ? `## 추가 규칙\n\n${additionalRules}` : ''
-    );
+    .replace('{{RULE_FILES}}', ruleFilesList)
+    .replace('{{CONTEXT_RULES}}', contextRulesList);
 
   const isUpdate = await fs.pathExists(skillPath);
   await fs.writeFile(skillPath, skillContent, 'utf-8');
 
-  const configSummary = [
-    manifest.testRunner,
-    manifest.stateManagement !== 'none' ? manifest.stateManagement : null,
-    manifest.queryLibrary !== 'none' ? manifest.queryLibrary : null,
-    manifest.mockStrategy,
-    manifest.router !== 'none' ? manifest.router : null,
-  ]
-    .filter(Boolean)
-    .join(', ');
-
   if (isUpdate) {
-    logger.success(`✅ .claude/skills/test-mock/SKILL.md 파일이 갱신되었습니다. (${configSummary})`);
+    logger.success('✅ .claude/skills/test-mock/SKILL.md 파일이 갱신되었습니다.');
   } else {
-    logger.success(`✅ .claude/skills/test-mock/SKILL.md 파일이 생성되었습니다. (${configSummary})`);
+    logger.success('✅ .claude/skills/test-mock/SKILL.md 파일이 생성되었습니다.');
   }
 };
 
 /**
- * 동적 SKILL 파일을 생성/갱신합니다.
+ * 동적 SKILL 파일과 규칙 파일을 생성/갱신합니다.
  * gen 명령에서 호출됩니다.
  *
  * - test-verify: init 시점에 생성 (정적)
  * - test-implement, test-mock, self-learn, test-coverage: gen 시점에 생성 (동적)
+ * - rules/: 모든 규칙 파일을 .claude/rules/로 복사
  */
 export const syncAllSkills = async (testType: TestType): Promise<void> => {
+  // 규칙 파일 먼저 동기화 (SKILL에서 참조하므로)
+  await syncRuleFiles();
   await createTestImplementSkill(testType);
   await createTestMockSkill();
   await createSelfLearnSkill();

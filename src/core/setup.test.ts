@@ -6,20 +6,20 @@ import {
   createTestImplementSkill,
   createTestMockSkill,
   syncAllSkills,
+  syncRuleFiles,
 } from './setup.js';
 import * as fileUtils from '../utils/file.js';
-import * as manifestUtils from '../utils/manifest.js';
-import * as rulesLoader from './rules-loader.js';
+import * as pathUtils from '../utils/path.js';
 
 vi.mock('fs-extra');
 vi.mock('../utils/logger.js');
 vi.mock('../utils/file.js');
-vi.mock('../utils/manifest.js');
-vi.mock('./rules-loader.js');
+vi.mock('../utils/path.js');
 
 describe('setup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(pathUtils, 'getPromptsPath').mockReturnValue('/mock/prompts');
   });
 
   afterEach(() => {
@@ -87,198 +87,125 @@ describe('setup', () => {
 
   describe('createTestImplementSkill', () => {
     it('UI 타입으로 스킬 파일을 생성한다', async () => {
-      const mockTemplate = '# test-implement\n\n{{COMMON_RULES}}\n\n{{TYPE_SPECIFIC_RULES}}';
+      const mockTemplate = '# test-implement\n\n테스트 타입: {{TEST_TYPE}}';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
       vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('## 공통 규칙');
-      vi.spyOn(rulesLoader, 'loadTestTypeRules').mockResolvedValue('## UI 전용 규칙');
 
       await createTestImplementSkill('ui');
 
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('skills/test-implement.md');
-      expect(rulesLoader.loadCommonRules).toHaveBeenCalled();
-      expect(rulesLoader.loadTestTypeRules).toHaveBeenCalledWith('ui');
       expect(writeFileSpy).toHaveBeenCalledWith(
         expect.stringContaining('.claude/skills/test-implement/SKILL.md'),
-        expect.stringContaining('UI'),
+        expect.stringContaining('테스트 타입: ui'),
         'utf-8'
       );
     });
 
     it('Unit 타입으로 스킬 파일을 생성한다', async () => {
-      const mockTemplate = '# test-implement\n\n{{COMMON_RULES}}\n\n{{TYPE_SPECIFIC_RULES}}';
+      const mockTemplate = '# test-implement\n\n{{TEST_TYPE}}.md 파일 참조';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
       vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('## 공통 규칙');
-      vi.spyOn(rulesLoader, 'loadTestTypeRules').mockResolvedValue('## Unit 전용 규칙');
 
       await createTestImplementSkill('unit');
 
-      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('skills/test-implement.md');
-      expect(rulesLoader.loadCommonRules).toHaveBeenCalled();
-      expect(rulesLoader.loadTestTypeRules).toHaveBeenCalledWith('unit');
       expect(writeFileSpy).toHaveBeenCalledWith(
         expect.stringContaining('SKILL.md'),
-        expect.stringContaining('Unit'),
+        expect.stringContaining('unit.md 파일 참조'),
         'utf-8'
       );
     });
 
-    it('타입별 규칙 파일이 없으면 플레이스홀더를 빈 문자열로 치환한다', async () => {
-      const mockTemplate = '# test-implement\n\n{{COMMON_RULES}}\n\n{{TYPE_SPECIFIC_RULES}}\n\n## 다음 섹션';
+    it('{{TEST_TYPE}} 플레이스홀더를 테스트 타입으로 치환한다', async () => {
+      const mockTemplate = '규칙 파일: {{TEST_TYPE}}.md, 참조: {{TEST_TYPE}}';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
       vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue(''); // 규칙 없음
-      vi.spyOn(rulesLoader, 'loadTestTypeRules').mockResolvedValue(''); // 규칙 없음
 
       await createTestImplementSkill('ui');
 
-      expect(writeFileSpy).toHaveBeenCalledWith(
-        expect.stringContaining('SKILL.md'),
-        expect.not.stringContaining('{{TYPE_SPECIFIC_RULES}}'),
-        'utf-8'
-      );
+      const writtenContent = writeFileSpy.mock.calls[0][1] as string;
+      expect(writtenContent).toBe('규칙 파일: ui.md, 참조: ui');
+      expect(writtenContent).not.toContain('{{TEST_TYPE}}');
     });
   });
 
   describe('createTestMockSkill', () => {
-    const mockManifest = {
-      testRunner: 'vitest',
-      stateManagement: 'zustand',
-      queryLibrary: 'tanstack-query',
-      mockStrategy: 'msw',
-      router: 'next-app',
-    };
-
-    it('manifest 설정에 따라 스킬 파일을 생성한다', async () => {
-      const mockTemplate =
-        '# test-mock\n\n{{COMMON_RULES}}\n\n{{RUNNER_RULES}}\n{{STATE_RULES}}\n{{QUERY_RULES}}\n{{MOCK_STRATEGY_RULES}}\n{{ROUTER_RULES}}';
+    it('스킬 파일을 생성한다', async () => {
+      const mockTemplate = '# test-mock\n\n규칙 파일 참조 섹션';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
       vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue(mockManifest as never);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('common rules');
-      vi.spyOn(rulesLoader, 'loadRuleContent')
-        .mockResolvedValueOnce('vitest rules') // testRunner
-        .mockResolvedValueOnce('zustand rules') // stateManagement
-        .mockResolvedValueOnce('tanstack rules') // queryLibrary
-        .mockResolvedValueOnce('msw rules') // mockStrategy
-        .mockResolvedValueOnce('next-app rules'); // router
 
       await createTestMockSkill();
 
-      expect(manifestUtils.getManifestConfig).toHaveBeenCalled();
-      expect(rulesLoader.loadCommonRules).toHaveBeenCalled();
+      expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('skills/test-mock.md');
       expect(writeFileSpy).toHaveBeenCalledWith(
         expect.stringContaining('.claude/skills/test-mock/SKILL.md'),
-        expect.stringContaining('vitest'),
+        mockTemplate,
         'utf-8'
       );
     });
 
-    it('설정된 규칙이 없으면 해당 플레이스홀더를 빈 문자열로 치환한다', async () => {
-      const mockTemplate = '# test-mock\n\n{{COMMON_RULES}}\n\n{{RUNNER_RULES}}\n{{STATE_RULES}}';
-      const manifestWithNone = {
-        testRunner: 'vitest',
-        stateManagement: 'none',
-        queryLibrary: 'none',
-        mockStrategy: 'msw',
-        router: 'none',
-      };
-
-      vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
-      vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
-      const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue(manifestWithNone as never);
-      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('common rules');
-      vi.spyOn(rulesLoader, 'loadRuleContent')
-        .mockResolvedValueOnce('vitest rules') // testRunner
-        .mockResolvedValueOnce('') // stateManagement: none
-        .mockResolvedValueOnce('') // queryLibrary: none
-        .mockResolvedValueOnce('msw rules') // mockStrategy
-        .mockResolvedValueOnce(''); // router: none
-
-      await createTestMockSkill();
-
-      const writtenContent = writeFileSpy.mock.calls[0][1] as string;
-      expect(writtenContent).not.toContain('{{STATE_RULES}}');
-    });
-
     it('스킬 파일이 이미 존재하면 갱신한다', async () => {
-      const mockTemplate = '# test-mock\n\n{{COMMON_RULES}}\n\n{{RUNNER_RULES}}';
-
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue(mockManifest as never);
-      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('');
-      vi.spyOn(rulesLoader, 'loadRuleContent').mockResolvedValue('');
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue('# test-mock');
 
       await createTestMockSkill();
 
       expect(writeFileSpy).toHaveBeenCalled();
     });
+  });
 
-    it('ADDITIONAL_RULES를 로드하여 추가 규칙 섹션에 포함한다', async () => {
-      const mockTemplate =
-        '# test-mock\n\n{{COMMON_RULES}}\n\n{{RUNNER_RULES}}\n\n{{ADDITIONAL_RULES}}';
+  describe('syncRuleFiles', () => {
+    it('규칙 파일을 .claude/rules/로 복사한다', async () => {
+      const removeSpy = vi.spyOn(fs, 'remove').mockResolvedValue(undefined);
+      const copySpy = vi.spyOn(fs, 'copy').mockResolvedValue(undefined);
 
-      // ADDITIONAL_RULES 배열을 mock
-      vi.spyOn(rulesLoader, 'ADDITIONAL_RULES', 'get').mockReturnValue([
-        'rules/mock/time-mocking.md',
-      ]);
+      await syncRuleFiles();
 
-      vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
-      vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
-      const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue(mockManifest as never);
-      vi.spyOn(fileUtils, 'readPromptTemplate').mockImplementation(async (path: string) => {
-        if (path === 'skills/test-mock.md') return mockTemplate;
-        if (path === 'rules/mock/time-mocking.md') return '## Time Mocking 규칙';
-        return '';
-      });
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('common rules');
-      vi.spyOn(rulesLoader, 'loadRuleContent').mockResolvedValue('');
+      expect(removeSpy).toHaveBeenCalledWith(expect.stringContaining('.claude/rules'));
+      expect(copySpy).toHaveBeenCalledWith(
+        '/mock/prompts/rules',
+        expect.stringContaining('.claude/rules'),
+        expect.objectContaining({ filter: expect.any(Function) })
+      );
+    });
 
-      await createTestMockSkill();
+    it('README.md와 _meta.md는 복사에서 제외한다', async () => {
+      vi.spyOn(fs, 'remove').mockResolvedValue(undefined);
+      const copySpy = vi.spyOn(fs, 'copy').mockResolvedValue(undefined);
 
-      const writtenContent = writeFileSpy.mock.calls[0][1] as string;
-      expect(writtenContent).toContain('Time Mocking');
-      expect(writtenContent).not.toContain('{{ADDITIONAL_RULES}}');
+      await syncRuleFiles();
+
+      // filter 함수 검증
+      const filterFn = copySpy.mock.calls[0][2]?.filter as (src: string) => boolean;
+      expect(filterFn('/path/to/README.md')).toBe(false);
+      expect(filterFn('/path/to/_meta.md')).toBe(false);
+      expect(filterFn('/path/to/_common.md')).toBe(true);
+      expect(filterFn('/path/to/vitest.md')).toBe(true);
     });
   });
 
   describe('syncAllSkills', () => {
-    it('test-implement와 test-mock 스킬을 모두 생성한다', async () => {
-      const mockManifest = {
-        testRunner: 'vitest',
-        stateManagement: 'none',
-        queryLibrary: 'none',
-        mockStrategy: 'msw',
-        router: 'none',
-      };
-
+    it('규칙 파일과 모든 스킬을 동기화한다', async () => {
       vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
       vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
+      vi.spyOn(fs, 'remove').mockResolvedValue(undefined);
+      vi.spyOn(fs, 'copy').mockResolvedValue(undefined);
       const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue(mockManifest as never);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue('mock template');
-      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('');
-      vi.spyOn(rulesLoader, 'loadTestTypeRules').mockResolvedValue('');
-      vi.spyOn(rulesLoader, 'loadRuleContent').mockResolvedValue('');
 
       await syncAllSkills('ui');
 
@@ -294,16 +221,20 @@ describe('setup', () => {
         expect.any(String),
         'utf-8'
       );
-      expect(writeFileSpy).toHaveBeenCalledWith(
-        expect.stringContaining('self-learn/SKILL.md'),
-        expect.any(String),
-        'utf-8'
-      );
-      expect(writeFileSpy).toHaveBeenCalledWith(
-        expect.stringContaining('test-coverage/SKILL.md'),
-        expect.any(String),
-        'utf-8'
-      );
+    });
+
+    it('syncRuleFiles를 먼저 호출한다', async () => {
+      const removeSpy = vi.spyOn(fs, 'remove').mockResolvedValue(undefined);
+      vi.spyOn(fs, 'copy').mockResolvedValue(undefined);
+      vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
+      vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
+      vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue('mock template');
+
+      await syncAllSkills('ui');
+
+      // syncRuleFiles가 호출되었는지 확인 (fs.remove가 호출됨)
+      expect(removeSpy).toHaveBeenCalledWith(expect.stringContaining('.claude/rules'));
     });
   });
 });

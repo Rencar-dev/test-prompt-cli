@@ -6,7 +6,7 @@ import {
   loadTestTypeRules,
   loadRuleContent,
   RULE_MODULES,
-  ADDITIONAL_RULES,
+  CONTEXT_BASED_RULES,
 } from './rules-loader.js';
 import * as fileUtils from '../utils/file.js';
 import * as loggerUtils from '../utils/logger.js';
@@ -52,11 +52,11 @@ describe('rules-loader', () => {
       expect(paths).toContain('rules/router/react-router.md');
     });
 
-    it('ADDITIONAL_RULES의 모든 규칙 경로를 포함한다', () => {
+    it('CONTEXT_BASED_RULES의 모든 규칙 경로를 포함한다', () => {
       const paths = getAllRulePaths();
 
-      for (const additionalPath of ADDITIONAL_RULES) {
-        expect(paths).toContain(additionalPath);
+      for (const rule of CONTEXT_BASED_RULES) {
+        expect(paths).toContain(`rules/${rule.path}`);
       }
     });
 
@@ -211,9 +211,9 @@ describe('rules-loader', () => {
       // mock 규칙
       expect(calls).toContain('rules/mock/msw.md');
 
-      // ADDITIONAL_RULES
-      for (const additionalPath of ADDITIONAL_RULES) {
-        expect(calls).toContain(additionalPath);
+      // CONTEXT_BASED_RULES
+      for (const rule of CONTEXT_BASED_RULES) {
+        expect(calls).toContain(`rules/${rule.path}`);
       }
     });
 

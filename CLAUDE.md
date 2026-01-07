@@ -12,11 +12,10 @@ This Repo (test-prompt-cli)           Target Project (user's app)
 │ src/prompts/             │         │ (npx @hsna/prompt gen)   │
 │   ├── skills/*.md        │  ──▶    │                          │
 │   ├── rules/*.md         │         │ .claude/skills/*.md      │
-│   └── agents/*.md        │         │ .claude/agents/*.md      │
-│                          │         │ project-manifest.yaml    │
-│ CLI reads manifest and   │         │ project-test-lessons.md  │
-│ assembles rules into     │         │                          │
-│ SKILL files              │         │                          │
+│   └── agents/*.md        │         │ .claude/rules/*.md       │
+│                          │         │ .claude/agents/*.md      │
+│ CLI copies rules and     │         │ project-manifest.yaml    │
+│ generates SKILL files    │         │ project-test-lessons.md  │
 └──────────────────────────┘         └──────────────────────────┘
 ```
 
@@ -51,7 +50,7 @@ Each command corresponds to a step in the ATDD workflow:
 - `init` - Generates project analysis prompt, creates `project-test-lessons.md`, SKILL/Agent files
 - `atdd` - Generates acceptance test scenario design prompt
 - `plan` - Generates test routing (unit vs UI vs E2E) plan prompt
-- `gen` - Generates test implementation prompt (--type ui|unit), syncs SKILL/Agent files
+- `gen` - Generates test implementation prompt (--type ui|unit), syncs SKILL/Agent/Rules files
 - `sync` - Syncs tests after code changes (--full for ATDD/Plan/Test update)
 - `learn` - Runs tests and generates feedback analysis prompt for failures
 
@@ -59,8 +58,8 @@ Each command corresponds to a step in the ATDD workflow:
 - `prompt.ts` - Prompt generation functions (generateAtddPrompt, generatePlanPrompt, generateGenPrompt, generateSyncPrompt, generateLearnPrompt)
 - `locator.ts` - File discovery logic for ATDD/Plan/Test files based on `project-manifest.yaml` configuration
 - `runner.ts` - Test execution wrapper using child_process
-- `setup.ts` - **SKILL/Agent file generation** (syncAllSkills, createTestMockSkill, createTestImplementerAgent, etc.)
-- `rules-loader.ts` - **Manifest-based rule assembly** (loadRules, loadCommonRules, loadTestTypeRules, loadRuleContent)
+- `setup.ts` - **SKILL/Rules file generation** (syncAllSkills, syncRuleFiles, createTestMockSkill, etc.)
+- `rules-loader.ts` - Rule module definitions (RULE_MODULES, CONTEXT_BASED_RULES)
 - `test-type.ts` - Test type enum (ui | unit) and template mapping
 
 ### Utils (src/utils/)
@@ -73,25 +72,36 @@ Each command corresponds to a step in the ATDD workflow:
 
 ### Prompt Templates (src/prompts/)
 - `*.md` - Prompt templates (`{{PLACEHOLDER}}` syntax for variable substitution)
-- `skills/*.md` - SKILL templates (generated to target project's `.claude/skills/`)
-- `rules/*.md` - Rule modules (all rules injected, AI filters by scope)
+- `skills/*.md` - SKILL templates (lightweight, reference rules via file paths)
+- `rules/*.md` - Rule modules (copied to target project, AI reads as needed)
 - `agents/*.md` - Agent templates (for Sub-agent pattern, generated to `.claude/agents/`)
 
-### SKILL Assembly Flow
+### SKILL Assembly Flow (Manifest-based Reference)
 
 ```
 When `gen` command runs:
-1. rules-loader.ts: Load ALL rule modules (full injection)
-2. setup.ts: Assemble template + all rules into SKILL files
-3. AI uses each rule's `scope` metadata to apply relevant rules
+1. syncRuleFiles(): Copy all rules from prompts/rules/ to .claude/rules/
+2. getRuleFilePaths(): Resolve rule paths based on project-manifest.yaml
+3. createTestImplementSkill(): Generate SKILL with specific rule paths injected
+4. createTestMockSkill(): Generate SKILL with specific rule paths injected
 
-All rules are injected → AI filters by scope at runtime
+Example) testRunner: vitest, stateManagement: zustand
+   → SKILL includes:
+     - .claude/rules/_common.md
+     - .claude/rules/test-type/ui.md
+     - .claude/rules/runner/_shared.md
+     - .claude/rules/runner/vitest.md
+     - .claude/rules/state/zustand.md
 ```
 
-### Rule Modules (rules-loader.ts)
+**Rule Resolution**:
+- **RULE_MODULES**: Manifest-based rules (testRunner, stateManagement, queryLibrary, mockStrategy, router)
+- **CONTEXT_BASED_RULES**: Code pattern hints for AI (e.g., "Date, setTimeout → time-mocking.md")
 
-Rules are organized in `src/prompts/rules/`:
-- `_common.md` - Base rules (always included)
+### Rule Modules (src/prompts/rules/)
+
+Rules are organized by category:
+- `_common.md` - Base rules (always referenced)
 - `test-type/{ui,unit}.md` - Test type specific (based on --type)
 - `runner/{_shared,vitest,jest}.md` - Test runner rules
 - `state/{zustand,redux-toolkit,recoil,jotai}.md` - State management
@@ -99,14 +109,14 @@ Rules are organized in `src/prompts/rules/`:
 - `mock/{msw,nock,fetch-mock,module-mock,time-mocking}.md` - Mocking
 - `router/{next-app,next-pages,react-router}.md` - Router
 
-**Adding new rules**: Add file to appropriate folder + update `RULE_MODULES` or `ADDITIONAL_RULES` in rules-loader.ts
+**Adding new rules**: Add .md file to appropriate folder. All rules are auto-copied.
 
 ### Generated Files (in target project)
 
 | Command | Generated Files |
 |---------|-----------------|
 | init | `project-test-lessons.md`, `.claude/skills/test-verify/SKILL.md`, `.claude/agents/test-implementer.md` |
-| gen | `.claude/skills/test-implement/SKILL.md`, `.claude/skills/test-mock/SKILL.md`, `.claude/skills/self-learn/SKILL.md`, `.claude/skills/test-coverage/SKILL.md` |
+| gen | `.claude/rules/*`, `.claude/skills/test-implement/SKILL.md`, `.claude/skills/test-mock/SKILL.md`, `.claude/skills/self-learn/SKILL.md`, `.claude/skills/test-coverage/SKILL.md` |
 
 ## Key Patterns
 
@@ -114,4 +124,4 @@ Rules are organized in `src/prompts/rules/`:
 - Commands use commander.js and copy results to clipboard via clipboardy
 - File paths with special characters (parentheses, spaces) require quote handling
 - Test file discovery checks both co-location and configured `testPaths.dirName` directory
-- SKILL files include all rules; AI applies relevant rules based on each rule's scope metadata
+- SKILL files reference rules; AI reads and applies based on scope metadata

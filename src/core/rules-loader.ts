@@ -49,15 +49,17 @@ export const RULE_MODULES: Record<string, Record<string, RuleModulePath>> = {
 };
 
 /**
- * 추가 규칙 (항상 포함)
- * 새로운 규칙 추가 시 여기에 경로만 추가하면 됨
+ * 컨텍스트 기반 규칙 (코드 패턴으로 감지)
+ * manifest에 없는 규칙들을 코드 패턴과 함께 정의
+ *
+ * - pattern: AI에게 제공할 힌트 (자연어 설명)
+ * - path: 규칙 파일 경로 (rules/ 제외)
  */
-export const ADDITIONAL_RULES: string[] = [
-  'rules/mock/time-mocking.md',
+export const CONTEXT_BASED_RULES: Array<{ pattern: string; path: string }> = [
+  { pattern: 'Date, setTimeout, setInterval, dayjs, moment', path: 'mock/time-mocking.md' },
   // 향후 추가 예시:
-  // 'rules/test-type/ssr.md',
-  // 'rules/component/drag-drop.md',
-  // 'rules/component/form.md',
+  // { pattern: 'IntersectionObserver, useInView', path: 'mock/intersection-observer.md' },
+  // { pattern: 'next/image, Image component', path: 'mock/next-image.md' },
 ];
 
 /**
@@ -133,7 +135,7 @@ export const loadRuleContent = async (
 
 /**
  * 모든 규칙 모듈 파일 경로를 반환합니다.
- * RULE_MODULES의 모든 규칙 + ADDITIONAL_RULES를 포함합니다.
+ * RULE_MODULES의 모든 규칙 + CONTEXT_BASED_RULES를 포함합니다.
  */
 export const getAllRulePaths = (): string[] => {
   const paths: string[] = [];
@@ -149,8 +151,10 @@ export const getAllRulePaths = (): string[] => {
     }
   }
 
-  // ADDITIONAL_RULES 추가
-  paths.push(...ADDITIONAL_RULES);
+  // CONTEXT_BASED_RULES 추가
+  for (const rule of CONTEXT_BASED_RULES) {
+    paths.push(`rules/${rule.path}`);
+  }
 
   // 중복 제거
   return [...new Set(paths)];
