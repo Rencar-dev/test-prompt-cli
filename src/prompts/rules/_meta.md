@@ -23,12 +23,37 @@ Level 0 (기본): 공통 규칙 (_common.md)
 ```
 1. _common.md                     # 항상 로드
 2. test-type/{testType}.md        # CLI --type 옵션 기반
-3. runner/{testRunner}.md         # manifest.testRunner
-4. state/{stateManagement}.md     # manifest.stateManagement
-5. query/{queryLibrary}.md        # manifest.queryLibrary
-6. mock/{mockStrategy}.md         # manifest.mockStrategy
-7. router/{router}.md             # manifest.router
+3. runner/_shared.md              # 테스트 러너 공통 규칙 (항상 로드)
+4. runner/{testRunner}.md         # manifest.testRunner
+5. state/{stateManagement}.md     # manifest.stateManagement
+6. query/{queryLibrary}.md        # manifest.queryLibrary
+7. mock/{mockStrategy}.md         # manifest.mockStrategy
+8. router/{router}.md             # manifest.router
+9. {optionalRules}                # manifest.optionalRules 배열의 각 항목
 ```
+
+### 2.1 _shared.md 로딩 규칙
+
+- `runner/_shared.md`는 `testRunner` 값에 관계없이 항상 로드
+- `rules-loader.ts`의 `RULE_MODULES`에서 배열로 정의:
+  ```typescript
+  testRunner: {
+    vitest: ['rules/runner/_shared.md', 'rules/runner/vitest.md'],
+    jest: ['rules/runner/_shared.md', 'rules/runner/jest.md'],
+  }
+  ```
+- 배열의 순서대로 로드 (공통 → 특정)
+
+### 2.2 optionalRules 처리
+
+- `OPTIONAL_RULES` 매핑에 정의된 규칙만 로드 가능:
+  ```typescript
+  export const OPTIONAL_RULES: Record<string, string> = {
+    'time-mocking': 'rules/mock/time-mocking.md',
+  };
+  ```
+- manifest의 `optionalRules` 배열에 포함된 항목만 선택적으로 로드
+- 알 수 없는 규칙은 경고 로그 후 무시
 
 ---
 
@@ -104,17 +129,3 @@ router: none           # router/ 폴더에서 로드하지 않음
 ```
 
 ---
-
-## 6. 디버그 모드
-
-```bash
-# 어떤 규칙이 로드되었는지 확인
-npx @hsna/prompt gen --debug
-
-# 출력 예시:
-# [rules-loader] Loading: _common.md
-# [rules-loader] Loading: test-type/ui.md
-# [rules-loader] Loading: runner/vitest.md
-# [rules-loader] Loading: state/zustand.md
-# [rules-loader] Override: CODE-003 (from zustand.md)
-```

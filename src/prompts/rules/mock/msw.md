@@ -40,7 +40,7 @@ priority: 2
 
 ## 3. 주제 특화 규칙
 
-### 3.1 URL 매칭 [MSW-001] ⚠️ Critical
+### 3.1 URL 매칭 [MSW-001]
 
 **절대 URL을 사용하세요. 상대 경로는 baseURL 설정에 따라 매칭 실패할 수 있습니다.**
 
@@ -106,7 +106,7 @@ export const mockLoginError = {
 
 ---
 
-### 3.3 에러 응답 Mock [MSW-003] ⚠️ Critical
+### 3.3 에러 응답 Mock [MSW-003]
 
 **프로젝트의 에러 타입 구조를 정확히 따라야 합니다.**
 
@@ -244,7 +244,7 @@ it('올바른 데이터로 API를 호출한다', async () => {
 
 ---
 
-### 3.7 JSDOM 환경 제약 [MSW-007] ⚠️ Critical
+### 3.7 JSDOM 환경 제약 [MSW-007]
 
 **MSW data.ts 파일은 JSDOM 환경에서 실행됩니다. Node.js 전용 패키지를 사용하면 테스트가 실패합니다.**
 

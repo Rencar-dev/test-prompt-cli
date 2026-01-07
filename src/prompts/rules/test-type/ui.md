@@ -33,6 +33,16 @@ priority: 1
 - [UI-003] 비동기 처리 규칙
 - [UI-004] 폼 테스트 규칙
 - [UI-005] 렌더링 검증 규칙
+- [RTL-001] 자동 cleanup 전략
+- [RTL-002] fireEvent 후 즉시 assertion
+- [RTL-003] wrapper 옵션 Provider 주입
+- [RTL-004] renderHook initialProps/rerender
+- [RTL-005] configure 설정 복원
+- [RTL-006] cleanup microtask 동작
+- [RTL-007] unmount 후 DOM 검증
+- [RTL-008] React 버전 조건부 테스트
+- [RTL-009] hydrate SSR 검증
+- [RTL-010] reactStrictMode 이중 렌더링
 
 ---
 
@@ -300,7 +310,50 @@ await waitFor(
 
 ---
 
-### 3.4 폼 테스트 [UI-004]
+### 3.4 비동기 3가지 패턴: waitFor, waitForElementToBeRemoved, findBy [UI-003-EXT]
+
+**비동기 UI 변경을 대기하는 3가지 패턴의 용도를 명확히 구분합니다.**
+
+> 적용 조건: React Testing Library 사용 시
+
+```
+MUST: 요소 제거 대기 → waitForElementToBeRemoved
+MUST: 상태 변화 대기 → waitFor
+MUST: 요소 출현 대기 → findBy*
+
+MUST NOT: findBy로 제거 대기 (불가능)
+MUST NOT: waitFor 없이 비동기 결과 즉시 검증
+```
+
+```typescript
+// ✅ Good: 요소 제거 대기
+const loading = () => screen.getByText('Loading...')
+await waitForElementToBeRemoved(loading)
+
+// ✅ Good: 상태 변화 대기
+await waitFor(() => screen.getByText(/Loaded this message:/))
+
+// ✅ Good: 요소 찾기 + 대기
+await expect(screen.findByTestId('message')).resolves.toHaveTextContent(/Hello World/)
+```
+
+```typescript
+// ❌ Bad: findBy로 제거 대기
+await screen.findByText('Loading...')  // 제거되면 에러 발생
+
+// ❌ Bad: 즉시 검증
+render(<AsyncComponent />)
+expect(screen.getByText('Loaded')).toBeInTheDocument()  // 실패 가능
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `end-to-end.js:55-74`, `end-to-end.js:139-162`
+- 채택 점수: 10/10
+
+---
+
+### 3.5 폼 테스트 [UI-004]
 
 #### DO / DON'T
 
@@ -435,6 +488,11 @@ it('should show error message on fetch failure', async () => {
 □ [UI-003] setTimeout/sleep을 사용하지 않았는가?
 □ [UI-004] 폼 유효성 검증 시나리오가 포함되었는가?
 □ [UI-005] 로딩/에러 상태 테스트가 포함되었는가?
+□ [RTL-001] 자동 cleanup을 신뢰하고 중복 호출을 피했는가?
+□ [RTL-002] fireEvent를 불필요한 act()로 래핑하지 않았는가?
+□ [RTL-003] Provider는 wrapper 옵션으로 주입했는가?
+□ [RTL-005] configure 변경 시 afterEach에서 복원하는가?
+□ [RTL-007] unmount 후 DOM 정리를 검증했는가?
 ```
 
 ---
@@ -495,3 +553,453 @@ expect(button).toBeDisabled();
 expect(input).toHaveValue('text');
 expect(checkbox).toBeChecked();
 ```
+
+---
+
+## 7. React Testing Library 특화 규칙
+
+### 7.1 자동 cleanup 전략 [RTL-001]
+
+**RTL의 자동 cleanup을 신뢰하고, 환경변수로 제어합니다.**
+
+```
+MUST: 자동 cleanup에 의존 (수동 호출 불필요)
+SHOULD: 자동 cleanup 동작을 테스트로 검증
+
+MUST NOT: 자동 cleanup 환경에서 수동 cleanup() 중복 호출
+```
+
+```typescript
+// ✅ Good: 자동 cleanup 신뢰
+test('first', () => {
+  render(<div>hi</div>)
+})
+
+test('second', () => {
+  expect(document.body).toBeEmptyDOMElement()  // 자동 정리됨
+})
+
+// ✅ Good: 환경변수로 제어 (특수 케이스)
+process.env.RTL_SKIP_AUTO_CLEANUP = 'true'
+const rtl = require('../')
+```
+
+```typescript
+// ❌ Bad: 자동 cleanup 환경에서 중복 호출
+afterEach(() => {
+  cleanup()  // 불필요
+})
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `auto-cleanup.js:6-12`, `auto-cleanup-skip.js:5-17`
+- 채택 점수: 10/10
+
+---
+
+### 7.2 fireEvent 후 즉시 assertion (act 불필요) [RTL-002]
+
+**RTL의 fireEvent는 내부적으로 act를 처리하므로 명시적 act 래핑이 불필요합니다.**
+
+```
+MUST: fireEvent 후 바로 expect로 검증
+MUST NOT: fireEvent를 act()로 래핑 (중복)
+```
+
+```typescript
+// ✅ Good: fireEvent 후 직접 검증
+fireEvent.click(buttonNode)
+expect(buttonNode).toHaveTextContent('1')
+expect(effectCb).toHaveBeenCalledTimes(1)
+
+// ✅ Good: 이벤트 체인
+fireEvent.change(input, {target: {value: 'a'}})
+expect(handleChange).toHaveBeenCalledTimes(1)
+```
+
+```typescript
+// ❌ Bad: 불필요한 act 래핑
+act(() => {
+  fireEvent.click(button)  // 이미 내부적으로 act 처리됨
+})
+expect(button).toHaveTextContent('clicked')
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `act.js:20-35`, `events.js:207-214`
+- 채택 점수: 10/10
+
+---
+
+### 7.3 wrapper 옵션으로 Provider 주입 [RTL-003]
+
+**Context Provider는 wrapper 옵션으로 주입하여 재사용성을 높입니다.**
+
+```
+MUST: render/renderHook에서 wrapper 옵션으로 Provider 주입
+SHOULD: 재사용 가능한 wrapper 함수 정의
+
+MUST NOT: 매번 수동으로 Provider 감싸기
+```
+
+```typescript
+// ✅ Good: wrapper 옵션 활용
+const WrapperComponent = ({children}) => (
+  <div data-testid="wrapper">{children}</div>
+)
+
+const {container} = render(<div data-testid="inner" />, {
+  wrapper: WrapperComponent,
+})
+
+// ✅ Good: renderHook에서 Context 주입
+const Context = React.createContext('default')
+function Wrapper({children}) {
+  return <Context.Provider value="provided">{children}</Context.Provider>
+}
+const {result} = renderHook(() => React.useContext(Context), {
+  wrapper: Wrapper,
+})
+```
+
+```typescript
+// ❌ Bad: 수동 래핑 (재사용 어려움)
+render(
+  <Context.Provider value="provided">
+    <MyComponent />
+  </Context.Provider>
+)
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `render.js:93-112`, `renderHook.js:53-67`
+- 채택 점수: 10/10
+
+---
+
+### 7.4 renderHook: initialProps와 rerender로 props 변경 테스트 [RTL-004]
+
+**Hook의 props 변경 시나리오는 initialProps와 rerender를 조합합니다.**
+
+```
+MUST: props 변경 테스트 시 initialProps와 rerender 조합 사용
+MUST: rerender로 props 변경 후 result.current 재검증
+
+MUST NOT: props 변경 시나리오 누락
+```
+
+```typescript
+// ✅ Good: props 변경 테스트
+const {result, rerender} = renderHook(
+  ({branch}) => {
+    const [left, setLeft] = React.useState('left')
+    const [right, setRight] = React.useState('right')
+
+    switch (branch) {
+      case 'left': return [left, setLeft]
+      case 'right': return [right, setRight]
+      default: throw new Error('No Props passed')
+    }
+  },
+  {initialProps: {branch: 'left'}}
+)
+
+expect(result.current).toEqual(['left', expect.any(Function)])
+
+rerender({branch: 'right'})
+
+expect(result.current).toEqual(['right', expect.any(Function)])
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `renderHook.js:24-50`
+- 채택 점수: 10/10
+
+---
+
+### 7.5 configure 설정 변경 시 복원 [RTL-005]
+
+**RTL configure로 전역 설정을 변경하면 반드시 복원합니다.**
+
+```
+MUST: beforeEach에서 원본 설정 저장
+MUST: afterEach에서 원본 설정으로 복원
+```
+
+```typescript
+// ✅ Good: configure 변경 시 복원 보장
+let originalConfig
+beforeEach(() => {
+  configure(existingConfig => {
+    originalConfig = existingConfig
+    return {}
+  })
+})
+
+afterEach(() => {
+  configure(originalConfig)
+})
+
+test('test with custom config', () => {
+  configure({testIdAttribute: 'not-data-testid'})
+  // 테스트 로직
+})
+```
+
+```typescript
+// ❌ Bad: 복원 없음
+test('test1', () => {
+  configure({reactStrictMode: true})
+  // 다음 테스트에 영향
+})
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `config.js:4-17`, `render.js:13-26`
+- 채택 점수: 10/10
+
+---
+
+### 7.6 cleanup은 microtask를 flush하지 않음 [RTL-006]
+
+**cleanup()은 비동기 작업(Promise, microtask)을 기다리지 않습니다.**
+
+```
+MUST: 비동기 정리는 useEffect cleanup으로 처리
+MUST NOT: cleanup이 Promise를 flush한다고 가정
+```
+
+```typescript
+// ✅ Good: useEffect cleanup으로 비동기 취소
+function Test() {
+  const [, setDeferredCounter] = React.useState(null)
+  React.useEffect(() => {
+    let cancelled = false
+    Promise.resolve().then(() => {
+      if (!cancelled) {
+        setDeferredCounter(counter)
+      }
+    })
+
+    return () => {
+      cancelled = true  // cleanup에서 취소
+    }
+  }, [counter])
+
+  return null
+}
+```
+
+```typescript
+// ❌ Bad: cleanup 후 Promise 완료 기대
+render(<AsyncComponent />)
+cleanup()
+// Promise는 여전히 pending 상태
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `cleanup.js:58-88`
+- 채택 점수: 10/10
+
+---
+
+### 7.7 unmount 후 DOM 정리 검증 [RTL-007]
+
+**unmount() 호출 후 DOM이 비어있는지 검증합니다.**
+
+```
+MUST: unmount 후 container/document.body 검증
+SHOULD: toBeEmptyDOMElement() 사용
+```
+
+```typescript
+// ✅ Good: unmount 후 정리 확인
+const {unmount, container} = render(<MyComponent />)
+unmount()
+expect(container).toBeEmptyDOMElement()
+
+// ✅ Good: cleanup 후 document.body 검증
+render(<div>hi</div>)
+cleanup()
+expect(document.body).toBeEmptyDOMElement()
+```
+
+```typescript
+// ❌ Bad: unmount만 호출하고 검증 안함
+const {unmount} = render(<MyComponent />)
+unmount()
+// 정리되었는지 확인 안함
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `cleanup.js:20-22`, `render.js:174-176`
+- 채택 점수: 10/10
+
+---
+
+### 7.8 React 버전 조건부 테스트 (testGate 패턴) [RTL-008]
+
+**React 버전에 따라 동작이 다른 기능은 조건부 테스트를 작성합니다.**
+
+```
+MUST: 버전별 동작 차이 시 testGate 패턴 사용
+SHOULD: React.version으로 버전 확인
+```
+
+```typescript
+// ✅ Good: 버전 조건 명시
+const isReact19 = React.version.startsWith('19.')
+const testGateReact19 = isReact19 ? test : test.skip
+
+testGateReact19('onCaughtError is supported in render', () => {
+  // React 19 전용 기능 테스트
+})
+
+// ✅ Good: 테스트 내 버전별 분기
+test('render errors', () => {
+  if (isReact19) {
+    expect(() => render(<Thrower />)).toThrow('Boom!')
+  } else {
+    expect(() => {
+      expect(() => render(<Thrower />)).toThrow('Boom!')
+    }).toErrorDev([...])
+  }
+})
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `error-handlers.js:7-9`, `render.js:6-10`
+- 채택 점수: 10/10
+
+---
+
+### 7.9 hydrate 옵션으로 SSR 검증 [RTL-009]
+
+**SSR/hydration 테스트는 hydrate 옵션을 사용합니다.**
+
+> 적용 조건: SSR/hydration 테스트 시
+
+```
+MUST: SSR 결과에 render 시 hydrate: true 옵션 사용
+MUST: hydration 후 interactive 동작 검증
+```
+
+```typescript
+// ✅ Good: SSR → hydrate → interactive 검증
+const ui = <App />
+const container = document.createElement('div')
+document.body.appendChild(container)
+container.innerHTML = ReactDOMServer.renderToString(ui)
+
+expect(container).toHaveTextContent('clicked:0')
+
+render(ui, {container, hydrate: true})
+
+fireEvent.click(container.querySelector('button'))
+expect(container).toHaveTextContent('clicked:1')
+```
+
+```typescript
+// ❌ Bad: hydrate 누락
+container.innerHTML = ReactDOMServer.renderToString(ui)
+render(ui, {container})  // hydration mismatch 발생
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `render.js:179-201`, `render.js:203-220`
+- 채택 점수: 10/10
+
+---
+
+### 7.10 reactStrictMode로 이중 렌더링 검증 [RTL-010]
+
+**React StrictMode 환경에서의 이중 렌더링 동작을 검증합니다.**
+
+```
+SHOULD: StrictMode 환경에서 부작용 함수 2번 호출 검증
+SHOULD: configure 또는 renderOptions로 reactStrictMode 설정
+```
+
+```typescript
+// ✅ Good: StrictMode 이중 렌더링 검증
+configure({reactStrictMode: true})
+
+const spy = jest.fn()
+function Component() {
+  spy()
+  return null
+}
+
+render(<Component />)
+expect(spy).toHaveBeenCalledTimes(2)
+
+// ✅ Good: renderOptions로 개별 설정
+render(<Component />, {reactStrictMode: true})
+expect(spy).toHaveBeenCalledTimes(2)
+```
+
+```typescript
+// ⚠️ 주의: StrictMode 고려 없는 호출 횟수 검증
+render(<Component />)
+expect(spy).toHaveBeenCalledTimes(1)  // StrictMode 활성화 시 실패
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `render.js:136-147`, `renderHook.js:131-140`
+- 채택 점수: 10/10
+
+---
+
+### 7.11 baseElement로 다중 render 격리 [RTL-011]
+
+**동일 테스트에서 여러 React 트리를 독립적으로 테스트할 때 baseElement를 사용합니다.**
+
+> 적용 조건: 동일 테스트에서 여러 React 트리 필요 시
+
+```
+SHOULD: baseElement로 각 트리 격리
+SHOULD: beforeAll/afterAll로 DOM 요소 관리
+```
+
+```typescript
+// ✅ Good: baseElement로 격리
+let treeA, treeB
+beforeAll(() => {
+  treeA = document.createElement('div')
+  treeB = document.createElement('div')
+  document.body.appendChild(treeA)
+  document.body.appendChild(treeB)
+})
+
+afterAll(() => {
+  treeA.parentNode.removeChild(treeA)
+  treeB.parentNode.removeChild(treeB)
+})
+
+test('baseElement isolates trees', () => {
+  const {getByText: getByTextInA} = render(<div>Jekyll</div>, {
+    baseElement: treeA,
+  })
+  const {getByText: getByTextInB} = render(<div>Hyde</div>, {
+    baseElement: treeB,
+  })
+
+  expect(() => getByTextInA('Jekyll')).not.toThrow()
+  expect(() => getByTextInB('Jekyll')).toThrow()
+})
+```
+
+#### 출처
+- 원본: react-testing-library
+- 파일: `multi-base.js:6-39`
+- 채택 점수: 8/10

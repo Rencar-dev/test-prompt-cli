@@ -38,7 +38,7 @@ priority: 2
 
 ## 3. 주제 특화 규칙
 
-### 3.1 setState 두 번째 인자 [ZUS-001] ⚠️ Critical
+### 3.1 setState 두 번째 인자 [ZUS-001]
 
 **`setState`의 두 번째 인자 `true`는 전체 교체(replace) 모드로, 모든 메서드가 삭제됩니다.**
 

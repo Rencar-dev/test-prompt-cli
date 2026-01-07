@@ -67,6 +67,7 @@ rules/
 ├── _meta.md                      # 조합/우선순위 지침
 │
 ├── runner/                       # testRunner 설정 기반
+│   ├── _shared.md                # Jest/Vitest 공통 규칙
 │   ├── vitest.md
 │   └── jest.md
 │
@@ -86,7 +87,8 @@ rules/
 │   ├── msw.md
 │   ├── nock.md
 │   ├── fetch-mock.md
-│   └── module-mock.md
+│   ├── module-mock.md
+│   └── time-mocking.md           # 선택적 규칙 (optionalRules)
 │
 ├── router/                       # router 설정 기반
 │   ├── next-app.md
@@ -107,11 +109,12 @@ rules/
 
 | Manifest 필드 | 폴더 | 파일 선택 예시 |
 |--------------|------|---------------|
-| `testRunner` | `runner/` | `vitest` → `runner/vitest.md` |
+| `testRunner` | `runner/` | `vitest` → `_shared.md` + `vitest.md` |
 | `stateManagement` | `state/` | `zustand` → `state/zustand.md` |
 | `queryLibrary` | `query/` | `tanstack-query` → `query/tanstack-query.md` |
 | `mockStrategy` | `mock/` | `msw` → `mock/msw.md` |
 | `router` | `router/` | `next-app` → `router/next-app.md` |
+| `optionalRules` | 다양함 | `['time-mocking']` → `mock/time-mocking.md` |
 | CLI `--type` | `test-type/` | `ui` → `test-type/ui.md` |
 
 ### 2.3 파일별 역할
@@ -120,10 +123,12 @@ rules/
 |------|------|----------|
 | `_common.md` | 모든 테스트에 적용되는 기본 규칙 | 항상 (Level 0) |
 | `_meta.md` | 규칙 조합 방법, 우선순위, 충돌 해결 | rules-loader.ts 참조용 |
+| `runner/_shared.md` | Jest/Vitest 공통 규칙 (RUNNER-001~004) | testRunner와 함께 자동 로드 |
 | `runner/*.md` | 테스트 러너별 설정, API 차이 | manifest 기반 (Level 2) |
 | `state/*.md` | 상태 관리 라이브러리별 테스트 패턴 | manifest 기반 (Level 2) |
 | `query/*.md` | 데이터 페칭 라이브러리별 테스트 패턴 | manifest 기반 (Level 2) |
 | `mock/*.md` | 모킹 전략별 패턴 (MSW, vi.mock 등) | manifest 기반 (Level 2) |
+| `mock/time-mocking.md` | 시간/타이머 모킹 패턴 | optionalRules 기반 |
 | `router/*.md` | 라우터별 네비게이션 테스트 패턴 | manifest 기반 (Level 2) |
 | `test-type/*.md` | UI/Unit 테스트 유형별 규칙 | CLI --type 기반 (Level 1) |
 | `component/*.md` | 특정 컴포넌트 유형별 패턴 | 선택적 include |
@@ -274,7 +279,9 @@ function loadRules(manifest: ManifestConfig, testType: TestType): string[] {
   rules.push(`rules/test-type/${testType}.md`);
 
   // Step 3: 테스트 러너 규칙 (Level 2)
+  // _shared.md가 먼저 로드되고, 그 다음 특정 러너 규칙
   if (manifest.testRunner) {
+    rules.push('rules/runner/_shared.md');
     rules.push(`rules/runner/${manifest.testRunner}.md`);
   }
 
@@ -296,6 +303,14 @@ function loadRules(manifest: ManifestConfig, testType: TestType): string[] {
   // Step 7: 라우터 규칙 (Level 2)
   if (manifest.router && manifest.router !== 'none') {
     rules.push(`rules/router/${manifest.router}.md`);
+  }
+
+  // Step 8: 선택적 규칙 (Level 2)
+  for (const rule of manifest.optionalRules) {
+    const optionalPath = OPTIONAL_RULES[rule];
+    if (optionalPath) {
+      rules.push(optionalPath);
+    }
   }
 
   return rules;
@@ -320,7 +335,7 @@ function assembleSkillContent(rules: string[]): string {
 
 ### 4.3 예상 로딩 시나리오
 
-**시나리오**: Vitest + Zustand + TanStack Query + MSW + Next.js App Router
+**시나리오**: Vitest + Zustand + TanStack Query + MSW + Next.js App Router + 시간 모킹
 
 ```yaml
 # project-manifest.yaml
@@ -329,16 +344,20 @@ stateManagement: zustand
 queryLibrary: tanstack-query
 mockStrategy: msw
 router: next-app
+optionalRules:
+  - time-mocking
 ```
 
 **로드되는 파일** (순서대로):
 1. `rules/_common.md` (Level 0)
 2. `rules/test-type/ui.md` (Level 1, --type ui인 경우)
-3. `rules/runner/vitest.md` (Level 2)
-4. `rules/state/zustand.md` (Level 2)
-5. `rules/query/tanstack-query.md` (Level 2)
-6. `rules/mock/msw.md` (Level 2)
-7. `rules/router/next-app.md` (Level 2)
+3. `rules/runner/_shared.md` (Level 2, 공통 러너 규칙)
+4. `rules/runner/vitest.md` (Level 2)
+5. `rules/state/zustand.md` (Level 2)
+6. `rules/query/tanstack-query.md` (Level 2)
+7. `rules/mock/msw.md` (Level 2)
+8. `rules/router/next-app.md` (Level 2)
+9. `rules/mock/time-mocking.md` (Level 2, optionalRules)
 
 **충돌 해결**:
 - `zustand.md`의 Override가 `_common.md`의 CODE-003을 덮어씀
@@ -394,13 +413,42 @@ type StateManagement = 'zustand' | 'redux-toolkit' | ... | 'valtio';
 
 3. **로더 수정**: testType enum에 'e2e' 추가
 
-### 5.3 새로운 컴포넌트 유형 추가
+### 5.3 새로운 선택적 규칙 추가 (optionalRules)
+
+예: SSR 테스트 규칙 추가
+
+1. **파일 생성**: `rules/test-type/ssr.md`
+
+2. **OPTIONAL_RULES 매핑 추가** (rules-loader.ts):
+```typescript
+export const OPTIONAL_RULES: Record<string, string> = {
+  'time-mocking': 'rules/mock/time-mocking.md',
+  'ssr': 'rules/test-type/ssr.md',  // 새로 추가
+};
+```
+
+3. **Manifest에서 사용**:
+```yaml
+# project-manifest.yaml
+optionalRules:
+  - time-mocking
+  - ssr
+```
+
+### 5.4 새로운 컴포넌트 유형 추가
 
 예: Drag & Drop 컴포넌트
 
 1. **파일 생성**: `rules/component/drag-drop.md`
 
-2. **SKILL에서 선택적 include**:
+2. **OPTIONAL_RULES에 등록** (권장):
+```typescript
+export const OPTIONAL_RULES: Record<string, string> = {
+  'drag-drop': 'rules/component/drag-drop.md',
+};
+```
+
+3. **또는 SKILL에서 선택적 include** (레거시):
 ```markdown
 <!-- SKILL.md -->
 {{#if hasDragDrop}}
@@ -408,7 +456,7 @@ type StateManagement = 'zustand' | 'redux-toolkit' | ... | 'valtio';
 {{/if}}
 ```
 
-### 5.4 기존 규칙 수정 시 체크리스트
+### 5.5 기존 규칙 수정 시 체크리스트
 
 ```
 □ Rule ID가 변경되었는가? → 참조하는 Override 섹션 모두 업데이트
@@ -451,18 +499,3 @@ PATCH: 오타 수정, 예시 개선
 | 공통 규칙 | `rules/_common.md` | 모든 테스트의 기본 규칙 |
 | 조합 지침 | `rules/_meta.md` | 런타임 조합 규칙 |
 | CLI 문서 | 프로젝트 README | 명령어 사용법 |
-
-### 7.2 설계 결정 배경
-
-이 규칙 시스템은 다음 3가지 제안을 분석하여 최적의 구조로 취합되었습니다:
-
-- **제안 A**: 결정 트리 기반 접근, 적용 시점 테이블, 공통 규칙 재정의 섹션
-- **제안 B**: MUST/MUST NOT 명세 스타일, Rule ID 시스템, ADD/OVERRIDE/RESTRICT 관계
-- **제안 C**: 토큰 효율성, AI 컨텍스트 주입 시나리오, Level 기반 우선순위
-
-각 제안의 강점을 조합하여:
-- 제안 A의 **Decision Tree**와 **셀프체크**
-- 제안 B의 **MUST/MUST NOT**과 **Rule ID**
-- 제안 C의 **Level 우선순위**와 **토큰 효율성**
-
-을 채택했습니다.

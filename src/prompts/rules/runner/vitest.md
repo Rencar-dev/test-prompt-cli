@@ -4,7 +4,9 @@
 
 ```yaml
 scope: testRunner=vitest
-inherits: _common.md
+inherits:
+  - _common.md
+  - runner/_shared.md
 priority: 2
 ```
 
@@ -34,11 +36,17 @@ priority: 2
 - [VIT-005] Fake Timers 규칙
 - [VIT-006] Import 순서 규칙
 
+> 공통 규칙은 `runner/_shared.md` 참조:
+> - [RUNNER-001] expect 실패 메시지 제공
+> - [RUNNER-002] mockClear로 단계별 호출 검증
+> - [RUNNER-003] expect.any(Type)으로 타입 검증
+> - [RUNNER-004] toMatchInlineSnapshot 제한적 사용
+
 ---
 
 ## 3. 주제 특화 규칙
 
-### 3.1 vi.mock 호이스팅 [VIT-001] ⚠️ Critical
+### 3.1 vi.mock 호이스팅 [VIT-001]
 
 **`vi.mock`은 파일 최상단으로 호이스팅됩니다. factory 내부에서 외부 변수를 참조하면 TDZ 에러가 발생합니다.**
 
@@ -186,7 +194,7 @@ vi.mock('@/constants', async () => {
 
 ---
 
-### 3.5 Fake Timers [VIT-005] ⚠️ Critical
+### 3.5 Fake Timers [VIT-005]
 
 #### 기본 사용법
 
@@ -349,6 +357,12 @@ import { foo } from './moduleA';                  // ← 그 다음 실행
 □ [VIT-005] fake timers 사용 시 MSW 응답이 필요한 테스트를 분리했는가?
 □ [VIT-006] 모든 import가 파일 상단에 모여있는가? (vi.mock 사이에 끼워넣지 않음)
 □ afterEach에서 mock을 정리(vi.restoreAllMocks)했는가?
+
+# 공통 규칙 (runner/_shared.md)
+□ [RUNNER-001] 유사한 assertion에 실패 메시지를 제공하는가?
+□ [RUNNER-002] 단계별 호출 검증 시 mockClear를 사용하는가?
+□ [RUNNER-003] 함수 타입 검증 시 expect.any(Function)을 사용하는가?
+□ [RUNNER-004] 스냅샷을 복잡한 구조에만 제한적으로 사용하는가?
 ```
 
 ---

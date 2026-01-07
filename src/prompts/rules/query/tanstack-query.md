@@ -39,7 +39,7 @@ priority: 2
 
 ## 3. 주제 특화 규칙
 
-### 3.1 Mutation Hook Mocking 금지 [TQ-001] ⚠️ Critical
+### 3.1 Mutation Hook Mocking 금지 [TQ-001]
 
 **useMutation을 직접 Mock하면 onError, onSuccess 등 실제 에러 처리 로직이 실행되지 않습니다.**
 
