@@ -1,23 +1,27 @@
 /**
  * 규칙 모듈 로더
  *
- * project-manifest.yaml의 설정을 기반으로
- * 필요한 규칙 모듈만 선택적으로 로드합니다.
+ * 모든 규칙 모듈을 로드하여 SKILL 파일에 주입합니다.
+ * AI가 각 규칙의 scope를 보고 적용 가능한 규칙만 선택합니다.
  */
 
 import { readPromptTemplate } from '../utils/file.js';
 import { logger } from '../utils/logger.js';
-import { getManifestConfig, type ManifestConfig } from '../utils/manifest.js';
 import { TestType } from './test-type.js';
 
 /**
  * 규칙 모듈 매핑
- * manifest 필드값 → 규칙 파일 경로
+ * manifest 필드값 → 규칙 파일 경로 (단일 또는 배열)
+ *
+ * 배열인 경우: [_shared.md, specific.md] 순서로 로드
+ * - _shared.md: 해당 카테고리의 공통 규칙
+ * - specific.md: 특정 도구/라이브러리 규칙
  */
-export const RULE_MODULES: Record<string, Record<string, string>> = {
+export type RuleModulePath = string | string[];
+export const RULE_MODULES: Record<string, Record<string, RuleModulePath>> = {
   testRunner: {
-    vitest: 'rules/runner/vitest.md',
-    jest: 'rules/runner/jest.md',
+    vitest: ['rules/runner/_shared.md', 'rules/runner/vitest.md'],
+    jest: ['rules/runner/_shared.md', 'rules/runner/jest.md'],
   },
   stateManagement: {
     zustand: 'rules/state/zustand.md',
@@ -43,6 +47,18 @@ export const RULE_MODULES: Record<string, Record<string, string>> = {
     'react-router': 'rules/router/react-router.md',
   },
 };
+
+/**
+ * 추가 규칙 (항상 포함)
+ * 새로운 규칙 추가 시 여기에 경로만 추가하면 됨
+ */
+export const ADDITIONAL_RULES: string[] = [
+  'rules/mock/time-mocking.md',
+  // 향후 추가 예시:
+  // 'rules/test-type/ssr.md',
+  // 'rules/component/drag-drop.md',
+  // 'rules/component/form.md',
+];
 
 /**
  * 테스트 타입별 기본 규칙
@@ -99,49 +115,57 @@ export const loadRuleContent = async (
     return '';
   }
 
-  try {
-    return await readPromptTemplate(modulePath);
-  } catch {
-    logger.warn(`규칙 모듈을 찾을 수 없습니다: ${modulePath}`);
-    return '';
-  }
-};
+  // 배열인 경우 모든 파일 내용을 합쳐서 반환
+  const paths = Array.isArray(modulePath) ? modulePath : [modulePath];
+  const contents: string[] = [];
 
-/**
- * manifest 설정 기반으로 필요한 규칙 모듈 파일 목록을 반환합니다.
- */
-export const getRuleModulePaths = (manifest: ManifestConfig): string[] => {
-  const modules: string[] = ['rules/_common.md']; // 항상 포함 (Level 0)
-
-  // 각 필드에 대해 해당하는 모듈 추가
-  const fields: (keyof ManifestConfig)[] = [
-    'testRunner',
-    'stateManagement',
-    'queryLibrary',
-    'mockStrategy',
-    'router',
-  ];
-
-  for (const field of fields) {
-    const value = manifest[field];
-    if (value && RULE_MODULES[field]?.[value]) {
-      modules.push(RULE_MODULES[field][value]);
+  for (const path of paths) {
+    try {
+      const content = await readPromptTemplate(path);
+      contents.push(content);
+    } catch {
+      logger.warn(`규칙 모듈을 찾을 수 없습니다: ${path}`);
     }
   }
 
-  return modules;
+  return contents.join('\n\n---\n\n');
 };
 
 /**
- * manifest 설정 기반으로 규칙 모듈을 로드하고 조합합니다.
+ * 모든 규칙 모듈 파일 경로를 반환합니다.
+ * RULE_MODULES의 모든 규칙 + ADDITIONAL_RULES를 포함합니다.
+ */
+export const getAllRulePaths = (): string[] => {
+  const paths: string[] = [];
+
+  // RULE_MODULES의 모든 규칙 수집
+  for (const field of Object.values(RULE_MODULES)) {
+    for (const modulePath of Object.values(field)) {
+      if (Array.isArray(modulePath)) {
+        paths.push(...modulePath);
+      } else {
+        paths.push(modulePath);
+      }
+    }
+  }
+
+  // ADDITIONAL_RULES 추가
+  paths.push(...ADDITIONAL_RULES);
+
+  // 중복 제거
+  return [...new Set(paths)];
+};
+
+/**
+ * 모든 규칙 모듈을 로드하고 조합합니다.
+ * AI가 각 규칙의 scope를 확인하여 적용 가능한 규칙만 선택합니다.
+ *
  * @param testType - 테스트 타입 (ui | unit)
  * @returns 조합된 규칙 문자열
  */
 export const loadRules = async (testType: TestType): Promise<string> => {
-  const manifest = await getManifestConfig();
-
-  // 테스트 타입별 기본 규칙 + manifest 기반 모듈 조합
-  const modulePaths = [...(BASE_RULES[testType] || []), ...getRuleModulePaths(manifest)];
+  // 테스트 타입별 기본 규칙 + 모든 규칙 모듈
+  const modulePaths = [...(BASE_RULES[testType] || []), ...getAllRulePaths()];
 
   const contents: string[] = [];
   const visited = new Set<string>();

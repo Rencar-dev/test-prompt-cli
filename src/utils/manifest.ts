@@ -10,6 +10,7 @@ import yaml from 'js-yaml';
 
 /**
  * Rule Injection에 사용되는 Manifest 설정
+ * (AI가 scope 판단에 사용, 규칙 선택은 하지 않음)
  */
 export interface ManifestConfig {
   /** 테스트 러너: vitest | jest */

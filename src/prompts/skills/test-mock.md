@@ -95,6 +95,10 @@ beforeEach(() => {
 
 ---
 
+{{ADDITIONAL_RULES}}
+
+---
+
 ## MSW 데이터 파일 작성 규칙
 
 > **필수**: MSW data.ts 파일은 JSDOM 환경에서 실행됩니다.

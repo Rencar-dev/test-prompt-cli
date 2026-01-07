@@ -74,31 +74,32 @@ Each command corresponds to a step in the ATDD workflow:
 ### Prompt Templates (src/prompts/)
 - `*.md` - Prompt templates (`{{PLACEHOLDER}}` syntax for variable substitution)
 - `skills/*.md` - SKILL templates (generated to target project's `.claude/skills/`)
-- `rules/*.md` - Rule modules (selectively assembled based on manifest config)
+- `rules/*.md` - Rule modules (all rules injected, AI filters by scope)
 - `agents/*.md` - Agent templates (for Sub-agent pattern, generated to `.claude/agents/`)
 
 ### SKILL Assembly Flow
 
 ```
 When `gen` command runs:
-1. manifest.ts: Read config from target project's project-manifest.yaml
-2. rules-loader.ts: Determine rule file paths based on config
-3. setup.ts: Assemble template + rules into SKILL files
+1. rules-loader.ts: Load ALL rule modules (full injection)
+2. setup.ts: Assemble template + all rules into SKILL files
+3. AI uses each rule's `scope` metadata to apply relevant rules
 
-Example) testRunner: vitest, stateManagement: zustand
-   → skills/test-mock.md + rules/runner/vitest.md + rules/state/zustand.md
-   → Target project's .claude/skills/test-mock/SKILL.md
+All rules are injected → AI filters by scope at runtime
 ```
 
-### Supported Manifest Options (rules-loader.ts)
+### Rule Modules (rules-loader.ts)
 
-| Field | Options |
-|-------|---------|
-| testRunner | vitest, jest |
-| stateManagement | zustand, redux, redux-toolkit, recoil, jotai, none |
-| queryLibrary | tanstack-query, swr, rtk-query, apollo, none |
-| mockStrategy | msw, nock, fetch-mock, module-mock |
-| router | next-app, next-pages, react-router, none |
+Rules are organized in `src/prompts/rules/`:
+- `_common.md` - Base rules (always included)
+- `test-type/{ui,unit}.md` - Test type specific (based on --type)
+- `runner/{_shared,vitest,jest}.md` - Test runner rules
+- `state/{zustand,redux-toolkit,recoil,jotai}.md` - State management
+- `query/{tanstack-query,swr,rtk-query,apollo}.md` - Data fetching
+- `mock/{msw,nock,fetch-mock,module-mock,time-mocking}.md` - Mocking
+- `router/{next-app,next-pages,react-router}.md` - Router
+
+**Adding new rules**: Add file to appropriate folder + update `RULE_MODULES` or `ADDITIONAL_RULES` in rules-loader.ts
 
 ### Generated Files (in target project)
 
@@ -113,4 +114,4 @@ Example) testRunner: vitest, stateManagement: zustand
 - Commands use commander.js and copy results to clipboard via clipboardy
 - File paths with special characters (parentheses, spaces) require quote handling
 - Test file discovery checks both co-location and configured `testPaths.dirName` directory
-- SKILL files are assembled with only the necessary rules based on manifest config
+- SKILL files include all rules; AI applies relevant rules based on each rule's scope metadata

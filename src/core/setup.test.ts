@@ -231,6 +231,34 @@ describe('setup', () => {
 
       expect(writeFileSpy).toHaveBeenCalled();
     });
+
+    it('ADDITIONAL_RULES를 로드하여 추가 규칙 섹션에 포함한다', async () => {
+      const mockTemplate =
+        '# test-mock\n\n{{COMMON_RULES}}\n\n{{RUNNER_RULES}}\n\n{{ADDITIONAL_RULES}}';
+
+      // ADDITIONAL_RULES 배열을 mock
+      vi.spyOn(rulesLoader, 'ADDITIONAL_RULES', 'get').mockReturnValue([
+        'rules/mock/time-mocking.md',
+      ]);
+
+      vi.spyOn(fs, 'pathExists').mockResolvedValue(false as never);
+      vi.spyOn(fs, 'ensureDir').mockResolvedValue(undefined);
+      const writeFileSpy = vi.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
+      vi.spyOn(manifestUtils, 'getManifestConfig').mockResolvedValue(mockManifest as never);
+      vi.spyOn(fileUtils, 'readPromptTemplate').mockImplementation(async (path: string) => {
+        if (path === 'skills/test-mock.md') return mockTemplate;
+        if (path === 'rules/mock/time-mocking.md') return '## Time Mocking 규칙';
+        return '';
+      });
+      vi.spyOn(rulesLoader, 'loadCommonRules').mockResolvedValue('common rules');
+      vi.spyOn(rulesLoader, 'loadRuleContent').mockResolvedValue('');
+
+      await createTestMockSkill();
+
+      const writtenContent = writeFileSpy.mock.calls[0][1] as string;
+      expect(writtenContent).toContain('Time Mocking');
+      expect(writtenContent).not.toContain('{{ADDITIONAL_RULES}}');
+    });
   });
 
   describe('syncAllSkills', () => {

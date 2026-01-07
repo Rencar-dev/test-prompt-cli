@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js';
 import { readPromptTemplate } from '../utils/file.js';
 import { getManifestConfig } from '../utils/manifest.js';
 import { TestType } from './test-type.js';
-import { loadRuleContent, loadCommonRules, loadTestTypeRules } from './rules-loader.js';
+import { loadRuleContent, loadCommonRules, loadTestTypeRules, ADDITIONAL_RULES } from './rules-loader.js';
 
 /**
  * project-test-lessons.md 파일이 없으면 기본 템플릿으로 생성합니다.
@@ -214,6 +214,19 @@ export const createTestMockSkill = async (): Promise<void> => {
   const mockRules = await loadRuleContent('mockStrategy', manifest.mockStrategy);
   const routerRules = await loadRuleContent('router', manifest.router);
 
+  // ADDITIONAL_RULES 로드 (항상 포함되는 규칙)
+  const additionalRulesContents: string[] = [];
+  for (const rulePath of ADDITIONAL_RULES) {
+    try {
+      const content = await readPromptTemplate(rulePath);
+      additionalRulesContents.push(content);
+    } catch {
+      // 파일이 없으면 건너뜀
+      logger.warn(`추가 규칙 파일을 찾을 수 없습니다: ${rulePath}`);
+    }
+  }
+  const additionalRules = additionalRulesContents.join('\n\n---\n\n');
+
   // 플레이스홀더 치환
   skillContent = skillContent
     .replace(
@@ -239,6 +252,10 @@ export const createTestMockSkill = async (): Promise<void> => {
     .replace(
       '{{ROUTER_RULES}}',
       routerRules ? `## Router 규칙 (${manifest.router})\n\n${routerRules}` : ''
+    )
+    .replace(
+      '{{ADDITIONAL_RULES}}',
+      additionalRules ? `## 추가 규칙\n\n${additionalRules}` : ''
     );
 
   const isUpdate = await fs.pathExists(skillPath);
