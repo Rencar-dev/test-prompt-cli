@@ -12,6 +12,32 @@ description: |
 
 ---
 
+## 0. 영향 파일 목록 (Affected Files)
+
+> **중요**: Main Agent가 전달한 영향 파일 목록을 lint 검사 대상에 포함합니다.
+
+### 영향 파일 전달 방식
+
+Main Agent가 Sub-agent 호출 시 `AFFECTED_FILES` 블록으로 전달:
+
+```
+AFFECTED_FILES:
+- mocks/handlers/auth.ts (신규)
+- mocks/data/user.ts (수정)
+- app/(public)/login/_tests/login.test.tsx (테스트)
+```
+
+### Fallback (목록 미전달 시)
+
+`AFFECTED_FILES` 블록이 없으면 테스트 파일만 lint 검사:
+
+```bash
+# 테스트 파일만 검사 (기존 동작)
+yarn eslint --fix [테스트 파일 경로]
+```
+
+---
+
 ## 1. 실행 검증 (Execution Checks)
 
 테스트 코드가 실제로 실행 가능한지 확인합니다.
@@ -51,16 +77,38 @@ description: |
 ### 1.2 Lint 검사
 
 1. `project-manifest.yaml` 파일에서 `lintCommand` 값 확인
-2. 해당 명령어에 테스트 파일 경로 추가하여 **그대로** 실행
-3. **미사용 변수 강제 검사** 추가 실행 (프로젝트 설정과 무관)
+2. **영향 파일 목록 수집** (섹션 0 참조)
+3. 모든 영향 파일에 lint 명령어 실행
+4. **미사용 변수 강제 검사** 추가 실행 (모든 영향 파일 대상)
 
 ```bash
 # project-manifest.yaml 예시:
 # lintCommand: yarn eslint --fix
-# → 실행: yarn eslint --fix [테스트 파일 경로]
 
-# 미사용 변수 강제 검사 (프로젝트 설정 무관하게 필수)
-yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [테스트 파일 경로]
+# 영향 파일이 있는 경우 (AFFECTED_FILES 블록 존재)
+yarn eslint --fix [테스트 파일] [mock 핸들러] [mock 데이터] [기타 파일...]
+
+# 영향 파일이 없는 경우 (기존 동작)
+yarn eslint --fix [테스트 파일 경로]
+
+# 미사용 변수 강제 검사 (모든 영향 파일 대상, 프로젝트 설정 무관)
+yarn eslint --rule '@typescript-eslint/no-unused-vars: error' [모든 영향 파일...]
+```
+
+**영향 파일 lint 실행 예시**:
+
+```bash
+# AFFECTED_FILES가 전달된 경우
+yarn eslint --fix \
+  "app/(public)/login/_tests/login.test.tsx" \
+  "mocks/handlers/auth.ts" \
+  "mocks/data/user.ts"
+
+# 미사용 변수 강제 검사
+yarn eslint --rule '@typescript-eslint/no-unused-vars: error' \
+  "app/(public)/login/_tests/login.test.tsx" \
+  "mocks/handlers/auth.ts" \
+  "mocks/data/user.ts"
 ```
 
 **실패 시 처리**:
@@ -369,11 +417,12 @@ await waitFor(() => expect(...)); // 기본 1000ms
 
 ## 실행 정보
 - 테스트 파일: [테스트 파일 경로]
+- 영향 파일: [lint 적용된 추가 파일 목록, 없으면 "없음"]
 - 실행 시간: [YYYY-MM-DD HH:mm:ss]
 
 ## 실행 검증
 - TypeScript: `[실제 실행한 명령어]` → [PASS/FAIL]
-- Lint: `[실제 실행한 명령어]` → [PASS/FAIL]
+- Lint: `[실제 실행한 명령어]` → [PASS/FAIL] ([N]개 파일)
 - Test: `[실제 실행한 명령어]` → [N/N 통과 (X.Xs)]
 
 ## 패턴 검증
@@ -388,11 +437,12 @@ await waitFor(() => expect(...)); // 기본 1000ms
 
 ## 실행 정보
 - 테스트 파일: app/(public)/user/login/_tests/login.test.tsx
+- 영향 파일: mocks/handlers/auth.ts, mocks/data/user.ts
 - 실행 시간: 2024-12-30 15:30:00
 
 ## 실행 검증
 - TypeScript: `yarn tsc --noEmit --skipLibCheck` → PASS
-- Lint: `yarn eslint --fix "app/(public)/user/login/_tests/login.test.tsx"` → PASS
+- Lint: `yarn eslint --fix [3개 파일]` → PASS (3개 파일)
 - Test: `yarn vitest run "app/(public)/user/login/_tests/login.test.tsx"` → 17/17 통과 (1.2s)
 
 ## 패턴 검증

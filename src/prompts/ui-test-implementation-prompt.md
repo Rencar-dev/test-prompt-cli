@@ -224,7 +224,15 @@ subagent_type: "test-implementer"
 prompt: |
   [테스트 파일 경로]의 모든 TODO 블록을 구현하세요.
   소스 파일: [관련 소스 파일 경로들]
+
+  AFFECTED_FILES:
+  - [테스트 파일 경로] (테스트)
+  - [Phase 1에서 생성/수정한 mock 핸들러 경로] (신규/수정)
+  - [Phase 1에서 생성/수정한 mock 데이터 경로] (신규/수정)
 ```
+
+> **중요**: `AFFECTED_FILES` 블록에 Phase 1에서 생성/수정한 모든 파일을 포함하세요.
+> Sub-agent의 `/test-verify` 스킬이 이 파일들을 모두 lint 검사합니다.
 
 ### Phase 3: 마무리 (Main Agent)
 
