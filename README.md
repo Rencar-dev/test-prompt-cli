@@ -140,13 +140,7 @@ npx @hsna/prompt gen [source_path] [options]
 | `self-learn/SKILL.md` | 테스트 수정 사항 분석 및 교훈 자동 기록 |
 | `test-coverage/SKILL.md` | ATDD 시나리오 커버리지 검증 |
 
-**Agent 파일 자동 생성:**
-실행 시 `.claude/agents/` 디렉토리에 Sub-agent 정의 파일이 자동 생성/갱신됩니다.
-| Agent | 용도 |
-|-------|------|
-| `test-implementer.md` | 테스트 구현 전문가 (Scaffold의 TODO 블록 구현 담당) |
-
-> **💡 Sub-agent 패턴**: Main Agent가 테스트 Scaffold를 생성하면, `test-implementer` Sub-agent가 실제 구현을 담당합니다. 이를 통해 비용 절감(Sonnet 모델 사용)과 Main Context 절약 효과를 얻습니다.
+> **💡 SKILL/Agent 파일 자동 생성**: 실행 시 테스트 관련 SKILL과 Agent 파일이 자동 생성됩니다. 자세한 내용은 [SKILL & Agent System](#-skill--agent-system) 참조.
 
 ```bash
 # Interactive 모드 (테스트 타입 자동 추론)
@@ -230,24 +224,64 @@ npx @hsna/prompt learn [source_path]
 
 ---
 
-## 🎯 SKILL Integration
+## 🎯 SKILL & Agent System
 
-이 CLI는 [Claude Code](https://claude.com/claude-code)의 SKILL 시스템과 연동됩니다.
+이 CLI는 [Claude Code](https://claude.com/claude-code)의 SKILL/Agent 시스템과 연동됩니다.
 
-### SKILL 파일이란?
+### SKILL이란?
 
 SKILL은 Claude Code가 특정 작업 수행 시 **자동으로 참조하는 규칙 파일**입니다.
-프롬프트에 모든 규칙을 포함하지 않아도, Claude Code가 필요한 시점에 SKILL을 호출하여 규칙을 적용합니다.
+프롬프트에 모든 규칙을 포함하지 않아도, `/skill-name` 명령으로 필요한 규칙을 즉시 로드합니다.
 
-### 생성되는 SKILL 파일
+### Agent란?
 
-| 명령어 | SKILL | 설명 |
-|--------|-------|------|
-| `init` | `test-verify` | 테스트 실행 검증 (TS/Lint/Test) + 코드 패턴 체크 (P0/P1/P2) |
-| `gen` | `test-implement` | 테스트 작성 규칙 (waitFor, Selector, G/W/T) |
-| `gen` | `test-mock` | Mock 패턴 (vi.mock, MSW, 상태관리) |
-| `gen` | `self-learn` | 테스트 수정 사항 분석 및 교훈 자동 기록 |
-| `gen` | `test-coverage` | ATDD 시나리오 커버리지 검증 |
+Agent는 Main Agent가 **특정 작업을 위임**할 때 사용하는 전문가(Sub-agent)입니다.
+독립적인 컨텍스트에서 작업을 수행하고, 완료 후 결과를 Main Agent에 반환합니다.
+
+### SKILL vs Agent
+
+| 구분 | SKILL | Agent |
+|------|-------|-------|
+| **역할** | 규칙/지식 제공 (What) | 작업 실행 (How) |
+| **호출 방식** | `/skill-name` 명령 | Main Agent가 spawn |
+| **도구 접근** | 없음 (정보만 제공) | Read, Edit, Bash 등 |
+| **컨텍스트** | Main Agent와 공유 | 독립 (결과만 반환) |
+| **비유** | 📖 매뉴얼 | 👷 작업자 |
+
+### 동작 흐름
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Main Agent (사용자와 대화)                                        │
+├─────────────────────────────────────────────────────────────────┤
+│ 1. gen 프롬프트 수신                                              │
+│ 2. 테스트 Scaffold 생성 (describe/it 구조 + // TODO: implement)   │
+│ 3. test-implementer Agent에게 위임 ──────────────────────┐       │
+└──────────────────────────────────────────────────────────│───────┘
+                                                           ▼
+                              ┌─────────────────────────────────────┐
+                              │ test-implementer Agent (Sub-agent)  │
+                              ├─────────────────────────────────────┤
+                              │ 1. /test-implement 스킬 호출         │
+                              │    └─ 규칙 파일 읽고 적용             │
+                              │ 2. TODO 블록 구현                    │
+                              │ 3. /test-verify 스킬로 검증          │
+                              │ 4. 완료 보고서 반환 ──────────────────┼──▶ Main Agent
+                              └─────────────────────────────────────┘
+```
+
+> **💡 이점**: Sub-agent는 Sonnet 모델을 사용하여 비용을 절감하고, Main Agent의 컨텍스트를 보존합니다.
+
+### 생성되는 파일
+
+| 명령어 | 파일 | 유형 | 설명 |
+|--------|------|------|------|
+| `init` | `test-verify/SKILL.md` | SKILL | 테스트 실행 검증 (TS/Lint/Test) + 코드 패턴 체크 |
+| `init` | `test-implementer.md` | Agent | 테스트 구현 전문가 (TODO 블록 구현) |
+| `gen` | `test-implement/SKILL.md` | SKILL | 테스트 작성 규칙 (waitFor, Selector, G/W/T) |
+| `gen` | `test-mock/SKILL.md` | SKILL | Mock 패턴 (vi.mock, MSW, 상태관리) |
+| `gen` | `self-learn/SKILL.md` | SKILL | 테스트 수정 사항 분석 및 교훈 자동 기록 |
+| `gen` | `test-coverage/SKILL.md` | SKILL | ATDD 시나리오 커버리지 검증 |
 
 ### 디렉토리 구조
 
@@ -255,19 +289,24 @@ SKILL은 Claude Code가 특정 작업 수행 시 **자동으로 참조하는 규
 your-project/
 ├── .claude/
 │   ├── agents/
-│   │   └── test-implementer.md       # gen 시 생성 (Sub-agent 정의)
+│   │   └── test-implementer.md       # Agent 정의
+│   ├── rules/
+│   │   ├── _common.md                # 공통 규칙
+│   │   ├── runner/vitest.md          # 테스트 러너별 규칙
+│   │   ├── state/zustand.md          # 상태관리별 규칙
+│   │   └── ...
 │   └── skills/
-│       ├── test-verify/SKILL.md      # init 시 생성
-│       ├── test-implement/SKILL.md   # gen 시 생성 (testType 기반)
-│       ├── test-mock/SKILL.md        # gen 시 생성 (manifest 기반)
-│       ├── self-learn/SKILL.md       # gen 시 생성
-│       └── test-coverage/SKILL.md    # gen 시 생성
+│       ├── test-verify/SKILL.md
+│       ├── test-implement/SKILL.md
+│       ├── test-mock/SKILL.md
+│       ├── self-learn/SKILL.md
+│       └── test-coverage/SKILL.md
 ├── project-manifest.yaml
 └── project-test-lessons.md
 ```
 
-> **💡 Tip**: SKILL 파일은 `project-manifest.yaml` 설정에 따라 동적으로 생성됩니다.
-> 예를 들어, `mockStrategy: msw`로 설정되어 있으면 MSW 관련 규칙이 포함됩니다.
+> **💡 Tip**: SKILL과 Rules 파일은 `project-manifest.yaml` 설정에 따라 동적으로 생성됩니다.
+> 예를 들어, `testRunner: vitest`, `stateManagement: zustand`로 설정되어 있으면 해당 규칙이 자동 포함됩니다.
 
 ---
 
