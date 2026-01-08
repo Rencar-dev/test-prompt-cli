@@ -10,7 +10,7 @@
 복잡한 컨텍스트 설정과 포맷팅을 자동화하여 **"명령어 입력 → Claude에게 붙여넣기"** 만으로 테스트 코드를 생산할 수 있습니다.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-0.8.0-green.svg)
+![Version](https://img.shields.io/badge/version-0.9.0-green.svg)
 
 ## ✨ Features
 
