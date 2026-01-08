@@ -13,6 +13,7 @@
 
 - 📋 **Auto Copy**: 생성된 프롬프트를 시스템 클립보드에 즉시 복사합니다.
 - 🧠 **Context Aware**: `project-manifest.yaml` 설정을 자동으로 읽어 프로젝트 컨벤션을 준수합니다.
+- 📚 **Self-Learning**: `project-test-lessons.md`에 축적된 오답노트를 활용해 테스트 품질을 개선합니다.
 - 🎯 **SKILL Integration**: Claude Code의 SKILL 시스템과 연동하여 규칙을 자동 참조합니다.
 - 🚀 **Zero Config**: `npx`로 즉시 실행 가능합니다.
 
