@@ -30,14 +30,11 @@
 ```
 >>>
 
-[대상 기능의 소스 파일 경로]
+[대상 소스 파일 경로]
 <<< {{SOURCE_PATH}} >>>
 
-[코드]
-<<<
-{{SOURCE_CODE}}
->>>
-   - 예: `types/User.ts`, `constants/ErrorCode.ts`
+> 위 경로의 파일을 Read 도구로 직접 읽어서 분석하세요.
+> 필요시 관련 타입/상수 파일(예: `types/User.ts`, `constants/ErrorCode.ts`)도 함께 읽으세요.
    - **목적**: 구현 프롬프트에서 AI가 Mock 데이터 필드명이나 Enum 값을 추측하지 않고 정확하게 명세하도록 하기 위함
 
 > ❗️`manifest`가 없으면 즉시 중단하고  

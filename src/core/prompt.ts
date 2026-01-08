@@ -1,7 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { readManifest, readPromptTemplate, readUserFile } from '../utils/file.js';
-import { resolveUserPath } from '../utils/path.js';
 import { findAtddFile, findPlanFile } from './locator.js';
 import { TestType, DEFAULT_TEST_TYPE, getTemplateFileName } from './test-type.js';
 
@@ -19,21 +18,17 @@ const validateManifest = async (): Promise<void> => {
 
 /**
  * ATDD 프롬프트 생성 로직
- * - Manifest, Source Code, Template을 조합하여 문자열 반환
+ * - Manifest와 Source Path를 조합하여 문자열 반환 (Claude Code가 직접 파일 읽음)
  * @throws {Error} Manifest 파일이 없을 경우 'MANIFEST_NOT_FOUND' 에러 발생
  */
 export const generateAtddPrompt = async (sourcePath: string): Promise<string> => {
   await validateManifest();
   const manifestContent = await readManifest();
 
-  const absolutePath = resolveUserPath(sourcePath);
-  const sourceCode = await readUserFile(absolutePath);
-
   const promptTemplate = await readPromptTemplate('atdd-scenario-generator-prompt.md');
 
   return promptTemplate
     .replace('{{MANIFEST}}', manifestContent)
-    .replace('{{SOURCE_CODE}}', sourceCode)
     .replace('{{SOURCE_PATH}}', sourcePath);
 };
 
@@ -46,9 +41,6 @@ export const generateAtddPrompt = async (sourcePath: string): Promise<string> =>
 export const generatePlanPrompt = async (sourcePath: string): Promise<string> => {
   await validateManifest();
   const manifestContent = await readManifest();
-
-  const absoluteSourcePath = resolveUserPath(sourcePath);
-  const sourceCode = await readUserFile(absoluteSourcePath);
 
   // 🔥 핵심 로직 분리: ATDD 파일 찾기
   const atddFilePath = await findAtddFile(sourcePath);
@@ -63,8 +55,7 @@ export const generatePlanPrompt = async (sourcePath: string): Promise<string> =>
   return promptTemplate
     .replace('{{ATDD_CONTENT}}', atddContent)
     .replace('{{MANIFEST}}', manifestContent)
-    .replace('{{SOURCE_PATH}}', sourcePath)
-    .replace('{{SOURCE_CODE}}', sourceCode);
+    .replace('{{SOURCE_PATH}}', sourcePath);
 };
 
 /**
@@ -90,9 +81,6 @@ export const generateGenPrompt = async (
 ): Promise<GenPromptResult> => {
   await validateManifest();
   const manifestContent = await readManifest();
-
-  const absolutePath = resolveUserPath(sourcePath);
-  const sourceCode = await readUserFile(absolutePath);
 
   // Plan 파일 찾기
   const planFilePath = await findPlanFile(sourcePath);
@@ -125,7 +113,6 @@ export const generateGenPrompt = async (
     .replace('{{LESSONS_LEARNED}}', lessonsContent || '(아직 기록된 교훈이 없습니다)')
     .replace('{{PLAN_CONTENT}}', planPlaceholder)
     .replace('{{MANIFEST}}', manifestContent)
-    .replace('{{SOURCE_CODE}}', sourceCode)
     .replace('{{SOURCE_PATH}}', sourcePath);
 
   return { prompt, hasPlan };

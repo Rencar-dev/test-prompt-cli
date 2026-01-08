@@ -2,9 +2,12 @@
 
 **AI 기반 프론트엔드 테스트 자동화 파트너**
 
-`@hsna/prompt`는 프론트엔드 코드를 분석하여, AI(Claude, Cursor, ChatGPT)에게 테스트 작성을 요청하기 위한 **최적화된 프롬프트를 생성해주는 CLI 도구**입니다.
+> ⚠️ **Claude Code 전용**: 이 도구는 [Claude Code](https://claude.ai/code) 환경에서 사용하도록 설계되었습니다.
+> SKILL/Agent 시스템과 파일 읽기 권한을 활용합니다.
 
-복잡한 컨텍스트 설정, 파일 읽기, 포맷팅을 자동화하여 **"명령어 입력 → AI에게 붙여넣기"** 만으로 테스트 코드를 생산할 수 있습니다.
+`@hsna/prompt`는 프론트엔드 코드를 분석하여, Claude Code에게 테스트 작성을 요청하기 위한 **최적화된 프롬프트를 생성해주는 CLI 도구**입니다.
+
+복잡한 컨텍스트 설정과 포맷팅을 자동화하여 **"명령어 입력 → Claude에게 붙여넣기"** 만으로 테스트 코드를 생산할 수 있습니다.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-0.8.0-green.svg)

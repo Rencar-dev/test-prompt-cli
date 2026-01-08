@@ -2,11 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import { generateAtddPrompt, generatePlanPrompt, generateGenPrompt } from './prompt.js';
 import * as fileUtils from '../utils/file.js';
-import * as pathUtils from '../utils/path.js';
 import * as locator from './locator.js';
 
 vi.mock('../utils/file.js');
-vi.mock('../utils/path.js');
 vi.mock('./locator.js');
 vi.mock('fs-extra');
 
@@ -23,23 +21,19 @@ describe('prompt core', () => {
     it('모든 파일이 정상적으로 읽혔을 때 올바른 포맷의 문자열 반환', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
-      const mockTemplate = 'mock template {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockAbsolutePath = '/abs/src/app/login/page.tsx';
+      const mockTemplate = 'mock template {{MANIFEST}} {{SOURCE_PATH}}';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockSourceCode);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
 
       const result = await generateAtddPrompt(sourcePath);
 
-      // expect(result).toContain(mockTemplate); // Raw template is replaced
-      expect(result).toContain(mockTemplate.replace('{{MANIFEST}}', mockManifest).replace('{{SOURCE_CODE}}', mockSourceCode).replace('{{SOURCE_PATH}}', sourcePath));
+      // 경로만 포함 (Claude Code가 직접 파일 읽음)
       expect(result).toContain(mockManifest);
-      expect(result).toContain(mockSourceCode);
       expect(result).toContain(sourcePath);
+      expect(result).not.toContain('{{MANIFEST}}');
+      expect(result).not.toContain('{{SOURCE_PATH}}');
     });
 
     it('Manifest 파일이 없을 때 MANIFEST_NOT_FOUND 에러 발생', async () => {
@@ -62,43 +56,34 @@ describe('prompt core', () => {
     it('ATDD 파일이 있을 때 올바른 포맷의 문자열 반환', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
       const mockAtddContent = 'mock atdd content';
-      const mockTemplate = 'mock template {{ATDD_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}} {{SOURCE_CODE}}';
-      const mockAbsolutePath = '/abs/src/app/login/page.tsx';
+      const mockTemplate = 'mock template {{ATDD_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}}';
       const mockAtddPath = '/abs/src/app/login/page.atdd.md';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile')
-        .mockResolvedValueOnce(mockSourceCode) // first call for source code
-        .mockResolvedValueOnce(mockAtddContent); // second call for atdd content
+      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockAtddContent);
       vi.spyOn(locator, 'findAtddFile').mockResolvedValue(mockAtddPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
 
       const result = await generatePlanPrompt(sourcePath);
 
+      // 경로만 포함 (Claude Code가 직접 파일 읽음)
       expect(result).toContain(mockAtddContent);
       expect(result).toContain(mockManifest);
       expect(result).toContain(sourcePath);
-      expect(result).toContain(mockSourceCode);
 
-      // Verify arguments passed to mocks
-      expect(fileUtils.readUserFile).toHaveBeenCalledWith(mockAbsolutePath);
+      // ATDD 파일만 읽음 (소스 코드는 Claude가 직접 읽음)
       expect(fileUtils.readUserFile).toHaveBeenCalledWith(mockAtddPath);
+      expect(fileUtils.readUserFile).toHaveBeenCalledTimes(1);
     });
 
     it('ATDD 파일이 없을 때 ATDD_FILE_NOT_FOUND 에러 발생', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
-      const mockAbsolutePath = '/abs/src/app/login/page.tsx';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockSourceCode);
       vi.spyOn(locator, 'findAtddFile').mockResolvedValue(null);
 
       await expect(generatePlanPrompt(sourcePath)).rejects.toThrow('ATDD_FILE_NOT_FOUND');
@@ -109,18 +94,13 @@ describe('prompt core', () => {
     it('UI 타입일 때 올바른 템플릿과 포맷의 문자열 반환', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockAbsolutePath = '/abs/src/app/login/page.tsx';
+      const mockTemplate = 'mock ui template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}}';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile')
-        .mockResolvedValueOnce(mockSourceCode) // first call for source code
-        .mockResolvedValueOnce(mockPlanContent); // second call for plan content
+      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockPlanContent);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
 
@@ -129,11 +109,10 @@ describe('prompt core', () => {
       // 올바른 템플릿 파일명으로 호출되었는지 확인
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('ui-test-implementation-prompt.md');
 
-      // 프롬프트 구조 검증 (SKILL 기반으로 {{RULES}} 제거됨)
+      // 경로만 포함 (Claude Code가 직접 파일 읽음)
       expect(prompt).toContain('(아직 기록된 교훈이 없습니다)');
       expect(prompt).toContain(mockPlanContent);
       expect(prompt).toContain(mockManifest);
-      expect(prompt).toContain(mockSourceCode);
       expect(prompt).toContain(sourcePath);
       expect(hasPlan).toBe(true);
     });
@@ -141,18 +120,13 @@ describe('prompt core', () => {
     it('Unit 타입일 때 올바른 템플릿과 포맷의 문자열 반환', async () => {
       const sourcePath = 'src/utils/date.ts';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock unit template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockAbsolutePath = '/abs/src/utils/date.ts';
+      const mockTemplate = 'mock unit template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}}';
       const mockPlanPath = '/abs/src/utils/date.test-plan.md';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile')
-        .mockResolvedValueOnce(mockSourceCode) // first call for source code
-        .mockResolvedValueOnce(mockPlanContent); // second call for plan content
+      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockPlanContent);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
 
@@ -161,10 +135,10 @@ describe('prompt core', () => {
       // 올바른 템플릿 파일명으로 호출되었는지 확인
       expect(fileUtils.readPromptTemplate).toHaveBeenCalledWith('business-logic-test-prompt.md');
 
+      // 경로만 포함 (Claude Code가 직접 파일 읽음)
       expect(prompt).toContain('(아직 기록된 교훈이 없습니다)');
       expect(prompt).toContain(mockPlanContent);
       expect(prompt).toContain(mockManifest);
-      expect(prompt).toContain(mockSourceCode);
       expect(prompt).toContain(sourcePath);
       expect(hasPlan).toBe(true);
     });
@@ -172,18 +146,13 @@ describe('prompt core', () => {
     it('기본값이 ui일 때 UI 템플릿 사용', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockAbsolutePath = '/abs/src/app/login/page.tsx';
+      const mockTemplate = 'mock ui template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}}';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile')
-        .mockResolvedValueOnce(mockSourceCode) // first call for source code
-        .mockResolvedValueOnce(mockPlanContent); // second call for plan content
+      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockPlanContent);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
 
@@ -197,13 +166,9 @@ describe('prompt core', () => {
     it('UI 타입에서 Plan 파일이 없을 때 PLAN_FILE_NOT_FOUND 에러 발생', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
-      const mockAbsolutePath = '/abs/src/app/login/page.tsx';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockSourceCode);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(null);
 
       await expect(generateGenPrompt(sourcePath, 'ui')).rejects.toThrow('PLAN_FILE_NOT_FOUND');
@@ -212,14 +177,10 @@ describe('prompt core', () => {
     it('Unit 타입에서 Plan 파일이 없을 때 정상 동작 (Plan 선택적)', async () => {
       const sourcePath = 'src/utils/date.ts';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
-      const mockTemplate = 'mock unit template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
-      const mockAbsolutePath = '/abs/src/utils/date.ts';
+      const mockTemplate = 'mock unit template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}}';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockSourceCode);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(null); // Plan 없음
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
 
@@ -228,8 +189,8 @@ describe('prompt core', () => {
       // Plan 없이도 정상 동작
       expect(hasPlan).toBe(false);
       expect(prompt).toContain('(Plan 없음 - 소스 코드를 분석하여 테스트 케이스를 직접 도출하세요)');
-      expect(prompt).toContain(mockSourceCode);
       expect(prompt).toContain(mockManifest);
+      expect(prompt).toContain(sourcePath);
     });
 
     it('파일 읽기 실패 시 에러를 전파한다', async () => {
@@ -243,19 +204,14 @@ describe('prompt core', () => {
     it('project-test-lessons.md 파일이 있을 때 내용을 포함한다', async () => {
       const sourcePath = 'src/app/login/page.tsx';
       const mockManifest = 'mock manifest content';
-      const mockSourceCode = 'mock source code';
       const mockPlanContent = 'mock plan content';
-      const mockTemplate = 'mock ui template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_CODE}} {{SOURCE_PATH}}';
+      const mockTemplate = 'mock ui template {{LESSONS_LEARNED}} {{PLAN_CONTENT}} {{MANIFEST}} {{SOURCE_PATH}}';
       const mockLessons = '## Lessons Learned Content';
-      const mockAbsolutePath = '/abs/src/app/login/page.tsx';
       const mockPlanPath = '/abs/src/app/login/page.test-plan.md';
 
       vi.spyOn(fs, 'pathExists').mockResolvedValue(true as never);
       vi.spyOn(fileUtils, 'readManifest').mockResolvedValue(mockManifest);
-      vi.spyOn(pathUtils, 'resolveUserPath').mockReturnValue(mockAbsolutePath);
-      vi.spyOn(fileUtils, 'readUserFile')
-        .mockResolvedValueOnce(mockSourceCode)
-        .mockResolvedValueOnce(mockPlanContent);
+      vi.spyOn(fileUtils, 'readUserFile').mockResolvedValue(mockPlanContent);
       vi.spyOn(locator, 'findPlanFile').mockResolvedValue(mockPlanPath);
       vi.spyOn(fileUtils, 'readPromptTemplate').mockResolvedValue(mockTemplate);
 
