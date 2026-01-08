@@ -169,16 +169,16 @@ describe('setup', () => {
   });
 
   describe('syncRuleFiles', () => {
-    it('규칙 파일을 .claude/rules/로 복사한다', async () => {
+    it('규칙 파일을 .claude/test-rules/로 복사한다', async () => {
       const removeSpy = vi.spyOn(fs, 'remove').mockResolvedValue(undefined);
       const copySpy = vi.spyOn(fs, 'copy').mockResolvedValue(undefined);
 
       await syncRuleFiles();
 
-      expect(removeSpy).toHaveBeenCalledWith(expect.stringContaining('.claude/rules'));
+      expect(removeSpy).toHaveBeenCalledWith(expect.stringContaining('.claude/test-rules'));
       expect(copySpy).toHaveBeenCalledWith(
         '/mock/prompts/rules',
-        expect.stringContaining('.claude/rules'),
+        expect.stringContaining('.claude/test-rules'),
         expect.objectContaining({ filter: expect.any(Function) })
       );
     });
@@ -234,7 +234,7 @@ describe('setup', () => {
       await syncAllSkills('ui');
 
       // syncRuleFiles가 호출되었는지 확인 (fs.remove가 호출됨)
-      expect(removeSpy).toHaveBeenCalledWith(expect.stringContaining('.claude/rules'));
+      expect(removeSpy).toHaveBeenCalledWith(expect.stringContaining('.claude/test-rules'));
     });
   });
 });

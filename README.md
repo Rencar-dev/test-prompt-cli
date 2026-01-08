@@ -294,7 +294,7 @@ your-project/
 ├── .claude/
 │   ├── agents/
 │   │   └── test-implementer.md       # Agent 정의
-│   ├── rules/
+│   ├── test-rules/
 │   │   ├── _common.md                # 공통 규칙
 │   │   ├── runner/vitest.md          # 테스트 러너별 규칙
 │   │   ├── state/zustand.md          # 상태관리별 규칙

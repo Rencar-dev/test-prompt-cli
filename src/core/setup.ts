@@ -191,7 +191,7 @@ export const createTestCoverageSkill = async (): Promise<void> => {
  */
 export const syncRuleFiles = async (): Promise<void> => {
   const sourceDir = path.join(getPromptsPath(), 'rules');
-  const targetDir = path.resolve(process.cwd(), '.claude/rules');
+  const targetDir = path.resolve(process.cwd(), '.claude/test-rules');
 
   // 기존 규칙 디렉토리 삭제 후 새로 복사 (항상 최신 유지)
   await fs.remove(targetDir);
@@ -203,7 +203,7 @@ export const syncRuleFiles = async (): Promise<void> => {
     },
   });
 
-  logger.success('✅ .claude/rules/ 규칙 파일이 동기화되었습니다.');
+  logger.success('✅ .claude/test-rules/ 규칙 파일이 동기화되었습니다.');
 };
 
 /**
@@ -224,12 +224,12 @@ export const createTestImplementSkill = async (
   // 규칙 파일 경로 생성
   const rulePaths = getRuleFilePaths(manifest, testType);
   const ruleFilesList = rulePaths
-    .map((p) => `- \`.claude/rules/${p}\``)
+    .map((p) => `- \`.claude/test-rules/${p}\``)
     .join('\n');
 
   // 컨텍스트 기반 규칙 목록 생성
   const contextRulesList = CONTEXT_BASED_RULES.map(
-    (r) => `- ${r.pattern} → \`.claude/rules/${r.path}\``
+    (r) => `- ${r.pattern} → \`.claude/test-rules/${r.path}\``
   ).join('\n');
 
   // 템플릿 읽기 및 플레이스홀더 치환
@@ -267,12 +267,12 @@ export const createTestMockSkill = async (): Promise<void> => {
     (p) => !p.startsWith('test-type/')
   );
   const ruleFilesList = rulePaths
-    .map((p) => `- \`.claude/rules/${p}\``)
+    .map((p) => `- \`.claude/test-rules/${p}\``)
     .join('\n');
 
   // 컨텍스트 기반 규칙 목록 생성
   const contextRulesList = CONTEXT_BASED_RULES.map(
-    (r) => `- ${r.pattern} → \`.claude/rules/${r.path}\``
+    (r) => `- ${r.pattern} → \`.claude/test-rules/${r.path}\``
   ).join('\n');
 
   // 템플릿 읽기 및 플레이스홀더 치환

@@ -12,7 +12,7 @@ This Repo (test-prompt-cli)           Target Project (user's app)
 │ src/prompts/             │         │ (npx @hsna/prompt gen)   │
 │   ├── skills/*.md        │  ──▶    │                          │
 │   ├── rules/*.md         │         │ .claude/skills/*.md      │
-│   └── agents/*.md        │         │ .claude/rules/*.md       │
+│   └── agents/*.md        │         │ .claude/test-rules/*.md       │
 │                          │         │ .claude/agents/*.md      │
 │ CLI copies rules and     │         │ project-manifest.yaml    │
 │ generates SKILL files    │         │ project-test-lessons.md  │
@@ -80,18 +80,18 @@ Each command corresponds to a step in the ATDD workflow:
 
 ```
 When `gen` command runs:
-1. syncRuleFiles(): Copy all rules from prompts/rules/ to .claude/rules/
+1. syncRuleFiles(): Copy all rules from prompts/rules/ to .claude/test-rules/
 2. getRuleFilePaths(): Resolve rule paths based on project-manifest.yaml
 3. createTestImplementSkill(): Generate SKILL with specific rule paths injected
 4. createTestMockSkill(): Generate SKILL with specific rule paths injected
 
 Example) testRunner: vitest, stateManagement: zustand
    → SKILL includes:
-     - .claude/rules/_common.md
-     - .claude/rules/test-type/ui.md
-     - .claude/rules/runner/_shared.md
-     - .claude/rules/runner/vitest.md
-     - .claude/rules/state/zustand.md
+     - .claude/test-rules/_common.md
+     - .claude/test-rules/test-type/ui.md
+     - .claude/test-rules/runner/_shared.md
+     - .claude/test-rules/runner/vitest.md
+     - .claude/test-rules/state/zustand.md
 ```
 
 **Rule Resolution**:
@@ -116,7 +116,7 @@ Rules are organized by category:
 | Command | Generated Files |
 |---------|-----------------|
 | init | `project-test-lessons.md`, `.claude/skills/test-verify/SKILL.md`, `.claude/agents/test-implementer.md` |
-| gen | `.claude/rules/*`, `.claude/skills/test-implement/SKILL.md`, `.claude/skills/test-mock/SKILL.md`, `.claude/skills/self-learn/SKILL.md`, `.claude/skills/test-coverage/SKILL.md` |
+| gen | `.claude/test-rules/*`, `.claude/skills/test-implement/SKILL.md`, `.claude/skills/test-mock/SKILL.md`, `.claude/skills/self-learn/SKILL.md`, `.claude/skills/test-coverage/SKILL.md` |
 
 ## Key Patterns
 
